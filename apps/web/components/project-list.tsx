@@ -17,6 +17,8 @@ import {
   Calendar,
   Folder,
   ArrowRight,
+  Rocket,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import type { ProjectRow } from "@shipvibes/database";
@@ -24,6 +26,9 @@ import type { ProjectRow } from "@shipvibes/database";
 export function ProjectList() {
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deployingProjects, setDeployingProjects] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     fetchProjects();
@@ -66,14 +71,48 @@ export function ProjectList() {
     }
   };
 
+  const handleDeploy = async (projectId: string) => {
+    try {
+      setDeployingProjects((prev) => new Set(prev).add(projectId));
+
+      const response = await fetch(`/api/projects/${projectId}/deploy`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to trigger deploy");
+      }
+
+      // Обновляем список проектов
+      await fetchProjects();
+    } catch (error) {
+      console.error("Error triggering deploy:", error);
+      alert("Failed to trigger deploy. Please try again.");
+    } finally {
+      setDeployingProjects((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(projectId);
+        return newSet;
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ready":
-        return <Badge variant="success">Ready</Badge>;
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            Ready
+          </Badge>
+        );
       case "building":
-        return <Badge variant="warning">Building</Badge>;
+        return (
+          <Badge variant="default" className="bg-yellow-100 text-yellow-800">
+            Building
+          </Badge>
+        );
       case "failed":
-        return <Badge variant="error">Failed</Badge>;
+        return <Badge variant="destructive">Failed</Badge>;
       default:
         return <Badge variant="secondary">Pending</Badge>;
     }
@@ -184,6 +223,25 @@ export function ProjectList() {
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeploy(project.id)}
+                    disabled={
+                      deployingProjects.has(project.id) ||
+                      project.deploy_status === "building"
+                    }
+                  >
+                    {deployingProjects.has(project.id) ||
+                    project.deploy_status === "building" ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Rocket className="h-4 w-4 mr-2" />
+                    )}
+                    Deploy
+                  </Button>
+
                   <details className="text-xs select-none">
                     <summary className="cursor-pointer text-primary">
                       Setup

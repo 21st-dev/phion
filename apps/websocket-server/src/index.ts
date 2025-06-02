@@ -4,7 +4,8 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import crypto from 'crypto';
 import { uploadFileVersion, downloadFile } from '@shipvibes/storage';
-import { getSupabaseServerClient, FileHistoryQueries } from '@shipvibes/database';
+import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries } from '@shipvibes/database';
+import { NetlifyService } from './services/netlify.js';
 // @ts-ignore
 import { diffLines } from 'diff';
 
@@ -26,9 +27,98 @@ const io = new Server(httpServer, {
   },
 });
 
+// Создаем экземпляр NetlifyService
+const netlifyService = new NetlifyService();
+
 console.log('🚀 Starting Shipvibes WebSocket Server...');
 console.log(`📡 Port: ${PORT}`);
 console.log(`🌐 Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
+
+/**
+ * Создать Netlify сайт для проекта если его еще нет
+ */
+async function ensureNetlifySite(projectId: string): Promise<string | null> {
+  try {
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    
+    // Получаем проект из базы данных
+    const project = await projectQueries.getProjectById(projectId);
+    if (!project) {
+      console.error(`❌ Project not found: ${projectId}`);
+      return null;
+    }
+
+    // Если у проекта уже есть Netlify сайт, возвращаем его ID
+    if (project.netlify_site_id) {
+      return project.netlify_site_id;
+    }
+
+    // Создаем новый Netlify сайт
+    console.log(`🌐 Creating Netlify site for project ${projectId}...`);
+    const netlifyResponse = await netlifyService.createSite(projectId, project.name);
+    
+    // Обновляем проект в базе данных
+    await projectQueries.updateProject(projectId, {
+      netlify_site_id: netlifyResponse.id,
+      netlify_url: netlifyResponse.ssl_url || netlifyResponse.url,
+      deploy_status: 'ready'
+    });
+
+    console.log(`✅ Netlify site created: ${netlifyResponse.url}`);
+    return netlifyResponse.id;
+  } catch (error) {
+    console.error(`❌ Error creating Netlify site for project ${projectId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Запустить деплой проекта на Netlify
+ */
+async function triggerDeploy(projectId: string): Promise<void> {
+  try {
+    // Убеждаемся что у проекта есть Netlify сайт
+    const siteId = await ensureNetlifySite(projectId);
+    if (!siteId) {
+      console.error(`❌ Cannot deploy project ${projectId}: no Netlify site`);
+      return;
+    }
+
+    console.log(`🚀 Triggering deploy for project ${projectId} (site: ${siteId})...`);
+    
+    // Обновляем статус деплоя
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    await projectQueries.updateProject(projectId, {
+      deploy_status: 'building'
+    });
+
+    // Запускаем деплой
+    const deployResponse = await netlifyService.deployProject(siteId, projectId);
+    
+    // Обновляем статус деплоя
+    await projectQueries.updateProject(projectId, {
+      deploy_status: deployResponse.state === 'ready' ? 'ready' : 'building',
+      netlify_url: deployResponse.deploy_url
+    });
+
+    console.log(`✅ Deploy initiated for project ${projectId}: ${deployResponse.deploy_url}`);
+  } catch (error) {
+    console.error(`❌ Error deploying project ${projectId}:`, error);
+    
+    // Обновляем статус деплоя как failed
+    try {
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      await projectQueries.updateProject(projectId, {
+        deploy_status: 'failed'
+      });
+    } catch (updateError) {
+      console.error('❌ Error updating deploy status:', updateError);
+    }
+  }
+}
 
 // Обработка подключений
 io.on('connection', (socket) => {
@@ -117,6 +207,12 @@ io.on('connection', (socket) => {
         updatedBy: socket.id
       });
 
+      // --- Автоматический деплой ---
+      // Запускаем деплой в фоне (не блокируем ответ клиенту)
+      triggerDeploy(projectId).catch(error => {
+        console.error(`❌ Background deploy failed for project ${projectId}:`, error);
+      });
+
     } catch (error) {
       console.error('❌ Error handling file change:', error);
       socket.emit('error', { message: 'Failed to save file' });
@@ -149,6 +245,11 @@ io.on('connection', (socket) => {
         filePath,
         timestamp: Date.now(),
         removedBy: socket.id
+      });
+
+      // --- Автоматический деплой после удаления ---
+      triggerDeploy(projectId).catch(error => {
+        console.error(`❌ Background deploy failed for project ${projectId}:`, error);
       });
 
     } catch (error) {
