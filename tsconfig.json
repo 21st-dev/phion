@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shipvibes/shared": ["./packages/shared/src"],
+      "@shipvibes/database": ["./packages/database/src"],
+      "@shipvibes/storage": ["./packages/storage/src"]
+    }
+  },
+  "include": ["**/*"],
+  "exclude": ["node_modules", "dist", "build", ".next", ".turbo"]
+} 

@@ -1,0 +1,34 @@
+{
+  "name": "shipvibes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shipvibes.dev - платформа для редактирования фронтенд-кода с автодеплоем",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:all": "concurrently \"turbo dev\" \"cd apps/websocket-server && pnpm dev\"",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean",
+    "test": "turbo test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "concurrently": "^8.2.2",
+    "turbo": "^1.10.16",
+    "typescript": "^5.2.2"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.478.0",
+    "dotenv": "^16.5.0"
+  }
+}

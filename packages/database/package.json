@@ -1,0 +1,40 @@
+{
+  "name": "@shipvibes/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Supabase интеграция для Shipvibes",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.js"
+    },
+    "./queries": {
+      "types": "./dist/queries/index.d.ts",
+      "import": "./dist/queries/index.js",
+      "require": "./dist/queries/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@shipvibes/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "typescript": "^5.2.2"
+  }
+}

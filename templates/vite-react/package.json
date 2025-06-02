@@ -1,0 +1,25 @@
+{
+  "name": "shipvibes-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync": "node shipvibes-dev.js",
+    "start": "pnpm install && (pnpm dev & pnpm sync)"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "chokidar": "^3.6.0",
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.2.0"
+  }
+}
