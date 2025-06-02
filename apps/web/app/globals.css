@@ -235,6 +235,82 @@ iframe {
 
 @layer base {
   :root {
+    /* Geist font variables */
+    --font-geist-sans: "Geist Sans", system-ui, sans-serif;
+    --font-geist-mono: "Geist Mono", "Courier New", monospace;
+
+    /* Geist design system colors */
+    --ds-gray-100: hsla(0, 0%, 95%, 1);
+    --ds-gray-200: hsla(0, 0%, 92%, 1);
+    --ds-gray-500: hsla(0, 0%, 79%, 1);
+    --ds-gray-600: hsla(0, 0%, 66%, 1);
+    --ds-gray-700: hsla(0, 0%, 56%, 1);
+    --ds-gray-900: hsla(0, 0%, 40%, 1);
+    --ds-gray-1000: hsla(0, 0%, 9%, 1);
+    --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
+    --ds-background-100: hsla(0, 0%, 100%, 1);
+    --ds-background-200: hsla(0, 0%, 98%, 1);
+    --geist-error: #ee0000;
+    --geist-warning: #f5a623;
+    --geist-cyan: #50e3c2;
+    --geist-success: #0070f3;
+    --geist-background: #fff;
+    --geist-secondary: #666666;
+    --geist-violet: #7928ca;
+    --geist-foreground: #000;
+    --accents-1: #fafafa;
+    --accents-2: #eaeaea;
+
+    /* Additional gray scales */
+    --ds-gray-400: hsla(0, 0%, 92%, 1);
+    --ds-gray-alpha-200: hsla(0, 0%, 0%, 0.08);
+    --ds-shadow: rgba(0, 0, 0, 0.08);
+
+    /* Blue variants */
+    --ds-blue-600: oklch(73.08% 0.1583 248.133320980386);
+    --ds-blue-900: oklch(53.18% 0.2399 256.9900584162342);
+
+    /* Context card borders */
+    --context-card-border: hsla(0, 0%, 92%, 1);
+
+    /* Colored variants for toggles */
+    --ds-blue-100: oklch(97.32% 0.0141 251.56);
+    --ds-blue-700: oklch(57.61% 0.2508 258.23);
+    --ds-blue-1000: oklch(26.67% 0.1099 254.34);
+    --ds-red-100: oklch(96.5% 0.0223 13.09);
+    --ds-red-600: oklch(71.12% 0.1881 21.22);
+    --ds-red-1000: oklch(24.8% 0.1041 18.86);
+    --ds-amber-100: oklch(97.48% 0.0331 85.79);
+    --ds-amber-700: oklch(81.87% 0.1969 76.46);
+    --ds-amber-1000: oklch(30.83% 0.099 45.48);
+    --ds-green-100: oklch(97.59% 0.0289 145.42);
+    --ds-green-700: oklch(64.58% 0.1746 147.27);
+    --ds-green-1000: oklch(29.15% 0.1197 147.38);
+    --ds-teal-100: oklch(97.72% 0.0359 186.7);
+    --ds-teal-700: oklch(64.92% 0.1572 181.95);
+    --ds-teal-1000: oklch(32.11% 0.0788 179.82);
+    --ds-purple-100: oklch(96.65% 0.0244 312.1890119359961);
+    --ds-purple-700: oklch(55.5% 0.3008 306.12);
+    --ds-purple-1000: oklch(23.96% 0.13 305.66);
+    --ds-pink-100: oklch(95.69% 0.0359 344.6218910697224);
+    --ds-pink-700: oklch(63.52% 0.238 1.01);
+    --ds-pink-1000: oklch(26% 0.0977 359);
+
+    /* Material shadows */
+    --ds-shadow-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+    --ds-shadow-small: 0px 2px 2px rgba(0, 0, 0, 0.04);
+    --ds-shadow-border-small: var(--ds-shadow-border), var(--ds-shadow-small);
+    --ds-shadow-medium: 0px 2px 2px rgba(0, 0, 0, 0.04), 0px 8px 8px -8px rgba(0, 0, 0, 0.04);
+    --ds-shadow-border-medium: var(--ds-shadow-border), var(--ds-shadow-medium);
+    --ds-shadow-large: 0px 2px 2px rgba(0, 0, 0, 0.04), 0px 8px 16px -4px rgba(0, 0, 0, 0.04);
+    --ds-shadow-border-large: var(--ds-shadow-border), var(--ds-shadow-large);
+    --ds-shadow-tooltip: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02), 0px 4px 8px rgba(0, 0, 0, 0.04);
+    --ds-shadow-menu: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02), 0px 4px 8px -4px rgba(0, 0, 0, 0.04), 0px 16px 24px -8px rgba(0, 0, 0, 0.06);
+    --ds-shadow-modal: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02), 0px 8px 16px -4px rgba(0, 0, 0, 0.04), 0px 24px 32px -8px rgba(0, 0, 0, 0.06);
+    --ds-shadow-fullscreen: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02), 0px 8px 16px -4px rgba(0, 0, 0, 0.04), 0px 24px 32px -8px rgba(0, 0, 0, 0.06);
+    --ds-toggle-ring: 0 0 4px rgba(0, 0, 0, .12), 0 1px 1px rgba(0, 0, 0, .16);
+
+    /* Existing shadcn variables */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -280,6 +356,60 @@ iframe {
   }
 
   .dark {
+    /* Geist design system colors - dark theme */
+    --ds-gray-100: hsla(0, 0%, 10%, 1);
+    --ds-gray-200: hsla(0, 0%, 12%, 1);
+    --ds-gray-500: hsla(0, 0%, 27%, 1);
+    --ds-gray-600: hsla(0, 0%, 53%, 1);
+    --ds-gray-700: hsla(0, 0%, 56%, 1);
+    --ds-gray-900: hsla(0, 0%, 63%, 1);
+    --ds-gray-1000: hsla(0, 0%, 93%, 1);
+    --ds-gray-alpha-400: hsla(0, 0%, 100%, 0.14);
+    --ds-background-100: hsla(0, 0%, 4%, 1);
+    --ds-background-200: hsla(0, 0%, 0%, 1);
+    --geist-error: #ff0000;
+    --geist-background: #000;
+    --geist-secondary: #888888;
+    --geist-foreground: #fff;
+    --accents-1: #111111;
+    --accents-2: #333333;
+
+    /* Additional gray scales - dark theme */
+    --ds-gray-400: hsla(0, 0%, 18%, 1);
+    --ds-gray-alpha-200: hsla(0, 0%, 100%, 0.09);
+    --ds-shadow: rgba(255, 255, 255, 0.145);
+
+    /* Blue variants - dark theme */
+    --ds-blue-600: oklch(64.94% 0.1982 251.8131841760864);
+    --ds-blue-900: oklch(71.7% 0.1648 250.79360374054167);
+
+    /* Context card borders - dark theme */
+    --context-card-border: hsla(0, 0%, 18%, 1);
+
+    /* Colored variants for toggles - dark theme */
+    --ds-blue-100: oklch(22.17% 0.069 259.89);
+    --ds-blue-700: oklch(57.61% 0.2321 258.23);
+    --ds-blue-1000: oklch(96.75% 0.0179 242.4234217368056);
+    --ds-red-100: oklch(22.1% 0.0657 15.11);
+    --ds-red-600: oklch(62.56% 0.2277 23.03);
+    --ds-red-1000: oklch(95.6% 0.0293 6.61);
+    --ds-amber-100: oklch(22.46% 0.0538 76.04);
+    --ds-amber-700: oklch(81.87% 0.1969 76.46);
+    --ds-amber-1000: oklch(96.7% 0.0418 84.59);
+    --ds-green-100: oklch(23.09% 0.0716 149.68);
+    --ds-green-700: oklch(64.58% 0.199 147.27);
+    --ds-green-1000: oklch(96.76% 0.056 154.18);
+    --ds-teal-100: oklch(22.1% 0.0544 178.74);
+    --ds-teal-700: oklch(64.92% 0.1403 181.95);
+    --ds-teal-1000: oklch(96.46% 0.056 180.29);
+    --ds-purple-100: oklch(22.34% 0.0779 316.87);
+    --ds-purple-700: oklch(55.5% 0.2186 306.12);
+    --ds-purple-1000: oklch(96.1% 0.0304 316.46);
+    --ds-pink-100: oklch(22.67% 0.0628 354.73);
+    --ds-pink-700: oklch(63.52% 0.2346 1.01);
+    --ds-pink-1000: oklch(95.74% 0.0326 350.08);
+
+    /* Existing shadcn dark variables */
     --background: 240 10% 3.9%;
     --foreground: 240 4.8% 95.9%;
     --card: 240 10% 3.9%;
