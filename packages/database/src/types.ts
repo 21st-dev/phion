@@ -11,6 +11,7 @@ export interface Database {
           template_type: string;
           netlify_site_id: string | null;
           netlify_url: string | null;
+          netlify_deploy_id: string | null;
           deploy_status: string;
           created_at: string;
           updated_at: string;
@@ -21,6 +22,7 @@ export interface Database {
           template_type?: string;
           netlify_site_id?: string | null;
           netlify_url?: string | null;
+          netlify_deploy_id?: string | null;
           deploy_status?: string;
           created_at?: string;
           updated_at?: string;
@@ -31,6 +33,7 @@ export interface Database {
           template_type?: string;
           netlify_site_id?: string | null;
           netlify_url?: string | null;
+          netlify_deploy_id?: string | null;
           deploy_status?: string;
           created_at?: string;
           updated_at?: string;

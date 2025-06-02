@@ -51,6 +51,7 @@ export const UpdateProjectSchema = z.object({
   deploy_status: DeployStatus.optional(),
   netlify_site_id: z.string().optional(),
   netlify_url: z.string().url().optional(),
+  netlify_deploy_id: z.string().optional(),
 });
 
 export type UpdateProject = z.infer<typeof UpdateProjectSchema>;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjectById, updateProject, deleteProject } from "@shipvibes/database";
+import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
 
 export async function GET(
   request: NextRequest,
@@ -7,7 +7,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const project = await getProjectById(id);
+    
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    
+    const project = await projectQueries.getProjectById(id);
     
     if (!project) {
       return NextResponse.json(
@@ -18,15 +22,15 @@ export async function GET(
 
     return NextResponse.json(project);
   } catch (error) {
-    console.error("Error fetching project:", error);
+    console.error("Error getting project:", error);
     return NextResponse.json(
-      { error: "Failed to fetch project" },
+      { error: "Failed to get project" },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -34,9 +38,12 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     
-    const project = await updateProject(id, body);
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
     
-    return NextResponse.json(project);
+    const updatedProject = await projectQueries.updateProject(id, body);
+    
+    return NextResponse.json(updatedProject);
   } catch (error) {
     console.error("Error updating project:", error);
     return NextResponse.json(
@@ -52,7 +59,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteProject(id);
+    
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    
+    await projectQueries.deleteProject(id);
     
     return NextResponse.json({ success: true });
   } catch (error) {

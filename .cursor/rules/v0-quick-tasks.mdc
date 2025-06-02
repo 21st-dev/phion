@@ -1,0 +1,184 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ⚡ v0 Quick Tasks Reference
+
+## 🎯 Current Sprint: Phase 1 (Критически важно)
+
+### 1. 🔐 Google OAuth & User System
+**Priority: HIGH** | **Timeline: 1-2 weeks**
+
+```bash
+# Tasks
+- [ ] Setup Google Cloud Console OAuth
+- [ ] Configure Supabase Auth providers  
+- [ ] Add user_id back to projects table
+- [ ] Create login/logout components
+- [ ] Implement protected routes
+```
+
+### 2. 🎨 Vercel-style UI Redesign  
+**Priority: HIGH** | **Timeline: 2-3 weeks**
+
+```bash
+# Tasks
+- [ ] Install Inter font family
+- [ ] Create Vercel color palette in Tailwind
+- [ ] Redesign project cards with status indicators
+- [ ] Add loading skeletons and animations
+- [ ] Implement toast notifications
+```
+
+### 3. 📝 Git-like Changes System
+**Priority: HIGH** | **Timeline: 2-3 weeks**
+
+```bash
+# Tasks
+- [ ] Modify WebSocket to track without auto-save
+- [ ] Build file tree sidebar with status indicators
+- [ ] Create diff viewer component
+- [ ] Implement commit interface with message
+- [ ] Add batch save operations
+```
+
+---
+
+## 🔄 Next Sprint: Phase 2 (Важно)
+
+### 4. 🚢 Deploy-on-Commit Only
+**Priority: MEDIUM** | **Timeline: 1 week**
+
+```bash
+# Tasks
+- [ ] Remove auto-deploy from file changes
+- [ ] Add manual deploy trigger to commit action
+- [ ] Show deployment status in real-time
+- [ ] Implement preview vs production environments
+```
+
+### 5. ⚡ Setup Script/Tool
+**Priority: MEDIUM** | **Timeline: 1-2 weeks**
+
+```bash
+# Tasks
+- [ ] Create install.sh bash script
+- [ ] Add Node.js/PNPM detection and installation
+- [ ] Cross-platform compatibility (macOS/Windows/Linux)
+- [ ] Research Electron app feasibility
+```
+
+---
+
+## 📝 Implementation Notes
+
+### Google OAuth Setup Steps:
+1. **Google Cloud Console:**
+   ```
+   - Create new project
+   - Enable Google+ API
+   - Create OAuth 2.0 credentials
+   - Add authorized redirect URIs
+   ```
+
+2. **Supabase Configuration:**
+   ```sql
+   -- In Supabase dashboard:
+   Authentication > Providers > Google
+   Add Client ID and Client Secret
+   ```
+
+### Vercel Color Palette:
+```javascript
+// tailwind.config.js
+colors: {
+  'vercel-black': '#000000',
+  'vercel-white': '#ffffff', 
+  'vercel-gray': {
+    50: '#fafafa',
+    100: '#f5f5f5',
+    900: '#171717'
+  }
+}
+```
+
+### Git-like Status Colors:
+```css
+/* File status indicators */
+.file-modified { color: #f59e0b; }    /* amber */
+.file-added { color: #10b981; }       /* emerald */
+.file-deleted { color: #ef4444; }     /* red */
+.file-untracked { color: #6b7280; }   /* gray */
+```
+
+---
+
+## 🔧 Technical Decisions
+
+### Architecture Changes:
+- **Database:** Add `user_id` foreign key constraint
+- **Auth:** Use Supabase Auth with Google provider
+- **UI:** Replace shadcn/ui with Vercel-style components  
+- **State:** Add WebSocket state for uncommitted changes
+- **Deploy:** Separate commit action from deploy trigger
+
+### New Components Needed:
+```typescript
+// v0 Components
+- AuthProvider (Google OAuth)
+- ProjectCard (Vercel-style)
+- FileTree (Git-like sidebar)  
+- DiffViewer (Code comparison)
+- CommitDialog (Batch save interface)
+- DeployStatus (Real-time indicators)
+```
+
+---
+
+## 🚀 Quick Start Commands
+
+### Development:
+```bash
+# Start all services
+pnpm dev
+
+# Database migrations
+cd packages/database && npx supabase db reset
+
+# Component development
+cd apps/web && pnpm dev
+```
+
+### Testing OAuth:
+```bash
+# Test Google OAuth flow
+1. Go to http://localhost:3000/login
+2. Click "Sign in with Google"  
+3. Verify user creation in Supabase
+4. Check project filtering by user
+```
+
+### Testing Git-like Changes:
+```bash
+# Test change tracking
+1. Create new project
+2. Download and run locally  
+3. Edit files without saving
+4. Check changes appear in sidebar
+5. Commit multiple files at once
+```
+
+---
+
+## 📊 Success Metrics for v0
+
+- [ ] **OAuth:** 100% success rate for Google login
+- [ ] **UI:** Components match Vercel design system
+- [ ] **Git-like:** Users can see and commit grouped changes
+- [ ] **Deploy:** Only happens on explicit commit action
+- [ ] **Setup:** One-command project initialization
+
+---
+
+*Focus on Phase 1 tasks first - they form the foundation for all other v0 features.*

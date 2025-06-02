@@ -32,6 +32,13 @@ export function ProjectList() {
 
   useEffect(() => {
     fetchProjects();
+
+    // Автоматически обновляем статус каждые 10 секунд
+    const interval = setInterval(() => {
+      fetchProjects();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchProjects = async () => {
@@ -67,7 +74,7 @@ export function ProjectList() {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Error downloading project:", error);
-      alert("Failed to download project. Please try again.");
+      alert("Couldn't download your project. Please try again.");
     }
   };
 
@@ -87,7 +94,7 @@ export function ProjectList() {
       await fetchProjects();
     } catch (error) {
       console.error("Error triggering deploy:", error);
-      alert("Failed to trigger deploy. Please try again.");
+      alert("Couldn't publish your site. Please try again.");
     } finally {
       setDeployingProjects((prev) => {
         const newSet = new Set(prev);
@@ -102,19 +109,19 @@ export function ProjectList() {
       case "ready":
         return (
           <Badge variant="default" className="bg-green-100 text-green-800">
-            Ready
+            ✅ Live
           </Badge>
         );
       case "building":
         return (
           <Badge variant="default" className="bg-yellow-100 text-yellow-800">
-            Building
+            🔄 Publishing
           </Badge>
         );
       case "failed":
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="destructive">❌ Error</Badge>;
       default:
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary">⏳ Pending</Badge>;
     }
   };
 
@@ -122,7 +129,7 @@ export function ProjectList() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Projects</h2>
+          <h2 className="text-2xl font-bold">My Projects</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
@@ -149,7 +156,7 @@ export function ProjectList() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Projects</h2>
+          <h2 className="text-2xl font-bold">My Projects</h2>
         </div>
         <Card className="flex flex-col items-center justify-center p-8 text-center">
           <div className="rounded-full bg-muted p-3 mb-4">
@@ -206,7 +213,7 @@ export function ProjectList() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center text-sm text-primary hover:underline"
                 >
-                  View live site
+                  🌐 View live site
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </a>
               )}
@@ -239,7 +246,7 @@ export function ProjectList() {
                     ) : (
                       <Rocket className="h-4 w-4 mr-2" />
                     )}
-                    Deploy
+                    Publish
                   </Button>
 
                   <details className="text-xs select-none">

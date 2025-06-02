@@ -97,10 +97,11 @@ async function triggerDeploy(projectId: string): Promise<void> {
     // Запускаем деплой
     const deployResponse = await netlifyService.deployProject(siteId, projectId);
     
-    // Обновляем статус деплоя
+    // Обновляем статус деплоя (автоматическая проверка статуса запустится в NetlifyService)
     await projectQueries.updateProject(projectId, {
-      deploy_status: deployResponse.state === 'ready' ? 'ready' : 'building',
-      netlify_url: deployResponse.deploy_url
+      deploy_status: 'building',
+      netlify_url: deployResponse.deploy_url,
+      netlify_deploy_id: deployResponse.id
     });
 
     console.log(`✅ Deploy initiated for project ${projectId}: ${deployResponse.deploy_url}`);
@@ -281,6 +282,13 @@ io.on('connection', (socket) => {
 httpServer.listen(PORT, () => {
   console.log(`✅ WebSocket server running on port ${PORT}`);
   console.log(`🔗 Connect to: ws://localhost:${PORT}`);
+  
+  // Проверяем статус всех активных деплоев при старте сервера
+  setTimeout(() => {
+    netlifyService.checkAllActiveDeployments().catch(error => {
+      console.error('❌ Error checking active deployments on startup:', error);
+    });
+  }, 2000); // Ждем 2 секунды после старта
 });
 
 // Graceful shutdown
