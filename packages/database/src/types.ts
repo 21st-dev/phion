@@ -13,6 +13,7 @@ export interface Database {
           netlify_url: string | null;
           netlify_deploy_id: string | null;
           deploy_status: string;
+          user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -24,6 +25,7 @@ export interface Database {
           netlify_url?: string | null;
           netlify_deploy_id?: string | null;
           deploy_status?: string;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -35,6 +37,7 @@ export interface Database {
           netlify_url?: string | null;
           netlify_deploy_id?: string | null;
           deploy_status?: string;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

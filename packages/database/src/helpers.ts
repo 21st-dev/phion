@@ -12,10 +12,13 @@ const fileHistoryQueries = new FileHistoryQueries(getSupabaseServerClient());
 export const getAllProjects = (): Promise<ProjectRow[]> => 
   projectQueries.getAllProjects();
 
+export const getUserProjects = (userId?: string): Promise<ProjectRow[]> => 
+  projectQueries.getUserProjects(userId);
+
 export const getProjectById = (projectId: string): Promise<ProjectRow | null> => 
   projectQueries.getProjectById(projectId);
 
-export const createProject = (projectData: CreateProject): Promise<ProjectRow> => 
+export const createProject = (projectData: CreateProject & { user_id?: string }): Promise<ProjectRow> => 
   projectQueries.createProject(projectData);
 
 export const updateProject = (projectId: string, updateData: UpdateProject): Promise<ProjectRow> => 
@@ -39,6 +42,9 @@ export const getProjectsByDeployStatus = (
 
 export const searchProjects = (searchTerm: string): Promise<ProjectRow[]> => 
   projectQueries.searchProjects(searchTerm);
+
+export const searchUserProjects = (searchTerm: string, userId?: string): Promise<ProjectRow[]> => 
+  projectQueries.searchUserProjects(searchTerm, userId);
 
 // Экспортируем удобные функции для истории файлов
 export const getProjectFileHistory = (projectId: string, limit?: number, offset?: number): Promise<FileHistoryRow[]> => 

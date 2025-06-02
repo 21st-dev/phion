@@ -1,7 +1,36 @@
 import { ProjectList } from "@/components/project-list";
 import { CreateProjectButton } from "@/components/create-project-button";
+import { UserMenu } from "@/components/user-menu";
+import { createAuthServerClient } from "@shipvibes/database";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const supabase = createAuthServerClient({
+    getAll() {
+      return cookieStore.getAll();
+    },
+    setAll(cookiesToSet) {
+      try {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          cookieStore.set(name, value, options)
+        );
+      } catch {
+        // Игнорируем ошибки установки cookies в Server Components
+      }
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Если пользователь не авторизован, перенаправляем на страницу входа
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -21,8 +50,9 @@ export default function HomePage() {
                 Frontend code editor with auto-deploy
               </p>
             </div>
-            <nav className="flex items-center">
+            <nav className="flex items-center space-x-4">
               <CreateProjectButton />
+              <UserMenu user={user} />
             </nav>
           </div>
         </div>
@@ -36,7 +66,7 @@ export default function HomePage() {
             <div className="flex flex-col space-y-4">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                  Ship frontend code with auto-deploy
+                  Welcome back, {user.user_metadata?.full_name || user.email}!
                 </h1>
                 <p className="text-lg text-muted-foreground">
                   Edit your frontend code locally in Cursor and see changes

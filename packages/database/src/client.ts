@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import { Database } from "./types";
 
 // Типы для конфигурации клиента
@@ -38,6 +39,57 @@ export function createSupabaseServerClient(
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+  });
+}
+
+// ========== НОВЫЕ КЛИЕНТЫ ДЛЯ АВТОРИЗАЦИИ ПОЛЬЗОВАТЕЛЕЙ ==========
+
+// Создание браузерного клиента с поддержкой авторизации
+export function createAuthBrowserClient(): SupabaseClient<Database> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables are required"
+    );
+  }
+
+  return createBrowserClient<Database>(url, anonKey);
+}
+
+// Интерфейс для cookie store (Next.js)
+interface CookieStore {
+  getAll(): { name: string; value: string }[];
+  setAll(cookies: { name: string; value: string; options?: any }[]): void;
+}
+
+// Создание серверного клиента с поддержкой авторизации и cookies
+export function createAuthServerClient(cookieStore: CookieStore): SupabaseClient<Database> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables are required"
+    );
+  }
+
+  return createServerClient<Database>(url, anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookieStore.setAll(cookiesToSet);
+        } catch {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
     },
   });
 }

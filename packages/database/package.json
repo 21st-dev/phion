@@ -31,7 +31,8 @@
   },
   "dependencies": {
     "@shipvibes/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.38.0"
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.9"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",

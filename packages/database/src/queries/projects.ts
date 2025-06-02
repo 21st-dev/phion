@@ -6,7 +6,7 @@ export class ProjectQueries {
   constructor(private client: SupabaseClient<Database>) {}
 
   /**
-   * Получить все проекты
+   * Получить все проекты (только для admin/service role)
    */
   async getAllProjects(): Promise<ProjectRow[]> {
     const { data, error } = await this.client
@@ -16,6 +16,30 @@ export class ProjectQueries {
 
     if (error) {
       throw new Error(`Failed to fetch projects: ${error.message}`);
+    }
+
+    return (data as unknown as ProjectRow[]) || [];
+  }
+
+  /**
+   * Получить проекты пользователя (работает с RLS)
+   */
+  async getUserProjects(userId?: string): Promise<ProjectRow[]> {
+    let query = this.client
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    // Если передан userId (для service role), фильтруем по нему
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+    // Иначе RLS автоматически отфильтрует по текущему пользователю
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch user projects: ${error.message}`);
     }
 
     return (data as unknown as ProjectRow[]) || [];
@@ -44,11 +68,12 @@ export class ProjectQueries {
   /**
    * Создать новый проект
    */
-  async createProject(projectData: CreateProject): Promise<ProjectRow> {
+  async createProject(projectData: CreateProject & { user_id?: string }): Promise<ProjectRow> {
     const insertData: ProjectInsert = {
       name: projectData.name || `Project ${Date.now()}`,
       template_type: projectData.template_type || "vite-react",
       deploy_status: "pending",
+      user_id: projectData.user_id, // Добавляем user_id
     };
 
     const { data, error } = await this.client
@@ -167,6 +192,31 @@ export class ProjectQueries {
 
     if (error) {
       throw new Error(`Failed to search projects: ${error.message}`);
+    }
+
+    return (data as unknown as ProjectRow[]) || [];
+  }
+
+  /**
+   * Поиск проектов пользователя по имени
+   */
+  async searchUserProjects(searchTerm: string, userId?: string): Promise<ProjectRow[]> {
+    let query = this.client
+      .from("projects")
+      .select("*")
+      .ilike("name", `%${searchTerm}%`)
+      .order("created_at", { ascending: false });
+
+    // Если передан userId (для service role), фильтруем по нему
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+    // Иначе RLS автоматически отфильтрует по текущему пользователю
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to search user projects: ${error.message}`);
     }
 
     return (data as unknown as ProjectRow[]) || [];

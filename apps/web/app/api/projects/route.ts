@@ -1,13 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllProjects, createProject } from "@shipvibes/database";
+import { getAllProjects, createProject, getUserProjects } from "@shipvibes/database";
+import { createAuthServerClient } from "@shipvibes/database";
 import { uploadProjectTemplate } from "@shipvibes/storage";
+import { cookies } from "next/headers";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const projects = await getAllProjects();
+    const cookieStore = await cookies();
+    const supabase = createAuthServerClient({
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // Игнорируем ошибки установки cookies
+        }
+      },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Получаем проекты пользователя (RLS автоматически фильтрует)
+    const projects = await getUserProjects();
     return NextResponse.json(projects);
   } catch (error) {
     console.error("Error fetching projects:", error);
@@ -20,6 +48,31 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createAuthServerClient({
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // Игнорируем ошибки установки cookies
+        }
+      },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, template_type } = body;
 
@@ -30,9 +83,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Создаем проект с привязкой к пользователю
     const project = await createProject({
       name,
       template_type,
+      user_id: user.id, // Привязываем к текущему пользователю
     });
 
     // Генерируем шаблон проекта и загружаем в R2
