@@ -9,18 +9,14 @@ import crypto from "crypto";
 // Конфигурация
 const PROJECT_ID = process.env.SHIPVIBES_PROJECT_ID || "__PROJECT_ID__"; // Заменяется при генерации
 const WS_URL = process.env.SHIPVIBES_WS_URL || "ws://localhost:8080";
-const AUTO_SAVE_ENABLED = process.env.SHIPVIBES_AUTO_SAVE !== "false"; // По умолчанию включено
-const AUTO_SAVE_DELAY = parseInt(
-  process.env.SHIPVIBES_AUTO_SAVE_DELAY || "60000"
-); // 60 секунд по умолчанию
+// Убираем автосохранение - все изменения отправляются сразу
 
 class ShipvibesAgent {
   constructor() {
     this.socket = null;
     this.watcher = null;
     this.isConnected = false;
-    this.pendingChanges = new Map(); // Хранит ожидающие сохранения изменения
-    this.saveTimeouts = new Map(); // Таймауты для автосохранения
+    // Убираем pending changes - отправляем изменения сразу
   }
 
   async start() {
@@ -39,16 +35,6 @@ class ShipvibesAgent {
 
     console.log("✅ Shipvibes Agent is running!");
     console.log("📝 Edit your files and see changes sync automatically");
-
-    if (AUTO_SAVE_ENABLED) {
-      console.log(
-        `💡 Auto-save: ON (${AUTO_SAVE_DELAY / 1000}s after last change)`
-      );
-    } else {
-      console.log("💡 Auto-save: OFF (manual save only)");
-    }
-
-    console.log("⌨️  Press Ctrl+S to save immediately, Ctrl+C to exit");
     console.log("🌐 Check your Shipvibes dashboard for updates");
     console.log("");
     console.log("Press Ctrl+C to stop");
@@ -156,7 +142,7 @@ class ShipvibesAgent {
 
   async handleFileChange(filePath) {
     if (!this.isConnected) {
-      console.log(`⏳ Queuing change: ${filePath} (not connected)`);
+      console.log(`⏳ Not connected, skipping: ${filePath}`);
       return;
     }
 
@@ -164,94 +150,25 @@ class ShipvibesAgent {
       const content = fs.readFileSync(filePath, "utf-8");
       const hash = crypto.createHash("sha256").update(content).digest("hex");
 
-      console.log(`📝 Changed: ${filePath}`);
+      console.log(`📝 Sending change: ${filePath}`);
 
-      // Сохраняем изменение в ожидающие
-      this.pendingChanges.set(filePath, {
-        content,
-        hash,
+      // Отправляем изменение сразу в веб-интерфейс
+      this.socket.emit("file_change", {
+        projectId: PROJECT_ID,
+        filePath: filePath.replace(/\\/g, "/"),
+        content: content,
+        hash: hash,
         timestamp: Date.now(),
       });
 
-      // Отменяем предыдущий таймаут если есть
-      if (this.saveTimeouts.has(filePath)) {
-        clearTimeout(this.saveTimeouts.get(filePath));
-      }
-
-      // Показываем статус ожидающих изменений
-      this.showPendingStatus();
-
-      // Устанавливаем новый таймаут для автосохранения (если включено)
-      if (AUTO_SAVE_ENABLED) {
-        const timeout = setTimeout(() => {
-          this.saveFile(filePath);
-        }, AUTO_SAVE_DELAY);
-
-        this.saveTimeouts.set(filePath, timeout);
-      }
+      console.log(`✅ Change sent: ${filePath}`);
     } catch (error) {
       console.error(`❌ Error reading file ${filePath}:`, error.message);
     }
   }
 
-  saveFile(filePath) {
-    const change = this.pendingChanges.get(filePath);
-    if (!change) return;
-
-    console.log(`💾 Saving: ${filePath}`);
-
-    this.socket.emit("file_change", {
-      projectId: PROJECT_ID,
-      filePath: filePath.replace(/\\/g, "/"),
-      content: change.content,
-      hash: change.hash,
-      timestamp: change.timestamp,
-    });
-
-    // Удаляем из ожидающих
-    this.pendingChanges.delete(filePath);
-    this.saveTimeouts.delete(filePath);
-
-    // Показываем обновленный статус
-    if (this.pendingChanges.size === 0) {
-      console.log(`✅ All changes saved!`);
-    } else {
-      this.showPendingStatus();
-    }
-  }
-
-  // Принудительное сохранение всех изменений
-  saveAllChanges() {
-    console.log(`💾 Saving all pending changes...`);
-    for (const filePath of this.pendingChanges.keys()) {
-      if (this.saveTimeouts.has(filePath)) {
-        clearTimeout(this.saveTimeouts.get(filePath));
-      }
-      this.saveFile(filePath);
-    }
-  }
-
-  // Показать статус ожидающих изменений
-  showPendingStatus() {
-    const pendingCount = this.pendingChanges.size;
-    if (pendingCount > 0) {
-      const files = Array.from(this.pendingChanges.keys())
-        .map((f) => f.split("/").pop())
-        .join(", ");
-
-      if (AUTO_SAVE_ENABLED) {
-        console.log(
-          `⏳ Pending changes (${pendingCount}): ${files} (auto-save in ${
-            AUTO_SAVE_DELAY / 1000
-          }s, or press Ctrl+S)`
-        );
-      } else {
-        console.log(
-          `⏳ Pending changes (${pendingCount}): ${files} (press Ctrl+S to save)`
-        );
-      }
-    }
-  }
+  // Удалены методы saveFile, saveAllChanges, showPendingStatus
+  // Теперь все изменения отправляются сразу в веб-интерфейс
 
   handleFileDelete(filePath) {
     if (!this.isConnected) {
@@ -290,11 +207,7 @@ const agent = new ShipvibesAgent();
 process.stdin.setRawMode(true);
 process.stdin.resume();
 process.stdin.on("data", (key) => {
-  // Ctrl+S (ASCII 19)
-  if (key[0] === 19) {
-    agent.saveAllChanges();
-  }
-  // Ctrl+C (ASCII 3)
+  // Ctrl+C (ASCII 3) для выхода
   if (key[0] === 3) {
     agent.stop();
     process.exit(0);

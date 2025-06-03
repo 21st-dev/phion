@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useId } from "react";
 import { Tooltip } from "react-tooltip";
 
 interface ContextCardTriggerProps {
@@ -12,13 +12,7 @@ const ContextCardTrigger = ({
   side = "top",
   children,
 }: ContextCardTriggerProps) => {
-  const id = useMemo(() => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    return Array.from(
-      { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)]
-    ).join("");
-  }, []);
+  const id = useId();
 
   return (
     <>

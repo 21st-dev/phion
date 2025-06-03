@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 # ⚡ v0 Quick Tasks Reference
 
@@ -9,10 +9,6 @@ alwaysApply: true
 
 ### 1. 🔐 Google OAuth & User System
 
-**Priority: HIGH** | **Timeline: 1-2 weeks** | **STATUS: ✅ ЗАВЕРШЕНО**
-
-```bash
-# Tasks
 - [x] Setup Google Cloud Console OAuth
 - [x] Configure Supabase Auth providers
 - [x] Add user_id back to projects table
@@ -21,7 +17,6 @@ alwaysApply: true
 - [x] Add RLS policies for data security
 - [x] Update API endpoints with authorization
 - [x] Create UserMenu component
-```
 
 ---
 
@@ -29,34 +24,40 @@ alwaysApply: true
 
 ### 2. 🎨 Vercel-style UI Redesign
 
-**Priority: HIGH** | **Timeline: 2-3 weeks** | **STATUS: 🔄 В РАБОТЕ**
-
-```bash
-# Tasks
-- [ ] Install Inter font family
-- [ ] Create Vercel color palette in Tailwind
-- [ ] Redesign project cards with status indicators
-- [ ] Add loading skeletons and animations
-- [ ] Implement toast notifications
-- [ ] Update header/navigation styling
-- [ ] Redesign login page in Vercel style
-- [ ] Add professional dashboard layout
-```
+- [x] Install Inter font family
+- [x] Create Vercel color palette in Tailwind
+- [x] Redesign project cards with status indicators
+- [x] Add loading skeletons and animations
+- [x] Implement toast notifications (частично)
+- [x] Update header/navigation styling
+- [x] Redesign login page in Vercel style
+- [x] Add professional dashboard layout
 
 ### 3. 📝 Git-like Changes System
 
-**Priority: HIGH** | **Timeline: 2-3 weeks** | **STATUS: 🔄 В РАБОТЕ**
+- [x] Modify WebSocket to track without auto-save
+- [x] Sidebar with changed files and statuses
+- [x] Commit interface with message
+- [x] Batch save operations
+- [x] Show uncommitted changes counter
+- [x] Add file status colors (modified/added/deleted)
+- [x] Deploy only on commit (реализовано)
 
-```bash
-# Tasks
-- [ ] Modify WebSocket to track without auto-save
-- [ ] Build file tree sidebar with status indicators
-- [ ] Create diff viewer component
-- [ ] Implement commit interface with message
-- [ ] Add batch save operations
-- [ ] Show uncommitted changes counter
-- [ ] Add file status colors (modified/added/deleted)
-```
+#### Осталось сделать:
+
+- [ ] Diff viewer for pending changes (**in progress**)
+- [ ] Toast notifications for all actions (**in progress**)
+- [ ] File tree sidebar (optional)
+- [ ] Preview all changes before commit (optional)
+- [ ] Checkbox selection for files (optional)
+- [ ] Diff between commits, revert (planned)
+
+> **Примечание:**
+>
+> - Deploy теперь происходит только после явного коммита (Save All/Commit).
+> - Diff viewer для pending changes — следующий приоритет.
+> - Toast notifications и улучшения UX — в работе.
+> - File tree и preview перед коммитом — nice-to-have, не блокируют v0.
 
 ---
 
@@ -64,185 +65,22 @@ alwaysApply: true
 
 ### 4. 🚢 Deploy-on-Commit Only
 
-**Priority: MEDIUM** | **Timeline: 1 week**
-
-```bash
-# Tasks
 - [ ] Remove auto-deploy from file changes
 - [ ] Add manual deploy trigger to commit action
 - [ ] Show deployment status in real-time
 - [ ] Implement preview vs production environments
-```
 
 ### 5. ⚡ Setup Script/Tool
 
-**Priority: MEDIUM** | **Timeline: 1-2 weeks**
-
-```bash
-# Tasks
 - [ ] Create install.sh bash script
 - [ ] Add Node.js/PNPM detection and installation
 - [ ] Cross-platform compatibility (macOS/Windows/Linux)
 - [ ] Research Electron app feasibility
-```
 
 ---
 
 ## 📝 Implementation Notes
 
-### Vercel Color Palette:
-
-```javascript
-// tailwind.config.js
-colors: {
-  'vercel-black': '#000000',
-  'vercel-white': '#ffffff',
-  'vercel-gray': {
-    50: '#fafafa',
-    100: '#f5f5f5',
-    200: '#e5e5e5',
-    300: '#d4d4d4',
-    400: '#a3a3a3',
-    500: '#737373',
-    600: '#525252',
-    700: '#404040',
-    800: '#262626',
-    900: '#171717'
-  },
-  'vercel-blue': '#0070f3',
-  'vercel-success': '#0070f3',
-  'vercel-warning': '#f5a623',
-  'vercel-error': '#ee0000'
-}
-```
-
-### Git-like Status Colors:
-
-```css
-/* File status indicators */
-.file-modified {
-  color: #f59e0b;
-} /* amber */
-.file-added {
-  color: #10b981;
-} /* emerald */
-.file-deleted {
-  color: #ef4444;
-} /* red */
-.file-untracked {
-  color: #6b7280;
-} /* gray */
-.file-staged {
-  color: #3b82f6;
-} /* blue */
-```
-
-### Inter Font Setup:
-
-```javascript
-// next.config.js or layout.tsx
-import { Inter } from "next/font/google";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-```
-
----
-
-## 🔧 Technical Decisions
-
-### Architecture Changes for Phase 2:
-
-- **UI Framework:** Continue with Tailwind + custom Vercel components
-- **State Management:** Add React Query for server state + Zustand for client state
-- **WebSocket:** Modify existing WS to track changes without saving
-- **File Tree:** New component with virtualization for large projects
-- **Diff Engine:** Use monaco-editor diff capabilities
-- **Toast System:** Custom toast provider with Vercel styling
-
-### New Components Needed:
-
-```typescript
-// Phase 2 Components
-- VercelButton (multiple variants)
-- VercelCard (project cards redesign)
-- VercelToast (notification system)
-- FileTree (git-like sidebar)
-- DiffViewer (code comparison)
-- CommitDialog (batch save interface)
-- LoadingSkeleton (various sizes)
-- StatusIndicator (deployment states)
-```
-
----
-
-## 🚀 Quick Start Commands
-
-### Development:
-
-```bash
-# Start all services (after Phase 1 completion)
-pnpm dev
-
-# Test authorization flow
-# 1. Open http://localhost:3000
-# 2. Should redirect to /login
-# 3. Login with Google
-# 4. Create project - should work with user association
-
-# UI Development (Phase 2)
-cd apps/web && pnpm add @radix-ui/react-toast
-```
-
-### Design System Setup:
-
-```bash
-# Install Inter font
-# Already included in Next.js - just configure
-
-# Setup Vercel colors in Tailwind
-# Update tailwind.config.js with Vercel palette
-
-# Add toast notifications
-pnpm add sonner # or build custom
-```
-
----
-
-## 📊 Success Metrics for v0
-
-### Phase 1 Metrics: ✅ ACHIEVED
-
-- [x] **OAuth:** 100% success rate for Google login
-- [x] **Security:** RLS policies working correctly
-- [x] **API:** All endpoints properly protected
-- [x] **UX:** Smooth login/logout flow
-
-### Phase 2 Metrics: 🎯 TARGET
-
-- [ ] **UI:** Components match Vercel design system
-- [ ] **Git-like:** Users can see and commit grouped changes
-- [ ] **Performance:** Page load time < 2 seconds
-- [ ] **UX:** Professional dashboard experience
-
-### Phase 3 Metrics: 🎯 TARGET
-
-- [ ] **Deploy:** Only happens on explicit commit action
-- [ ] **Setup:** One-command project initialization
-- [ ] **Cross-platform:** Works on macOS/Windows/Linux
-
----
-
-## 🎯 Current Focus: UI/UX Excellence
-
-**Immediate Next Steps:**
-
-1. 🎨 **Start with Vercel UI redesign** - это даст immediate visual impact
-2. 📝 **Parallel: Begin Git-like changes system** - core functionality
-3. 🚢 **Then: Deploy-on-commit** - workflow improvement
-
-**Goal**: Transform from MVP to professional-grade product UI/UX
-
-_Phase 1 foundation complete - now building user experience! 🚀_
+- Vercel color palette, Inter font, Git-like status colors — DONE
+- WebSocket, commit batching, deploy-on-commit — DONE
+- Diff viewer, file tree, advanced history — IN PROGRESS/PLANNED

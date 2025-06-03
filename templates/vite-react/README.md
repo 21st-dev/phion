@@ -1,87 +1,236 @@
-# 🚀 Shipvibes Project
+# 🚀 Shipvibes React Project
 
-Welcome to your new Shipvibes project! This is a Vite + React application with automatic synchronization to Shipvibes.dev.
+Welcome to your new Shipvibes project! This template includes everything you need to build modern React applications with automatic cloud sync and deployment.
+
+## ✨ What's Included
+
+- **React 18** - Latest React with hooks and modern patterns
+- **TypeScript** - Full type safety and better developer experience
+- **Vite** - Lightning fast build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework for rapid styling
+- **shadcn/ui** - Beautiful, accessible components built on Radix UI
+- **Lucide Icons** - Beautiful SVG icon library
+- **Live Sync** - Automatic synchronization with Shipvibes cloud
+- **Auto Deploy** - Every save triggers a deployment to your live preview
 
 ## 🚀 Quick Start
 
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   # or
-   pnpm install
-   ```
-
-2. **Start development server:**
-
-   ```bash
-   npm run dev
-   # or
-   pnpm dev
-   ```
-
-3. **Start Shipvibes sync (in a new terminal):**
-   ```bash
-   npm run sync
-   # or
-   pnpm sync
-   ```
-
-## ⚙️ Configuration
-
-You can customize the sync behavior with environment variables:
+### 1. Install Dependencies
 
 ```bash
-# Disable auto-save (manual save only with Ctrl+S)
-SHIPVIBES_AUTO_SAVE=false pnpm sync
-
-# Change auto-save delay (default: 60000ms = 60 seconds)
-SHIPVIBES_AUTO_SAVE_DELAY=30000 pnpm sync
-
-# Custom WebSocket URL
-SHIPVIBES_WS_URL=ws://your-server:8080 pnpm sync
+pnpm install
 ```
+
+### 2. Start Development
+
+```bash
+pnpm start
+```
+
+This command starts both:
+
+- **Local dev server** at `http://localhost:5173` for instant preview
+- **Sync service** that sends your changes to Shipvibes cloud
+
+### 3. Start Coding!
+
+- Edit files in the `src/` directory
+- See changes instantly in your local browser
+- Watch your live site update automatically in 20-30 seconds
 
 ## 📁 Project Structure
 
 ```
-├── src/
-│   ├── App.jsx          # Main application component
-│   ├── App.css          # App styles
-│   ├── main.jsx         # Application entry point
-│   └── index.css        # Global styles
-├── index.html           # HTML template
-├── package.json         # Dependencies and scripts
-├── vite.config.js       # Vite configuration
-├── shipvibes-dev.js     # Shipvibes sync agent
-└── README.md            # This file
+src/
+├── components/
+│   └── ui/           # shadcn/ui components (Button, Card, etc.)
+├── lib/
+│   └── utils.ts      # Utility functions (cn for class merging)
+├── App.tsx           # Main application component
+├── main.tsx          # Application entry point
+└── index.css         # Global styles with Tailwind
 ```
 
-## 🔄 How Shipvibes Sync Works
+## 🎨 Building UI Components
 
-1. The `shipvibes-dev.js` script watches for file changes
-2. When you save a file, it automatically syncs to Shipvibes.dev
-3. Your changes are versioned and deployed automatically
-4. View your live site at the URL provided in your Shipvibes dashboard
+### Using shadcn/ui Components
 
-## 🛠️ Available Scripts
+```typescript
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run sync` - Start Shipvibes synchronization
+const MyComponent = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Hello World</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={() => alert("Hello!")}>Click me</Button>
+      </CardContent>
+    </Card>
+  );
+};
+```
 
-## 📝 Development Tips
+### Using Icons
 
-- Edit files in the `src/` directory
-- Changes are automatically reflected in your browser (HMR)
-- The sync agent will upload changes to Shipvibes.dev
-- Check your Shipvibes dashboard for deployment status
+```typescript
+import { Heart, Star, User } from "lucide-react";
 
-## 🌐 Deployment
+const IconExample = () => {
+  return (
+    <div className="flex space-x-4">
+      <Heart className="h-6 w-6 text-red-500" />
+      <Star className="h-6 w-6 text-yellow-500" />
+      <User className="h-6 w-6 text-blue-500" />
+    </div>
+  );
+};
+```
 
-Your project is automatically deployed when you sync changes. No manual deployment needed!
+### Styling with Tailwind CSS
 
----
+```typescript
+const StyledComponent = () => {
+  return (
+    <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          Beautiful Design
+        </h2>
+        <p className="text-gray-600 leading-relaxed">
+          Tailwind makes it easy to build beautiful interfaces.
+        </p>
+      </div>
+    </div>
+  );
+};
+```
 
-Built with ❤️ using [Shipvibes.dev](https://shipvibes.dev)
+## 🛠 Available Scripts
+
+- `pnpm start` - Start both dev server and sync service
+- `pnpm dev` - Start only the local development server
+- `pnpm sync` - Start only the file sync service
+- `pnpm build` - Build for production
+- `pnpm preview` - Preview production build locally
+- `pnpm lint` - Run ESLint for code quality
+- `pnpm type-check` - Check TypeScript types
+
+## 📋 TypeScript Examples
+
+### Component with Props
+
+```typescript
+interface UserCardProps {
+  name: string;
+  email: string;
+  avatar?: string;
+  onClick?: () => void;
+}
+
+const UserCard: React.FC<UserCardProps> = ({
+  name,
+  email,
+  avatar,
+  onClick,
+}) => {
+  return (
+    <Card className="cursor-pointer" onClick={onClick}>
+      <CardContent className="p-4">
+        <h3 className="font-semibold">{name}</h3>
+        <p className="text-sm text-muted-foreground">{email}</p>
+      </CardContent>
+    </Card>
+  );
+};
+```
+
+### Using Hooks
+
+```typescript
+const Counter = () => {
+  const [count, setCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const increment = useCallback(() => {
+    setCount((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    console.log(`Count changed to: ${count}`);
+  }, [count]);
+
+  return (
+    <div className="text-center space-y-4">
+      <p className="text-xl">Count: {count}</p>
+      <Button onClick={increment} disabled={loading} size="lg">
+        Increment
+      </Button>
+    </div>
+  );
+};
+```
+
+## 🎯 Best Practices
+
+### 1. Component Structure
+
+- Keep components small and focused
+- Use TypeScript interfaces for props
+- Export components as default exports
+- Use descriptive names
+
+### 2. Styling
+
+- Use Tailwind CSS classes over custom CSS
+- Use shadcn/ui components for consistency
+- Follow responsive design patterns
+- Use the `cn()` utility for conditional classes
+
+### 3. State Management
+
+- Use `useState` for component state
+- Use `useCallback` for functions passed to children
+- Use `useMemo` for expensive calculations
+- Use `useEffect` with proper dependencies
+
+### 4. File Organization
+
+- One component per file
+- Use the `@/` alias for imports from `src/`
+- Group related components in folders
+- Keep files focused and cohesive
+
+## 🔗 Shipvibes Platform
+
+This project automatically syncs with your Shipvibes dashboard:
+
+- **Live Preview**: See your changes at your project's live URL
+- **Version History**: Track all changes and deployments
+- **Deployment Status**: Monitor build and deployment progress
+- **Project Settings**: Manage your project configuration
+
+## 🆘 Getting Help
+
+- Check the [shadcn/ui documentation](https://ui.shadcn.com) for component usage
+- Visit [Tailwind CSS docs](https://tailwindcss.com/docs) for styling help
+- See [React documentation](https://react.dev) for React patterns
+- Contact Shipvibes support for platform-specific issues
+
+## 🚀 Ready to Ship?
+
+Your project is configured with modern best practices and ready for development. Start editing `src/App.tsx` and watch your changes come to life!
+
+Happy coding! 🎉
+
+## ⚠️ SPA Routing for Netlify/Shipvibes
+
+If you deploy to Netlify or Shipvibes, make sure to include a `public/_redirects` file with the following content:
+
+```
+/*    /index.html   200
+```
+
+This ensures that all routes are handled by your React app (SPA) and you never get a 404 on page reload.

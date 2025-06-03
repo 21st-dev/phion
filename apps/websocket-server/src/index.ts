@@ -5,7 +5,7 @@ import cors from 'cors';
 import crypto from 'crypto';
 import express from 'express';
 import { uploadFileVersion, downloadFile } from '@shipvibes/storage';
-import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries } from '@shipvibes/database';
+import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries, PendingChangesQueries } from '@shipvibes/database';
 import { NetlifyService } from './services/netlify.js';
 // @ts-ignore
 import { diffLines } from 'diff';
@@ -45,7 +45,7 @@ const netlifyService = new NetlifyService();
 // HTTP API endpoints
 app.post('/api/deploy', async (req, res) => {
   try {
-    const { projectId, action } = req.body;
+    const { projectId, commitId, action } = req.body;
     
     if (!projectId || action !== 'deploy') {
       return res.status(400).json({ 
@@ -54,17 +54,29 @@ app.post('/api/deploy', async (req, res) => {
       });
     }
 
-    console.log(`🚀 HTTP Deploy request received for project: ${projectId}`);
+    console.log(`🚀 HTTP Deploy request received for project: ${projectId}, commit: ${commitId || 'latest'}`);
     
-    // Запускаем деплой асинхронно
-    triggerDeploy(projectId).catch(error => {
-      console.error(`❌ Deploy failed for project ${projectId}:`, error);
-    });
+    // Запускаем деплой асинхронно с commitId
+    if (commitId) {
+      triggerDeploy(projectId, commitId).catch(error => {
+        console.error(`❌ Deploy failed for project ${projectId}:`, error);
+      });
+    } else {
+      // Для backward compatibility - создаем снапшот и потом деплоим
+      saveFullProjectSnapshot(projectId, 'Manual deploy via HTTP API')
+        .then(newCommitId => {
+          return triggerDeploy(projectId, newCommitId);
+        })
+        .catch(error => {
+          console.error(`❌ Deploy failed for project ${projectId}:`, error);
+        });
+    }
 
     res.json({ 
       success: true, 
       message: 'Deploy triggered successfully',
-      projectId 
+      projectId,
+      commitId: commitId || 'will_be_generated'
     });
     
   } catch (error) {
@@ -126,7 +138,121 @@ async function ensureNetlifySite(projectId: string): Promise<string | null> {
 /**
  * Запустить деплой проекта на Netlify
  */
-async function triggerDeploy(projectId: string): Promise<void> {
+/**
+ * Сохранить полный снапшот всех файлов проекта КАК ОДИН КОММИТ
+ */
+async function saveFullProjectSnapshot(
+  projectId: string, 
+  commitMessage?: string
+): Promise<string> {
+  console.log(`📸 Creating full project snapshot for ${projectId}...`);
+  
+  const supabase = getSupabaseServerClient();
+  const pendingQueries = new PendingChangesQueries(supabase);
+  const historyQueries = new FileHistoryQueries(supabase);
+  
+  // Получаем все pending changes (изменения пользователя)
+  const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
+  
+  if (pendingChanges.length === 0) {
+    console.log(`No pending changes for project ${projectId}`);
+    throw new Error('No changes to save');
+  }
+  
+  // Получаем последние версии всех файлов из истории для полного снапшота
+  const latestFiles = await historyQueries.getProjectFileHistory(projectId, 1000);
+  
+  // Создаем карту последних файлов
+  const latestFileMap = new Map();
+  for (const file of latestFiles) {
+    const existing = latestFileMap.get(file.file_path);
+    if (!existing || new Date(file.created_at) > new Date(existing.created_at)) {
+      latestFileMap.set(file.file_path, file);
+    }
+  }
+  
+  // Создаем полный снапшот: начинаем с существующих файлов + применяем изменения
+  const fullSnapshot = new Map<string, any>();
+  
+  // 1. Добавляем все существующие файлы
+  for (const [filePath, fileRecord] of latestFileMap) {
+    try {
+      const content = await downloadFile(fileRecord.r2_object_key);
+      const fileContent = Buffer.isBuffer(content.content) 
+        ? content.content.toString() 
+        : content.content;
+      
+      fullSnapshot.set(filePath, {
+        content: fileContent,
+        hash: fileRecord.content_hash,
+        size: fileRecord.file_size,
+        action: 'unchanged'
+      });
+    } catch (error) {
+      console.warn(`⚠️ Could not load existing file ${filePath}:`, error);
+    }
+  }
+  
+  // 2. Применяем pending changes
+  const changedFiles: string[] = [];
+  for (const change of pendingChanges) {
+    changedFiles.push(`${change.action}: ${change.file_path}`);
+    
+    if (change.action === 'deleted') {
+      fullSnapshot.delete(change.file_path);
+    } else {
+      fullSnapshot.set(change.file_path, {
+        content: change.content,
+        hash: change.content_hash,
+        size: change.file_size,
+        action: change.action
+      });
+    }
+  }
+  
+  const finalCommitMessage = commitMessage || `Updated ${pendingChanges.length} files: ${changedFiles.join(', ')}`;
+  console.log(`📄 Saving commit: ${finalCommitMessage}`);
+  console.log(`📄 Full snapshot contains ${fullSnapshot.size} files`);
+  
+  // 3. Сохраняем ВСЕ файлы как один коммит
+  const commitId = crypto.randomUUID();
+  
+  // Bulk upload всех файлов в R2
+  const uploadPromises = [];
+  for (const [filePath, fileData] of fullSnapshot) {
+    uploadPromises.push(
+      uploadFileVersion(projectId, commitId, filePath, fileData.content)
+    );
+  }
+  await Promise.all(uploadPromises);
+  
+  // Bulk создание записей в file_history
+  const historyRecords = [];
+  for (const [filePath, fileData] of fullSnapshot) {
+    historyRecords.push({
+      project_id: projectId,
+      file_path: filePath,
+      r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
+      content_hash: fileData.hash,
+      file_size: fileData.size,
+      commit_id: commitId,
+      commit_message: finalCommitMessage
+    });
+  }
+  
+  // Создаем все записи одним запросом
+  for (const record of historyRecords) {
+    await historyQueries.createFileHistory(record);
+  }
+  
+  // 4. Очищаем pending changes
+  await pendingQueries.clearAllPendingChanges(projectId);
+  
+  console.log(`✅ Full project snapshot saved as commit ${commitId}: ${finalCommitMessage}`);
+  return commitId;
+}
+
+async function triggerDeploy(projectId: string, commitId: string): Promise<void> {
   try {
     // Убеждаемся что у проекта есть Netlify сайт
     const siteId = await ensureNetlifySite(projectId);
@@ -144,8 +270,11 @@ async function triggerDeploy(projectId: string): Promise<void> {
       deploy_status: 'building'
     });
 
+    // Создаем NetlifyService с передачей io для real-time обновлений
+    const netlifyServiceWithIo = new NetlifyService(io);
+    
     // Запускаем деплой
-    const deployResponse = await netlifyService.deployProject(siteId, projectId);
+    const deployResponse = await netlifyServiceWithIo.deployProject(siteId, projectId, commitId);
     
     // Обновляем статус деплоя (автоматическая проверка статуса запустится в NetlifyService)
     await projectQueries.updateProject(projectId, {
@@ -190,84 +319,77 @@ io.on('connection', (socket) => {
     
     console.log(`🔐 Client ${socket.id} authenticated for project ${projectId}`);
     socket.emit('authenticated', { projectId });
+    
+    // Уведомляем всех клиентов о подключении агента (для онбординга)
+    io.emit('agent_connected', {
+      projectId,
+      clientId: socket.id,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`📡 Emitted agent_connected event for project ${projectId}`);
   });
 
-  // Обработка изменений файлов
+  // Обработка изменений файлов (TRACKING ТОЛЬКО)
   socket.on('file_change', async (data) => {
     try {
       const { projectId, filePath, content, hash, timestamp } = data;
       
-      if (!projectId || !filePath || !content) {
+      if (!projectId || !filePath || content === undefined) {
         socket.emit('error', { message: 'Missing required fields' });
         return;
       }
 
-      console.log(`📝 File change: ${filePath} in project ${projectId}`);
+      console.log(`📝 File change tracked: ${filePath} in project ${projectId}`);
       
-      // --- Сохранение файла и истории ---
-      const versionId = crypto.randomUUID();
-
-      // Загружаем файл в R2
-      await uploadFileVersion(projectId, versionId, filePath, content);
-
-      // Получаем Supabase клиент и helper
+      // НОВАЯ ЛОГИКА: сохраняем в pending_changes (НЕ в file_history)
       const supabase = getSupabaseServerClient();
+      const pendingQueries = new PendingChangesQueries(supabase);
       const historyQueries = new FileHistoryQueries(supabase);
 
-      // Проверяем предыдущую версию
+      // Определяем действие (modified/added)
+      const existingChange = await pendingQueries.getPendingChange(projectId, filePath);
       const lastVersion = await historyQueries.getLatestFileVersion(projectId, filePath);
-
-      let diffText: string | null = null;
-      if (lastVersion) {
-        try {
-          const prevContentResult = await downloadFile(lastVersion.r2_object_key);
-          const prevContent = Buffer.isBuffer(prevContentResult.content) ? prevContentResult.content.toString() : prevContentResult.content;
-          diffText = diffLines(prevContent, content).map((part: any) => {
-            const prefix = part.added ? '+' : part.removed ? '-' : ' ';
-            return prefix + part.value;
-          }).join('');
-        } catch (e) {
-          console.warn('Diff generation failed:', e);
-        }
-      } else {
-        // Для первой версии файла создаем diff показывающий весь контент как добавленный
-        diffText = content.split('\n').map(line => '+' + line).join('\n');
+      
+      let action: 'modified' | 'added' = 'added';
+      if (existingChange || lastVersion) {
+        action = 'modified';
       }
 
-      // Создаем запись в истории файлов
-      await historyQueries.createFileHistory({
+      // Сохраняем pending change
+      await pendingQueries.upsertPendingChange({
         project_id: projectId,
         file_path: filePath,
-        r2_object_key: `projects/${projectId}/versions/${versionId}/${filePath}`,
+        content: content,
+        action: action,
         content_hash: hash,
-        diff_text: diffText || undefined,
         file_size: Buffer.byteLength(content, 'utf-8'),
       });
-       
-      // Уведомляем клиента об успешном сохранении
-      socket.emit('file_saved', {
+
+      // Уведомляем клиента о tracking (БЕЗ деплоя)
+      socket.emit('file_tracked', {
         filePath,
+        action,
         timestamp: Date.now(),
-        status: 'saved'
+        status: 'tracked'
       });
 
-      // Уведомляем других клиентов в той же комнате
+      // Уведомляем других клиентов
       socket.to(`project:${projectId}`).emit('file_updated', {
         filePath,
+        action,
         timestamp: Date.now(),
-        updatedBy: socket.id
+        updatedBy: socket.id,
+        isPending: true
       });
 
-      // Автоматический деплой отключен - теперь деплой происходит только по запросу
-      // triggerDeploy(projectId) больше не вызывается автоматически
-
     } catch (error) {
-      console.error('❌ Error handling file change:', error);
-      socket.emit('error', { message: 'Failed to save file' });
+      console.error('❌ Error tracking file change:', error);
+      socket.emit('error', { message: 'Failed to track file change' });
     }
   });
 
-  // Обработка удаления файлов
+  // Обработка удаления файлов (TRACKING ТОЛЬКО)
   socket.on('file_delete', async (data) => {
     try {
       const { projectId, filePath, timestamp } = data;
@@ -277,30 +399,73 @@ io.on('connection', (socket) => {
         return;
       }
 
-      console.log(`🗑️ File delete: ${filePath} in project ${projectId}`);
+      console.log(`🗑️ File delete tracked: ${filePath} in project ${projectId}`);
       
-      // TODO: Отметить файл как удаленный в file_history
+      // НОВАЯ ЛОГИКА: сохраняем в pending_changes как deleted
+      const supabase = getSupabaseServerClient();
+      const pendingQueries = new PendingChangesQueries(supabase);
+
+      // Сохраняем pending change с action: deleted
+      await pendingQueries.upsertPendingChange({
+        project_id: projectId,
+        file_path: filePath,
+        content: '', // Пустой content для deleted файлов
+        action: 'deleted',
+        file_size: 0,
+      });
       
-      // Уведомляем клиента об успешном удалении
-      socket.emit('file_deleted', {
+      // Уведомляем клиента о tracking удаления
+      socket.emit('file_tracked', {
         filePath,
+        action: 'deleted',
         timestamp: Date.now(),
-        status: 'deleted'
+        status: 'tracked'
       });
 
-      // Уведомляем других клиентов в той же комнате
-      socket.to(`project:${projectId}`).emit('file_removed', {
+      // Уведомляем других клиентов
+      socket.to(`project:${projectId}`).emit('file_updated', {
         filePath,
+        action: 'deleted',
         timestamp: Date.now(),
-        removedBy: socket.id
+        updatedBy: socket.id,
+        isPending: true
       });
-
-      // Автоматический деплой отключен - теперь деплой происходит только по запросу
-      // triggerDeploy(projectId) больше не вызывается автоматически
 
     } catch (error) {
-      console.error('❌ Error handling file delete:', error);
-      socket.emit('error', { message: 'Failed to delete file' });
+      console.error('❌ Error tracking file delete:', error);
+      socket.emit('error', { message: 'Failed to track file delete' });
+    }
+  });
+
+  // НОВЫЙ HANDLER: Сохранение полного снапшота проекта
+  socket.on('save_all_changes', async (data) => {
+    try {
+      const { projectId, commitMessage } = data;
+      
+      if (!projectId) {
+        socket.emit('error', { message: 'Missing projectId' });
+        return;
+      }
+
+      console.log(`💾 Saving all changes for project ${projectId}`);
+      
+      const commitId = await saveFullProjectSnapshot(projectId, commitMessage);
+
+      // Уведомляем о successful save
+      socket.emit('save_success', {
+        commitId,
+        timestamp: Date.now()
+      });
+
+      // Триггерим деплой ТОЛЬКО после сохранения
+      console.log(`🚀 Triggering deploy after save for project ${projectId}`);
+      triggerDeploy(projectId, commitId).catch(error => {
+        console.error(`❌ Deploy failed for project ${projectId}:`, error);
+      });
+
+    } catch (error) {
+      console.error('❌ Error saving changes:', error);
+      socket.emit('error', { message: 'Failed to save changes' });
     }
   });
 

@@ -1,0 +1,74 @@
+---
+description: React Development Rules
+globs: 
+alwaysApply: true
+---
+
+
+## Component Structure
+
+### Functional Components
+
+- Always use functional components with hooks
+- Use arrow functions for component definitions
+- Export components as default exports
+- Keep components small and focused on a single responsibility
+
+```typescript
+import React from "react";
+
+interface MyComponentProps {
+  title: string;
+  onAction: () => void;
+}
+
+const MyComponent: React.FC<MyComponentProps> = ({ title, onAction }) => {
+  return (
+    <div>
+      <h1>{title}</h1>
+      <button onClick={onAction}>Action</button>
+    </div>
+  );
+};
+
+export default MyComponent;
+```
+
+## Hooks Guidelines
+
+### State Management
+
+- Use `useState` for component state
+- Use `useReducer` for complex state logic
+- Use `useContext` for global state when appropriate
+- Use `useMemo` and `useCallback` to optimize performance when needed
+
+### Effect Hooks
+
+- Use `useEffect` for side effects
+- Always include dependency arrays
+- Clean up subscriptions and timers in effect cleanup functions
+
+```typescript
+useEffect(() => {
+  const subscription = subscribeTo(something);
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, [dependency]);
+```
+
+## Performance
+
+- Use `React.memo` for expensive components
+- Use `useMemo` for expensive calculations
+- Use `useCallback` for functions passed to child components
+- Avoid creating objects/functions in render
+
+## File Organization
+
+- One component per file
+- Use index.tsx for barrel exports
+- Group related components in folders
+- Keep components close to where they're used

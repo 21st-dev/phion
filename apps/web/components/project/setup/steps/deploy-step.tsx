@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
 
 interface ProjectStatus {
   id: string;
@@ -37,6 +39,49 @@ export function DeployStep({
   const [versions, setVersions] = useState<ProjectVersions[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Состояние для онбординга
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [deployLogs, setDeployLogs] = useState<string[]>([]);
+  const [currentDeployMessage, setCurrentDeployMessage] = useState<string>("");
+
+  // WebSocket для real-time обновлений
+  const { connect } = useWebSocket({
+    onAgentConnected: (data) => {
+      if (data.projectId === projectId) {
+        console.log("🔗 Agent connected for project:", projectId);
+        setAgentConnected(true);
+
+        // Если агент подключился и нет деплоя - запускаем автоматический деплой
+        if (!projectStatus?.netlify_url) {
+          console.log("🚀 Triggering automatic first deploy...");
+          handleFirstDeploy();
+        }
+      }
+    },
+    onDeployStatusUpdate: (data) => {
+      if (data.projectId === projectId) {
+        console.log("🚀 Deploy status update:", data);
+
+        const logMessage = `${new Date().toLocaleTimeString()}: ${
+          data.message
+        }`;
+        setDeployLogs((prev) => [...prev, logMessage]);
+        setCurrentDeployMessage(data.message);
+      }
+    },
+  });
+
+  // Функция для автоматического первого деплоя
+  const handleFirstDeploy = async () => {
+    try {
+      setCurrentDeployMessage("Starting initial deployment...");
+      onDeploy(); // Вызываем существующую функцию деплоя
+    } catch (error) {
+      console.error("Error triggering first deploy:", error);
+      setCurrentDeployMessage("Failed to start deployment");
+    }
+  };
 
   // Функция для получения статуса проекта
   const fetchProjectStatus = async () => {
@@ -84,10 +129,13 @@ export function DeployStep({
     }
   };
 
-  // Polling каждые 5 секунд
+  // Polling каждые 5 секунд + WebSocket подключение
   useEffect(() => {
     fetchProjectStatus();
     fetchProjectVersions();
+
+    // Подключаемся к WebSocket для real-time обновлений
+    connect();
 
     const interval = setInterval(() => {
       fetchProjectStatus();
@@ -95,7 +143,7 @@ export function DeployStep({
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [projectId]);
+  }, [projectId, connect]);
 
   // Обновить timestamp при первом рендере
   useEffect(() => {
@@ -119,6 +167,118 @@ export function DeployStep({
 
   const isCurrentlyDeploying =
     projectStatus?.deploy_status === "building" || isDeploying;
+
+  // Показываем онбординг если НЕТ деплоя (независимо от файлов)
+  if (!projectStatus?.netlify_url) {
+    return (
+      <Material type="base" className="p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 font-sans">
+          Initial Setup
+        </h3>
+
+        <div className="space-y-4">
+          {/* Статус подключения агента */}
+          <div
+            className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+              agentConnected
+                ? "text-green-700 bg-green-50 border-green-200"
+                : "text-yellow-700 bg-yellow-50 border-yellow-200"
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                {agentConnected ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <Clock className="h-5 w-5 text-yellow-500" />
+                )}
+              </div>
+              <div>
+                <h4 className="font-semibold text-sm">Development Agent</h4>
+                <p className="text-xs opacity-80">
+                  {agentConnected
+                    ? "✅ Connected! Files will sync automatically"
+                    : "⏳ Waiting for local agent connection..."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Статус первого деплоя */}
+          {agentConnected && (
+            <div
+              className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                isCurrentlyDeploying
+                  ? "text-blue-700 bg-blue-50 border-blue-200"
+                  : "text-gray-700 bg-gray-50 border-gray-200"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0">
+                  {isCurrentlyDeploying ? (
+                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-gray-500" />
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">Initial Deployment</h4>
+                  <p className="text-xs opacity-80">
+                    {isCurrentlyDeploying
+                      ? "🚀 Deploying your project..."
+                      : "⏳ Preparing to deploy..."}
+                  </p>
+                  {currentDeployMessage && (
+                    <div className="mt-1 text-xs font-mono bg-blue-100 p-1 rounded">
+                      {currentDeployMessage}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Deploy logs */}
+          {deployLogs.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                Deploy Progress
+              </h4>
+              <div className="bg-black text-green-400 p-3 rounded-lg text-xs font-mono max-h-32 overflow-y-auto">
+                {deployLogs.map((log, index) => (
+                  <div key={index} className="mb-1">
+                    {log}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!agentConnected && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-800 text-sm mb-1">
+                📋 Next Steps
+              </h4>
+              <ol className="text-xs text-blue-700 space-y-1">
+                <li>1. Download and extract the project files</li>
+                <li>2. Open terminal in the project folder</li>
+                <li>
+                  3. Run:{" "}
+                  <code className="bg-blue-100 px-1 rounded">pnpm install</code>
+                </li>
+                <li>
+                  4. Run:{" "}
+                  <code className="bg-blue-100 px-1 rounded">
+                    node shipvibes-dev.js
+                  </code>
+                </li>
+              </ol>
+            </div>
+          )}
+        </div>
+      </Material>
+    );
+  }
 
   if (isCurrentlyDeploying) {
     const statusDisplay = getStatusDisplay(

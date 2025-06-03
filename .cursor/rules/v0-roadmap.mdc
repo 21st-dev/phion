@@ -1,11 +1,11 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 # 🚀 Shipvibes.dev v0 Roadmap
 
-## Статус: Phase 1 ЗАВЕРШЕН ✅ → Переход к Phase 2
+## Статус: Phase 2 (В РАБОТЕ)
 
 **Базовая функциональность**: ✅ Завершена в MVP  
 **Авторизация и безопасность**: ✅ Завершена в Phase 1  
@@ -15,263 +15,64 @@ alwaysApply: true
 
 ## ✅ ЗАВЕРШЕНО: Phase 1 - Авторизация и пользовательская система
 
-### Google OAuth интеграция ✅
-
-- [x] **Настроить Google OAuth в Supabase**
-
-  - [x] Создать Google Cloud Console проект
-  - [x] Настроить OAuth credentials
-  - [x] Интегрировать с Supabase Auth
-
-- [x] **Обновить схему базы данных**
-
-  - [x] Вернуть `user_id` в таблицу `projects`
-  - [x] Включить Row Level Security (RLS)
-  - [x] Создать политики безопасности для пользователей
-  - [x] Миграция существующих проектов
-
-- [x] **Frontend авторизация**
-  - [x] Компонент страницы входа с Google OAuth
-  - [x] Защищенные роуты в Next.js
-  - [x] Управление сессиями пользователя
-  - [x] Logout функциональность
-
-### Пользовательский профиль ✅
-
-- [x] **Компонент пользовательского меню**
-  - [x] Отображение информации аккаунта Google
-  - [x] Dropdown меню с аватаром
-  - [x] Функционал выхода из системы
+- Google OAuth интеграция ✅
+- Обновить схему базы данных ✅
+- Frontend авторизация ✅
+- Пользовательский профиль ✅
 
 ---
 
-## 🔄 В РАБОТЕ: Phase 2 - UI/UX редизайн в стиле Vercel
+## 🔄 В РАБОТЕ: Phase 2 - UI/UX редизайн и Git-like changes
 
-### Общий дизайн
+### UI/UX редизайн (Vercel-style)
 
-- [ ] **Дизайн-система в стиле Vercel**
+- [x] Цветовая палитра, типографика, компоненты
+- [x] Современный лендинг и dashboard
+- [x] Карточки проектов, статус деплоя
+- [x] Loading states, toast notifications (частично)
+- [x] Современный sidebar, кнопки, layout
 
-  - [ ] Цветовая палитра (черный, белый, серые оттенки)
-  - [ ] Типографика (Inter font family)
-  - [ ] Компоненты кнопок, карточек, инпутов
-  - [ ] Анимации и переходы
+### Git-like changes (Phase 2 Core)
 
-- [ ] **Главная страница**
-  - [ ] Современный лендинг с hero секцией
-  - [ ] Демонстрация возможностей платформы
-  - [ ] Pricing информация (если планируется)
-  - [ ] Call-to-action кнопки
+- [x] WebSocket: track changes без автосохранения
+- [x] Sidebar: список изменённых файлов и статусы
+- [x] Commit interface: batch save с сообщением
+- [x] Deploy только по коммиту (реализовано)
+- [x] История коммитов, автор, время
+- [x] Цветовая индикация статусов
+- [x] Количество изменений
 
-### Dashboard пользователя
+#### Осталось сделать:
 
-- [ ] **Список проектов в стиле Vercel**
+- [ ] Diff viewer для pending changes (**в процессе**)
+- [ ] Toast уведомления для всех действий (**в процессе**)
+- [ ] File tree sidebar (опционально)
+- [ ] Preview всех изменений перед коммитом (опционально)
+- [ ] Diff между коммитами, revert (запланировано)
 
-  - [ ] Карточки проектов с превью
-  - [ ] Статус деплоя с индикаторами
-  - [ ] Последняя активность и метрики
-  - [ ] Поиск и фильтрация проектов
-
-- [ ] **Страница проекта**
-  - [ ] Tabs для разных секций (Overview, Deployments, Settings)
-  - [ ] Live preview с iframe
-  - [ ] Deployment history с логами
-  - [ ] Project settings и конфигурация
-
-### Современные UI паттерны
-
-- [ ] **Loading states и скелетоны**
-- [ ] **Toast уведомления для действий**
-- [ ] **Modal диалоги для создания проектов**
-- [ ] **Dropdown меню и контекстные действия**
+> **Примечание:**
+>
+> - Деплой теперь происходит только после явного коммита (Save All/Commit).
+> - Diff viewer для pending changes — следующий приоритет.
+> - Toast notifications и улучшения UX — в работе.
+> - File tree и preview перед коммитом — nice-to-have, не блокируют v0.
 
 ---
 
-## 🔄 В РАБОТЕ: Phase 2 - Система групповых изменений (Git-like)
+## 📋 ПЛАНИРУЕТСЯ: Phase 3 - Deploy-on-commit система
 
-### Tracking незакоммиченных изменений
-
-- [ ] **WebSocket обновления для отслеживания**
-
-  - [ ] Отправка изменений без автосохранения
-  - [ ] Diff tracking в real-time
-  - [ ] Статус файлов (modified, added, deleted)
-
-- [ ] **Frontend для отображения изменений**
-  - [ ] Sidebar с деревом файлов и статусами
-  - [ ] Diff viewer для каждого файла
-  - [ ] Количество изменений в файле
-  - [ ] Цветовая индикация статусов
-
-### Групповое сохранение
-
-- [ ] **Commit-like интерфейс**
-
-  - [ ] Checkbox selection для файлов
-  - [ ] Commit message input
-  - [ ] Preview всех изменений перед сохранением
-  - [ ] Кнопка "Commit & Deploy"
-
-- [ ] **Backend обработка группового сохранения**
-  - [ ] Batch операции с файлами в R2
-  - [ ] Создание commit record в БД
-  - [ ] Atomic операции для консистентности
-
-### История изменений
-
-- [ ] **Git-like история коммитов**
-  - [ ] Список коммитов с сообщениями
-  - [ ] Автор и время каждого коммита
-  - [ ] Diff между коммитами
-  - [ ] Возможность revert к любому коммиту
-
----
-
-## 📋 ПЛАНИРУЕТСЯ: Phase 3 - Улучшенный деплой система
-
-### Deploy-on-commit система
-
-- [ ] **Отключить автодеплой на каждое изменение**
-
-  - [ ] Удалить автоматические деплои из WebSocket
-  - [ ] Деплой только при explicit commit action
-
-- [ ] **Improved Netlify интеграция**
-  - [ ] Preview deployments для каждого коммита
-  - [ ] Production deployments для релизов
-  - [ ] Build logs в реальном времени
-  - [ ] Deploy статусы и notifications
-
-### Advanced deployment features
-
-- [ ] **Deployment environments**
-
-  - [ ] Preview (автоматически для коммитов)
-  - [ ] Production (ручной промоут)
-  - [ ] Custom domains поддержка
-
-- [ ] **Rollback capabilities**
-  - [ ] One-click rollback to previous deployment
-  - [ ] Deployment comparison view
-  - [ ] A/B testing между версиями
+- [ ] Preview deployments для каждого коммита
+- [ ] Production deployments для релизов
+- [ ] Build logs, deploy статусы
+- [ ] Rollback capabilities
 
 ---
 
 ## 📋 ПЛАНИРУЕТСЯ: Phase 4 - Setup инструмент и Developer Experience
 
-### Bash setup script
-
-- [ ] **Автоматический installer script**
-
-  ```bash
-  curl -fsSL https://shipvibes.dev/install.sh | bash
-  ```
-
-  - [ ] Проверка наличия Node.js и PNPM
-  - [ ] Автоматическая установка если отсутствуют
-  - [ ] Настройка environment variables
-  - [ ] Первичная настройка проекта
-
-- [ ] **Cross-platform поддержка**
-  - [ ] macOS installer
-  - [ ] Windows PowerShell script
-  - [ ] Linux package manager integration
-
-### Electron Desktop App (исследование)
-
-- [ ] **Proof of concept Electron app**
-
-  - [ ] Wrapper для веб-приложения
-  - [ ] Native file system access
-  - [ ] Automatic environment setup
-  - [ ] Local development server integration
-
-- [ ] **Enhanced developer experience**
-  - [ ] Visual project setup wizard
-  - [ ] Integrated terminal
-  - [ ] Native notifications
-  - [ ] Tray icon для статуса синхронизации
-
-### CLI инструменты
-
-- [ ] **Shipvibes CLI**
-  ```bash
-  npx shipvibes init my-project
-  npx shipvibes deploy
-  npx shipvibes logs
-  ```
-  - [ ] Project initialization
-  - [ ] Manual deploy triggers
-  - [ ] Logs viewing
-  - [ ] Project status checking
-
----
-
-## 🔧 Техническая инфраструктура и улучшения
-
-### Performance optimization
-
-- [ ] **Frontend оптимизации**
-
-  - [ ] Code splitting в Next.js
-  - [ ] Image optimization
-  - [ ] Caching strategies
-  - [ ] Bundle size analysis
-
-- [ ] **Backend масштабирование**
-  - [ ] Redis для session management
-  - [ ] Database connection pooling
-  - [ ] API rate limiting
-  - [ ] Background job processing
-
-### Monitoring и аналитика
-
-- [ ] **Error tracking**
-
-  - [ ] Sentry интеграция
-  - [ ] Error boundaries в React
-  - [ ] Server error logging
-
-- [ ] **User analytics**
-  - [ ] Project creation metrics
-  - [ ] User engagement tracking
-  - [ ] Performance monitoring
-
-### Security enhancements
-
-- [ ] **API security**
-
-  - [ ] JWT token management
-  - [ ] API key rotation
-  - [ ] Input validation и sanitization
-
-- [ ] **Data protection**
-  - [ ] Encrypted file storage
-  - [ ] GDPR compliance
-  - [ ] Privacy policy implementation
-
----
-
-## 📚 Документация и onboarding
-
-### User documentation
-
-- [ ] **Getting started guide**
-
-  - [ ] Step-by-step tutorial
-  - [ ] Video demonstrations
-  - [ ] Common use cases
-
-- [ ] **API documentation**
-  - [ ] OpenAPI specification
-  - [ ] SDK examples
-  - [ ] Integration guides
-
-### Developer resources
-
-- [ ] **Contributing guidelines**
-  - [ ] Development setup
-  - [ ] Code style guides
-  - [ ] Testing requirements
+- [ ] Bash setup script
+- [ ] Electron Desktop App (исследование)
+- [ ] CLI инструменты
 
 ---
 
@@ -279,10 +80,7 @@ alwaysApply: true
 
 ### ✅ Phase 1 (ЗАВЕРШЕНО)
 
-1. **✅ Авторизация Google OAuth** - основа для production ready продукта
-   - Row Level Security реализован
-   - Secure session management
-   - Protected API endpoints
+1. **✅ Авторизация Google OAuth**
 
 ### 🔄 Phase 2 (ТЕКУЩИЙ ФОКУС)
 
@@ -291,91 +89,21 @@ alwaysApply: true
 
 ### 📋 Phase 3 (СЛЕДУЮЩИЙ)
 
-4. **🚢 Deploy-on-commit** - улучшенный workflow
-5. **⚡ Setup script** - улучшенный developer experience
+4. **🚢 Deploy-on-commit**
+5. **⚡ Setup script**
 
 ### 📋 Phase 4 (БУДУЩЕЕ)
 
-6. **🖥️ Electron app** - исследование возможностей
-7. **🛠️ CLI tools** - advanced developer tools
-8. **⚡ Performance оптимизации** - масштабирование
-
----
-
-## 📊 Метрики успеха v0
-
-### ✅ Phase 1 Metrics (ДОСТИГНУТЫ)
-
-- [x] **User Experience**
-
-  - Google OAuth работает без ошибок
-  - Автоматические редиректы работают корректно
-  - RLS защищает данные пользователей
-
-- [x] **Technical Performance**
-  - Middleware корректно обновляет сессии
-  - API endpoints защищены авторизацией
-  - Database queries фильтруются по пользователям
-
-### 🎯 Phase 2 Metrics (ЦЕЛИ)
-
-- [ ] **User Experience**
-
-  - Время от регистрации до первого деплоя < 5 минут
-  - Professional-grade UI matching Vercel standards
-  - Git-like workflow feels natural to developers
-
-- [ ] **Technical Performance**
-
-  - Page load time < 2 секунды
-  - WebSocket connection stability > 99%
-  - File change tracking without lag
-
-- [ ] **Developer Experience**
-  - Intuitive commit interface
-  - Clear visual indication of changes
-  - Smooth diff viewing experience
-
----
-
-## 🔄 Migration from Phase 1 to Phase 2
-
-### Current Status
-
-- ✅ Authentication infrastructure complete
-- ✅ Database security implemented
-- ✅ API authorization working
-- ✅ Basic UI with user management
-
-### Phase 2 Focus Areas
-
-1. **🎨 Visual Design System**
-
-   - Implement Vercel-inspired components
-   - Professional color palette and typography
-   - Consistent spacing and layout patterns
-
-2. **📝 Change Management UX**
-
-   - Replace auto-save with manual commits
-   - Build file tree with change indicators
-   - Create intuitive diff viewing
-
-3. **🚀 Performance & Polish**
-   - Add loading states and animations
-   - Implement toast notifications
-   - Optimize for mobile responsiveness
+6. **🖥️ Electron app**
+7. **🛠️ CLI tools**
+8. **⚡ Performance оптимизации**
 
 ---
 
 ## 🎯 Success Definition for v0
-
-**Ready for Production When:**
 
 - ✅ Secure user authentication (COMPLETED)
 - 🔄 Professional-grade UI/UX (IN PROGRESS)
 - 🔄 Git-like development workflow (IN PROGRESS)
 - 📋 One-click project setup (PLANNED)
 - 📋 Reliable deployment system (PLANNED)
-
-_Phase 1 foundation complete - building exceptional user experience! 🚀_

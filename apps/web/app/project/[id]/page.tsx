@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { ProjectHeader } from "@/components/project-header";
 import { ProjectPageClient } from "@/components/project-page-client";
 import { Header } from "@/components/layout/header";
-import { createAuthServerClient } from "@shipvibes/database";
+import {
+  createAuthServerClient,
+  getSupabaseServerClient,
+  PendingChangesQueries,
+} from "@shipvibes/database";
 import { cookies } from "next/headers";
 
 interface ProjectPageProps {
@@ -56,6 +60,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
 
+  // Получаем pending changes
+  const serverSupabase = getSupabaseServerClient();
+  const pendingQueries = new PendingChangesQueries(serverSupabase);
+  let pendingChanges: any[] = [];
+  try {
+    pendingChanges = await pendingQueries.getPendingChanges(projectId);
+  } catch (error) {
+    console.error("Error fetching pending changes:", error);
+  }
+
   const hasVersions = fileHistory && fileHistory.length > 0;
 
   return (
@@ -70,6 +84,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <ProjectPageClient
           initialProject={project as any}
           initialHistory={(fileHistory || []) as any}
+          initialPendingChanges={pendingChanges as any}
         />
       </main>
     </div>

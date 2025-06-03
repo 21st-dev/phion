@@ -1,8 +1,15 @@
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import AdmZip from 'adm-zip';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
 import { downloadTextFile } from '@shipvibes/storage';
-import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries } from '@shipvibes/database';
+import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries, DeployStatusQueries } from '@shipvibes/database';
+
+const execAsync = promisify(exec);
 
 interface NetlifyCreateSiteResponse {
   id: string;
@@ -23,12 +30,70 @@ interface NetlifyDeployResponse {
 export class NetlifyService {
   private accessToken: string;
   private baseUrl = 'https://api.netlify.com/api/v1';
+  private io?: any; // Socket.io instance для real-time обновлений
 
-  constructor() {
+  constructor(io?: any) {
     this.accessToken = process.env.NETLIFY_ACCESS_TOKEN!;
+    this.io = io;
     
     if (!this.accessToken) {
       throw new Error('NETLIFY_ACCESS_TOKEN environment variable is required');
+    }
+  }
+
+  /**
+   * Восстановить недостающие файлы из шаблона
+   */
+  private async restoreTemplateFiles(tempDir: string, existingFiles: Record<string, string>): Promise<void> {
+    try {
+      // Путь к шаблону vite-react
+      const templatePath = path.resolve(process.cwd(), '../../templates/vite-react');
+      
+      console.log(`📁 Looking for template at: ${templatePath}`);
+      
+      // Проверяем существование шаблона
+      try {
+        await fs.access(templatePath);
+      } catch {
+        // Попробуем другой путь если не нашли
+        const alternativePath = path.resolve(process.cwd(), 'templates/vite-react');
+        await fs.access(alternativePath);
+        console.log(`📁 Using alternative template path: ${alternativePath}`);
+      }
+      
+      // Копируем все файлы из шаблона, которых нет в existingFiles
+      async function copyTemplateFiles(srcDir: string, targetDir: string, relativePath: string = '') {
+        const items = await fs.readdir(srcDir, { withFileTypes: true });
+        
+        for (const item of items) {
+          // Пропускаем node_modules, .git и другие служебные папки
+          if (item.name === 'node_modules' || item.name === '.git' || item.name === 'dist' || item.name === '.next') {
+            continue;
+          }
+          
+          const srcPath = path.join(srcDir, item.name);
+          const targetPath = path.join(targetDir, item.name);
+          const relativeFilePath = relativePath ? path.join(relativePath, item.name) : item.name;
+          
+          if (item.isDirectory()) {
+            await fs.mkdir(targetPath, { recursive: true });
+            await copyTemplateFiles(srcPath, targetPath, relativeFilePath);
+          } else {
+            // Копируем файл только если его нет в existingFiles
+            if (!existingFiles[relativeFilePath]) {
+              const content = await fs.readFile(srcPath);
+              await fs.writeFile(targetPath, content);
+              console.log(`📄 Restored template file: ${relativeFilePath}`);
+            }
+          }
+        }
+      }
+      
+      await copyTemplateFiles(templatePath, tempDir);
+      
+    } catch (error) {
+      console.error(`❌ Error restoring template files:`, error);
+      throw error;
     }
   }
 
@@ -112,9 +177,11 @@ export class NetlifyService {
   }
 
   /**
-   * Создать ZIP архив из файлов проекта
+   * Создать ZIP архив из собранных файлов проекта (dist/)
    */
   private async createProjectZipBuffer(projectId: string): Promise<Buffer> {
+    let tempDir: string | null = null;
+    
     try {
       // Получаем файлы проекта из базы данных
       const projectFiles = await this.getLatestProjectFiles(projectId);
@@ -123,26 +190,106 @@ export class NetlifyService {
         throw new Error(`No files found for project ${projectId}`);
       }
       
-      // Создаем ZIP архив с помощью AdmZip
-      const zip = new AdmZip();
+      // Создаем временную директорию для проекта
+      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `shipvibes-project-${projectId}-`));
+      console.log(`📁 Created temp directory: ${tempDir}`);
       
-      // Добавляем файлы в архив
+      // Восстанавливаем файлы проекта во временной директории
       for (const [filePath, content] of Object.entries(projectFiles)) {
-        // Убираем ведущий слеш если есть
-        const normalizedPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+        const fullPath = path.join(tempDir, filePath);
+        const dir = path.dirname(fullPath);
         
+        // Создаем директории если нужно
+        await fs.mkdir(dir, { recursive: true });
+        
+        // Записываем файл
         if (typeof content === 'string') {
-          zip.addFile(normalizedPath, Buffer.from(content, 'utf8'));
+          await fs.writeFile(fullPath, content, 'utf8');
         } else if (Buffer.isBuffer(content)) {
-          zip.addFile(normalizedPath, content);
+          await fs.writeFile(fullPath, content);
         }
       }
+      
+      console.log(`📦 Project files restored to ${tempDir}`);
+      
+      // Логируем какие файлы были восстановлены для отладки
+      console.log(`📋 Restored files:`, Object.keys(projectFiles));
+      
+      // Проверяем наличие package.json и восстанавливаем из шаблона если нужно
+      if (!projectFiles['package.json']) {
+        console.warn(`⚠️ package.json not found in project files, restoring from template...`);
+        await this.restoreTemplateFiles(tempDir, projectFiles);
+        console.log(`✅ Template files restored`);
+      }
+      
+      // Устанавливаем зависимости
+      console.log(`📦 Installing dependencies...`);
+      try {
+        await execAsync('pnpm install', { cwd: tempDir });
+        console.log(`✅ Dependencies installed`);
+      } catch (installError) {
+        console.warn(`⚠️ Failed to install with pnpm, trying npm:`, installError);
+        await execAsync('npm install', { cwd: tempDir });
+        console.log(`✅ Dependencies installed with npm`);
+      }
+      
+      // Собираем проект
+      console.log(`🔨 Building project...`);
+      try {
+        await execAsync('pnpm build', { cwd: tempDir });
+        console.log(`✅ Project built successfully`);
+      } catch (buildError) {
+        console.warn(`⚠️ Failed to build with pnpm, trying npm:`, buildError);
+        await execAsync('npm run build', { cwd: tempDir });
+        console.log(`✅ Project built successfully with npm`);
+      }
+      
+      // Проверяем наличие папки dist
+      const distPath = path.join(tempDir, 'dist');
+      try {
+        await fs.access(distPath);
+        console.log(`📁 Found dist directory at ${distPath}`);
+      } catch {
+        throw new Error(`Build did not create dist/ directory. Check if build script is configured correctly.`);
+      }
+      
+      // Создаем ZIP архив только из папки dist
+      const zip = new AdmZip();
+      
+      async function addDirectoryToZip(dirPath: string, zipPath: string = '') {
+        const items = await fs.readdir(dirPath, { withFileTypes: true });
+        
+        for (const item of items) {
+          const fullPath = path.join(dirPath, item.name);
+          const zipItemPath = zipPath ? path.join(zipPath, item.name) : item.name;
+          
+          if (item.isDirectory()) {
+            await addDirectoryToZip(fullPath, zipItemPath);
+          } else {
+            const content = await fs.readFile(fullPath);
+            zip.addFile(zipItemPath, content);
+          }
+        }
+      }
+      
+      await addDirectoryToZip(distPath);
+      console.log(`📦 Created ZIP archive from dist directory`);
 
       // Возвращаем ZIP как Buffer
       return zip.toBuffer();
     } catch (error) {
       console.error('❌ Error creating project ZIP:', error);
       throw error;
+    } finally {
+      // Очищаем временную директорию
+      if (tempDir) {
+        try {
+          await fs.rm(tempDir, { recursive: true, force: true });
+          console.log(`🗑️ Cleaned up temp directory: ${tempDir}`);
+        } catch (cleanupError) {
+          console.warn(`⚠️ Failed to cleanup temp directory:`, cleanupError);
+        }
+      }
     }
   }
 
@@ -223,10 +370,27 @@ export class NetlifyService {
   async deployProject(
     siteId: string, 
     projectId: string, 
+    commitId: string,
     title: string = 'Update from Shipvibes'
   ): Promise<NetlifyDeployResponse> {
+    const supabase = getSupabaseServerClient();
+    const deployStatusQueries = new DeployStatusQueries(supabase);
+    
+    // Создаем запись о статусе деплоя
+    const deployStatus = await deployStatusQueries.createDeployStatus(projectId, commitId, 'pending');
+    
     try {
       console.log(`🚀 Starting deploy for site ${siteId}...`);
+      
+      // Уведомляем клиентов о начале деплоя
+      this.emitDeployStatus(projectId, deployStatus.id, 'pending', 'Starting deployment...');
+      
+      // Обновляем статус: создание архива
+      await deployStatusQueries.updateDeployStatus(deployStatus.id, { 
+        status: 'building', 
+        step: 'creating_archive' 
+      });
+      this.emitDeployStatus(projectId, deployStatus.id, 'building', 'Creating deployment archive...');
       
       // Создаем ZIP архив проекта
       const zipBuffer = await this.createProjectZipBuffer(projectId);
@@ -371,6 +535,22 @@ export class NetlifyService {
       }
     } catch (error) {
       console.error('❌ Error checking all active deployments:', error);
+    }
+  }
+  
+  /**
+   * Отправить обновление статуса деплоя через WebSocket
+   */
+  private emitDeployStatus(projectId: string, deployStatusId: string, status: string, message: string) {
+    if (this.io) {
+      this.io.emit('deploy_status_update', {
+        projectId,
+        deployStatusId,
+        status,
+        message,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`📡 Emitted deploy status update: ${status} - ${message}`);
     }
   }
 } 

@@ -1,0 +1,255 @@
+---
+description: Code Quality and Best Practices
+globs: 
+alwaysApply: true
+---
+
+
+## General Code Quality
+
+### Naming Conventions
+
+- Use camelCase for variables and functions: `getUserData`, `handleClick`
+- Use PascalCase for components and types: `UserProfile`, `ApiResponse`
+- Use SCREAMING_SNAKE_CASE for constants: `API_BASE_URL`, `MAX_RETRY_COUNT`
+- Use descriptive names that explain purpose: `isLoading` vs `loading`
+
+### Function Design
+
+- Keep functions small and focused (single responsibility)
+- Use pure functions when possible
+- Prefer explicit parameters over complex objects
+- Return early to reduce nesting
+
+```typescript
+// Good
+const formatUserName = (firstName: string, lastName: string): string => {
+  if (!firstName && !lastName) return "Anonymous";
+  if (!lastName) return firstName;
+  return `${firstName} ${lastName}`;
+};
+
+// Avoid
+const formatUserName = (user: any) => {
+  if (user.firstName && user.lastName) {
+    return user.firstName + " " + user.lastName;
+  } else if (user.firstName) {
+    return user.firstName;
+  } else {
+    return "Anonymous";
+  }
+};
+```
+
+## Error Handling
+
+### React Error Boundaries
+
+```typescript
+const ErrorFallback = ({ error }: { error: Error }) => (
+  <div className="p-4 border border-destructive rounded-md">
+    <h2 className="text-lg font-semibold text-destructive">
+      Something went wrong
+    </h2>
+    <p className="text-sm text-muted-foreground">{error.message}</p>
+  </div>
+);
+```
+
+### Async Error Handling
+
+```typescript
+const fetchUserData = async (userId: string) => {
+  try {
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    throw error;
+  }
+};
+```
+
+## Performance Optimization
+
+### React Performance
+
+```typescript
+// Use React.memo for components that re-render frequently
+const ExpensiveComponent = React.memo(({ data }: { data: ComplexData }) => {
+  return <div>{/* Expensive rendering logic */}</div>;
+});
+
+// Use useCallback for functions passed to children
+const Parent = () => {
+  const [count, setCount] = useState(0);
+
+  const handleIncrement = useCallback(() => {
+    setCount((prev) => prev + 1);
+  }, []);
+
+  return <Child onIncrement={handleIncrement} />;
+};
+
+// Use useMemo for expensive calculations
+const ExpensiveCalculation = ({ data }: { data: number[] }) => {
+  const result = useMemo(() => {
+    return data.reduce((sum, num) => sum + num, 0);
+  }, [data]);
+
+  return <div>Sum: {result}</div>;
+};
+```
+
+## Code Organization
+
+### Import Organization
+
+```typescript
+// 1. React and external libraries
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+
+// 2. Internal utilities and types
+import { cn } from "@/lib/utils";
+import type { User } from "@/types";
+
+// 3. Relative imports
+import "./Component.css";
+```
+
+### File Structure Guidelines
+
+- One main export per file
+- Group related functionality
+- Use index files for public API
+- Keep files focused and cohesive
+
+## Accessibility
+
+### Semantic HTML
+
+```typescript
+// Good - semantic and accessible
+<main>
+  <article>
+    <header>
+      <h1>Article Title</h1>
+    </header>
+    <section>
+      <p>Article content...</p>
+    </section>
+  </article>
+</main>
+
+// Avoid - div soup
+<div>
+  <div>
+    <div>Article Title</div>
+  </div>
+  <div>
+    <div>Article content...</div>
+  </div>
+</div>
+```
+
+### ARIA and Focus
+
+```typescript
+// Proper button accessibility
+<Button
+  onClick={handleAction}
+  disabled={isLoading}
+  aria-label="Save changes"
+  aria-describedby="save-help"
+>
+  {isLoading ? 'Saving...' : 'Save'}
+</Button>
+
+// Form accessibility
+<div>
+  <Label htmlFor="email">Email</Label>
+  <input
+    id="email"
+    type="email"
+    aria-required="true"
+    aria-describedby="email-error"
+  />
+  <span id="email-error" role="alert">
+    {emailError}
+  </span>
+</div>
+```
+
+## Testing Mindset
+
+### Testable Code Structure
+
+```typescript
+// Separate business logic from UI
+const useUserData = (userId: string) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchUser = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userData = await getUserById(userId);
+      setUser(userData);
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  return { user, loading, fetchUser };
+};
+
+// UI component uses the hook
+const UserProfile = ({ userId }: { userId: string }) => {
+  const { user, loading } = useUserData(userId);
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>User not found</div>;
+
+  return <div>{user.name}</div>;
+};
+```
+
+## Documentation
+
+### Component Documentation
+
+```typescript
+/**
+ * UserCard component displays user information in a card format
+ *
+ * @param user - User object containing name, email, and avatar
+ * @param onEdit - Callback function called when edit button is clicked
+ * @param compact - Whether to show compact version of the card
+ */
+interface UserCardProps {
+  user: User;
+  onEdit?: (user: User) => void;
+  compact?: boolean;
+}
+
+const UserCard: React.FC<UserCardProps> = ({
+  user,
+  onEdit,
+  compact = false,
+}) => {
+  // Component implementation
+};
+```
+
+### README Guidelines
+
+- Clear setup instructions
+- Usage examples
+- API documentation
+- Contributing guidelines

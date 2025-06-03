@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllProjects, createProject, getUserProjects } from "@shipvibes/database";
 import { createAuthServerClient } from "@shipvibes/database";
-import { uploadProjectTemplate } from "@shipvibes/storage";
+import { uploadProjectTemplate, uploadTextFile } from "@shipvibes/storage";
 import { cookies } from "next/headers";
 import path from "path";
 import fs from "fs";
@@ -90,13 +90,12 @@ export async function POST(request: NextRequest) {
       user_id: user.id, // Привязываем к текущему пользователю
     });
 
-    // Генерируем шаблон проекта и загружаем в R2
+    // ТОЛЬКО создаем ZIP шаблона для скачивания (мгновенно)
     try {
       await generateAndUploadTemplate(project.id, template_type, name);
     } catch (templateError) {
       console.error("Error generating template:", templateError);
       // Проект уже создан, но шаблон не загружен
-      // В будущем можно добавить retry логику
     }
 
     // TODO: Создание сайта на Netlify
@@ -179,3 +178,4 @@ async function createTemplateZip(templatePath: string, projectName: string, proj
     archive.finalize();
   });
 }
+

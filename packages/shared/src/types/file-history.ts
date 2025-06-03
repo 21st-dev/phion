@@ -22,6 +22,8 @@ export const CreateFileHistorySchema = z.object({
   content_hash: z.string().optional(),
   diff_text: z.string().optional(),
   file_size: z.number().int().min(0),
+  commit_id: z.string().uuid().optional(),
+  commit_message: z.string().optional(),
 });
 
 export type CreateFileHistory = z.infer<typeof CreateFileHistorySchema>;
