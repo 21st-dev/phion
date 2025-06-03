@@ -33,8 +33,45 @@ export async function POST(
     });
 
     // Отправляем запрос на деплой через WebSocket сервер
-    // В реальной реализации здесь будет HTTP запрос к WebSocket серверу
-    // Пока что просто возвращаем успешный ответ
+    try {
+      const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:3001';
+      const deployResponse = await fetch(`${websocketServerUrl}/api/deploy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId,
+          action: 'deploy'
+        })
+      });
+
+      if (!deployResponse.ok) {
+        console.error('Failed to trigger deploy via WebSocket server');
+        // Возвращаемся к старому статусу если деплой не удался
+        await projectQueries.updateProject(projectId, {
+          deploy_status: 'failed'
+        });
+        
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to trigger deploy'
+        }, { status: 500 });
+      }
+
+      console.log('Deploy triggered successfully via WebSocket server');
+    } catch (error) {
+      console.error('Error communicating with WebSocket server:', error);
+      // Установим статус failed если что-то пошло не так
+      await projectQueries.updateProject(projectId, {
+        deploy_status: 'failed'
+      });
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to communicate with deploy service'
+      }, { status: 500 });
+    }
     
     return NextResponse.json({
       success: true,

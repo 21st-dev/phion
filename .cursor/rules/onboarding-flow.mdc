@@ -1,0 +1,370 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🚀 Vercel-Style Project Creation & First Deploy Flow
+
+## Анализ Vercel Flow из скриншотов
+
+### 📸 Что мы видим на скриншотах:
+
+1. **"You're almost done" страница**
+   - Левая панель: Preview шаблона проекта (Next.js Boilerplate)
+   - Правая панель: Пошаговый процесс
+     - Create Git Repository (форма с настройками)
+     - Deploy (статус и прогресс)
+   - Сайдбар навигации с шагами
+
+2. **Create Git Repository секция**
+   - Git Scope selector (leerob)
+   - Repository Name input (product-demo)
+   - "Create private Git Repository" checkbox
+   - "Create" кнопка
+
+3. **Deploy секция**
+   - Статусы в реальном времени
+   - Progress indicators для каждого шага
+   - Build logs и детали процесса
+
+4. **Congratulations страница**
+   - Превью деплоя в центре
+   - Next Steps справа (Instant Previews, Add Domain, etc.)
+   - "Continue to Dashboard" кнопка
+
+---
+
+## 🎯 Наша адаптация для No-Code пользователей
+
+### Ключевые отличия от Vercel:
+- ❌ **Нет Git** - используем собственную систему версионирования
+- ✅ **Netlify деплой** - через API, без Git репозиториев  
+- ✅ **Локальный агент** - для синхронизации файлов (`shipvibes-dev.js`)
+- ✅ **Простота** - скрываем техническую сложность от пользователя
+
+### 🎉 Что у нас уже работает (из MVP):
+- ✅ **Создание проектов** через веб-интерфейс
+- ✅ **Генерация ZIP шаблонов** с автозаменой PROJECT_ID
+- ✅ **Cloudflare R2** для хранения файлов
+- ✅ **Скачивание проектов** через API
+- ✅ **WebSocket сервер** с обработкой событий
+- ✅ **Локальный агент** `shipvibes-dev.js` с file watcher
+- ✅ **Supabase** интеграция с OAuth
+
+### ❌ Что нужно добавить:
+- ❌ **Netlify интеграция** - автодеплой после изменений
+- ❌ **Real-time UI** для статусов деплоя
+- ❌ **Vercel-style онбординг** флоу
+- ❌ **Инструкции по настройке** локального окружения
+
+---
+
+## 📋 TODO: Implementation Plan (обновленный)
+
+### 🎨 Phase 1: UI/UX Components (Vercel-style)
+
+#### 1. **OnboardingLayout Component**
+- [ ] Создать `components/onboarding/OnboardingLayout.tsx`
+  - [ ] Левая панель для превью шаблона
+  - [ ] Правая панель для шагов процесса
+  - [ ] Сайдбар навигация с прогрессом
+  - [ ] Responsive дизайн
+
+#### 2. **StepNavigation Component**
+- [ ] Создать `components/onboarding/StepNavigation.tsx`
+  - [ ] Step indicators (numbered circles)
+  - [ ] Active/completed/pending states
+  - [ ] Step labels (локализованные для нашего флоу)
+
+#### 3. **ProjectTemplate Preview**
+- [ ] Создать `components/onboarding/TemplatePreview.tsx`
+  - [ ] Mockup браузера с превью шаблона
+  - [ ] Template info (название, описание)
+  - [ ] Технологии/стек (React, Vite, etc.)
+
+#### 4. **StatusCard Component**
+- [ ] Создать `components/onboarding/StatusCard.tsx`
+  - [ ] Real-time статус индикаторы
+  - [ ] Loading spinners
+  - [ ] Success/error states
+  - [ ] Progress bars
+
+---
+
+### 🔄 Phase 2: Onboarding Flow Pages (адаптированные к MVP)
+
+#### 1. **Project Setup Page** (`/project/create/setup`)
+- [ ] Создать `app/project/create/setup/page.tsx`
+  - [ ] Project name input (с умным дефолтом)
+  - [ ] Template selection (пока только Vite+React из `templates/vite-react/`)
+  - [ ] Project description (опционально)
+  - [ ] "Create Project" кнопка (использует существующий API)
+
+#### 2. **Download & Setup Page** (`/project/[id]/setup`)
+- [ ] Создать `app/project/[id]/setup/page.tsx`
+  - [ ] Success message "Project created!"
+  - [ ] Download кнопка (использует существующий `/api/projects/{id}/download`)
+  - [ ] Пошаговые инструкции:
+    1. **📁 Extract ZIP** - где распаковать
+    2. **💻 Open in Editor** - Cursor/VS Code instructions
+    3. **📦 Install Dependencies** - `pnpm install`
+    4. **🔥 Start Dev Server** - `pnpm dev`
+    5. **🔗 Connect to Shipvibes** - `pnpm sync`
+  - [ ] "I've completed setup" кнопка → redirect to connecting page
+
+#### 3. **Connection Verification Page** (`/project/[id]/connecting`)
+- [ ] Создать `app/project/[id]/connecting/page.tsx`
+  - [ ] Real-time WebSocket статус
+  - [ ] "Waiting for local agent..." loader
+  - [ ] Success state когда WebSocket подключается
+  - [ ] Auto-redirect к deploy page когда connected
+  - [ ] Troubleshooting tips если connection fails
+
+#### 4. **First Deploy Page** (`/project/[id]/deploy`)
+- [ ] Создать `app/project/[id]/deploy/page.tsx` ✨ **НОВАЯ ФУНКЦИЯ**
+  - [ ] Auto-trigger Netlify деплоя (нужно реализовать!)
+  - [ ] Real-time статусы:
+    1. **📤 Syncing Files** - файлы уже в R2
+    2. **🏗️ Creating Netlify Site** - через Netlify API
+    3. **🔨 Building Project** - Netlify build process
+    4. **🌐 Deploying to CDN** - Netlify deploy
+    5. **✅ Site Live!** - URL готов
+
+#### 5. **Success & Live Editing Page** (`/project/[id]/success`)
+- [ ] Создать `app/project/[id]/success/page.tsx`
+  - [ ] Congratulations message
+  - [ ] Live preview в центре (iframe с Netlify URL)
+  - [ ] Deployed URL для sharing
+  - [ ] Live Editing Instructions:
+    - **✨ Edit files in your local editor**
+    - **👀 Changes auto-sync in real-time**
+    - **🚀 Auto-deploy on file save**
+  - [ ] "View Project Dashboard" кнопка
+
+---
+
+### ⚡ Phase 3: API Enhancements (основываясь на существующих)
+
+#### 1. **Project Creation API** ✅ **УЖЕ ЕСТЬ + улучшения**
+- [x] Базовый `app/api/projects/route.ts` уже работает
+- [ ] Добавить metadata для onboarding флоу
+- [ ] Return redirect URL для setup page
+- [ ] Логирование для analytics
+
+#### 2. **Netlify Integration API** ✨ **НОВАЯ ФУНКЦИЯ**
+- [ ] Создать `app/api/projects/[id]/deploy/route.ts`
+  - [ ] Netlify API клиент setup
+  - [ ] Create Netlify site
+  - [ ] Deploy project files из R2
+  - [ ] Return deploy URL и статус
+  - [ ] Webhook handling для deploy updates
+
+#### 3. **WebSocket Connection Status API** ✨ **РАСШИРЕНИЕ СУЩЕСТВУЮЩЕГО**
+- [ ] Расширить существующий WebSocket сервер
+  - [ ] Connection status tracking
+  - [ ] Real-time updates для frontend
+  - [ ] Agent heartbeat monitoring
+  - [ ] Auto-trigger deploy когда agent connects
+
+#### 4. **Deploy Status API**
+- [ ] Создать `app/api/projects/[id]/deploy-status/route.ts`
+  - [ ] Real-time статус деплоя
+  - [ ] Integration с Netlify webhooks
+  - [ ] Error handling и retry logic
+  - [ ] Build logs forwarding
+
+---
+
+### 🎯 Phase 4: User Experience Flow (с учетом существующей архитектуры)
+
+#### **Наш флоу для No-Code пользователей:**
+
+1. **Project Creation** (`/project/create/setup`)
+   ```
+   📝 Project Setup
+   ├─ Project Name: "My Awesome Site"
+   ├─ Template: "React Website" [Vite+React из templates/vite-react/]
+   └─ [Create Project] кнопка → создает проект + генерирует ZIP
+   ```
+
+2. **Download & Setup** (`/project/[id]/setup`)
+   ```
+   📦 Download Your Project
+   ├─ ✅ Project created successfully!
+   ├─ 📥 [Download ZIP] кнопка (уже работает через /api/projects/{id}/download)
+   └─ 📋 Setup Instructions:
+       ├─ 1️⃣ Extract ZIP to folder
+       ├─ 2️⃣ Open in Cursor/VS Code
+       ├─ 3️⃣ Run: pnpm install
+       ├─ 4️⃣ Run: pnpm dev (local preview)
+       └─ 5️⃣ Run: pnpm sync (connect to Shipvibes)
+   ```
+
+3. **Local Setup Verification** (`/project/[id]/connecting`)
+   ```
+   🔗 Connecting to your local editor...
+   ├─ ⏳ Waiting for local agent connection
+   ├─ ✅ Agent connected! (WebSocket статус)
+   ├─ ✅ File watcher active
+   └─ 🔄 Ready for first deploy...
+   ```
+
+4. **First Deploy** (`/project/[id]/deploy`)
+   ```
+   🚀 Deploying your site...
+   ├─ ✅ Files synced to cloud
+   ├─ 🔄 Creating Netlify site (NEW!)
+   ├─ 🔄 Building project (30s)
+   ├─ ⏳ Deploying to CDN
+   └─ ⏳ Assigning domain
+   ```
+
+5. **Success & Live Editing** (`/project/[id]/success`)
+   ```
+   🎉 Your site is live!
+   ├─ [Live Preview] ← iframe с деплоем
+   ├─ 🌐 URL: https://awesome-site-123.netlify.app
+   └─ Next Steps:
+       ├─ ✨ Make changes in your editor
+       ├─ 👀 Watch live updates in browser
+       ├─ 📝 Files auto-sync to cloud
+       └─ 🚀 Auto-deploy on save
+   ```
+
+---
+
+### 🛠️ Phase 5: Technical Implementation (интеграция с существующей архитектурой)
+
+#### 1. **State Management**
+- [ ] Создать `lib/stores/onboarding-store.ts` (Zustand)
+  - [ ] Project creation state
+  - [ ] WebSocket connection status
+  - [ ] Deploy progress tracking
+  - [ ] Error handling
+
+#### 2. **WebSocket Integration** ✅ **РАСШИРЕНИЕ СУЩЕСТВУЮЩЕГО**
+- [x] WebSocket сервер уже работает в `apps/websocket-server/`
+- [x] Локальный агент `shipvibes-dev.js` уже подключается
+- [ ] Добавить connection status events
+- [ ] Frontend real-time updates
+- [ ] Deploy trigger на connection
+
+#### 3. **Netlify Integration** ✨ **НОВАЯ ФУНКЦИЯ**
+- [ ] Настроить Netlify API в environment variables
+- [ ] Создать Netlify service в `packages/` или `apps/web/lib/`
+- [ ] Auto-deploy trigger после connection
+- [ ] Build logs forwarding
+- [ ] Deploy URL generation и сохранение в Supabase
+
+#### 4. **Существующая архитектура** ✅ **ИСПОЛЬЗУЕМ**
+- [x] **Supabase** - для хранения projects и user data
+- [x] **Cloudflare R2** - файлы уже сохраняются через storage package
+- [x] **Templates system** - `templates/vite-react/` уже работает
+- [x] **Project creation API** - `/api/projects/` уже создает и возвращает ZIP
+- [ ] **Интеграция с Netlify** - единственная недостающая часть
+
+---
+
+### 📱 Phase 6: Mobile & Responsive
+
+#### 1. **Mobile Layout**
+- [ ] Адаптировать OnboardingLayout для мобильных
+- [ ] Touch-friendly navigation
+- [ ] Responsive preview panels
+
+#### 2. **Progressive Enhancement**
+- [ ] Fallback для медленных соединений
+- [ ] Offline state handling
+- [ ] Loading optimizations
+
+---
+
+## 🎨 Design System Requirements
+
+### Vercel-inspired Components:
+- [ ] **VercelCard** - для секций с border radius и shadow
+- [ ] **VercelButton** - primary/secondary variants
+- [ ] **VercelProgress** - тонкие progress bars
+- [ ] **VercelStatus** - colored dots с анимацией
+- [ ] **VercelPreview** - browser mockup frame
+
+### Color Palette:
+```css
+--vercel-black: #000;
+--vercel-white: #fff;
+--vercel-gray-50: #fafafa;
+--vercel-gray-100: #f5f5f5;
+--vercel-gray-900: #171717;
+--vercel-blue: #0070f3;
+--vercel-success: #0070f3;
+--vercel-warning: #f5a623;
+--vercel-error: #ee0000;
+```
+
+### Typography:
+- [ ] Inter font family
+- [ ] Consistent heading hierarchy
+- [ ] Proper spacing scale
+
+---
+
+## 🚀 Implementation Priority (обновленные с учетом MVP)
+
+### 🔥 Critical (Week 1):
+1. **OnboardingLayout** - основа для всего флоу
+2. **Project Setup Page** - улучшаем существующий UI
+3. **Download & Setup Page** - с инструкциями по запуску
+4. **Netlify API Integration** - ключевая недостающая функция
+
+### ⚡ High (Week 2):  
+1. **Connection Verification Page** - WebSocket статус в UI
+2. **First Deploy Page** - с Netlify интеграцией
+3. **Success page** - с live preview
+4. **Real-time deploy tracking** - статусы и прогресс
+
+### 📈 Medium (Week 3):
+1. **Auto-deploy on file changes** - интеграция WebSocket → Netlify
+2. **Error handling** - для failed deploys
+3. **Mobile optimization** - responsive onboarding
+4. **Analytics & logging** - для улучшения UX
+
+### 🎯 Future (Phase 2):
+1. **Enhanced templates** - больше стартеров
+2. **Custom domains** - пользовательские домены
+3. **Team collaboration** - sharing и permissions
+4. **Git integration** - опциональный GitHub sync
+
+---
+
+## 🎯 Success Metrics
+
+### User Experience:
+- [ ] **Time to first deploy** < 2 минуты
+- [ ] **Zero technical configuration** для пользователя
+- [ ] **Clear progress indication** на каждом шаге
+- [ ] **Professional visual quality** matching Vercel
+
+### Technical:
+- [ ] **Deploy success rate** > 95%
+- [ ] **Real-time updates** работают стабильно
+- [ ] **Mobile responsive** на всех устройствах
+
+---
+
+## 📝 Notes for No-Code Users
+
+### Simplifications от Vercel:
+1. **No Git complexity** - скрываем версионирование
+2. **No build configuration** - все автоматически
+3. **No domain setup** - используем Netlify subdomains
+4. **Simple templates** - пока только React starter
+
+### Key Messages:
+- "Your website is being created..."
+- "Setting up your online editor..."
+- "Almost ready! Deploying to the web..."
+- "Success! Your site is live!"
+
+---
+
+_Этот план обеспечивает professional onboarding experience в стиле Vercel, но упрощенный для нашей no-code аудитории._

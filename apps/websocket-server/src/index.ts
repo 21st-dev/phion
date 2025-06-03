@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import crypto from 'crypto';
+import express from 'express';
 import { uploadFileVersion, downloadFile } from '@shipvibes/storage';
 import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries } from '@shipvibes/database';
 import { NetlifyService } from './services/netlify.js';
@@ -15,8 +16,19 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3001'
 ];
 
-// Создаем HTTP сервер
-const httpServer = createServer();
+// Создаем Express app
+const app = express();
+
+// Middleware
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  methods: ['GET', 'POST'],
+  credentials: true,
+}));
+app.use(express.json());
+
+// Создаем HTTP сервер с Express
+const httpServer = createServer(app);
 
 // Создаем Socket.IO сервер
 const io = new Server(httpServer, {
@@ -29,6 +41,44 @@ const io = new Server(httpServer, {
 
 // Создаем экземпляр NetlifyService
 const netlifyService = new NetlifyService();
+
+// HTTP API endpoints
+app.post('/api/deploy', async (req, res) => {
+  try {
+    const { projectId, action } = req.body;
+    
+    if (!projectId || action !== 'deploy') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid request. ProjectId and action=deploy required.' 
+      });
+    }
+
+    console.log(`🚀 HTTP Deploy request received for project: ${projectId}`);
+    
+    // Запускаем деплой асинхронно
+    triggerDeploy(projectId).catch(error => {
+      console.error(`❌ Deploy failed for project ${projectId}:`, error);
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Deploy triggered successfully',
+      projectId 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in /api/deploy:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    });
+  }
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'websocket-server' });
+});
 
 console.log('🚀 Starting Shipvibes WebSocket Server...');
 console.log(`📡 Port: ${PORT}`);
@@ -208,11 +258,8 @@ io.on('connection', (socket) => {
         updatedBy: socket.id
       });
 
-      // --- Автоматический деплой ---
-      // Запускаем деплой в фоне (не блокируем ответ клиенту)
-      triggerDeploy(projectId).catch(error => {
-        console.error(`❌ Background deploy failed for project ${projectId}:`, error);
-      });
+      // Автоматический деплой отключен - теперь деплой происходит только по запросу
+      // triggerDeploy(projectId) больше не вызывается автоматически
 
     } catch (error) {
       console.error('❌ Error handling file change:', error);
@@ -248,10 +295,8 @@ io.on('connection', (socket) => {
         removedBy: socket.id
       });
 
-      // --- Автоматический деплой после удаления ---
-      triggerDeploy(projectId).catch(error => {
-        console.error(`❌ Background deploy failed for project ${projectId}:`, error);
-      });
+      // Автоматический деплой отключен - теперь деплой происходит только по запросу
+      // triggerDeploy(projectId) больше не вызывается автоматически
 
     } catch (error) {
       console.error('❌ Error handling file delete:', error);

@@ -5,6 +5,7 @@ const states = {
   BUILDING: "bg-warning",
   ERROR: "bg-error",
   READY: "bg-cyan",
+  CURRENT: "bg-yellow-500",
   CANCELED: "bg-accents-2",
 };
 
@@ -13,6 +14,7 @@ const titles = {
   BUILDING: "This deployment is building.",
   ERROR: "This deployment had an error.",
   READY: "This deployment is ready.",
+  CURRENT: "This is the current step.",
   CANCELED: "This deployment was canceled.",
 };
 

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { FileHistory } from "@/components/file-history";
-import { ProjectOnboarding } from "@/components/project-onboarding";
+import { ProjectSetup } from "@/components/project";
 import { useAutoRefresh } from "@/hooks/use-auto-refresh";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, Play, Pause } from "lucide-react";
+import { Button } from "@/components/geist/button";
+import { Material } from "@/components/geist/material";
+import { Tabs } from "@/components/geist/tabs";
+import { Toggle } from "@/components/geist/toggle";
 
 interface Project {
   id: string;
@@ -73,66 +75,175 @@ export function ProjectPageClient({
     setAutoRefreshEnabled(!autoRefreshEnabled);
   };
 
+  const tabs = [
+    { value: "overview", title: "Overview" },
+    { value: "history", title: "File History" },
+    { value: "settings", title: "Settings" },
+  ];
+
+  const [activeTab, setActiveTab] = useState("overview");
+
   return (
     <>
       {!hasVersions ? (
-        <ProjectOnboarding project={initialProject as any} />
+        <ProjectSetup project={initialProject as any} />
       ) : (
-        <div className="space-y-4">
-          {/* Панель управления */}
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">
-                {isRefetching ? (
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Checking for updates...
-                  </span>
-                ) : (
-                  <span>File History</span>
-                )}
-              </div>
-              {autoRefreshEnabled && (
-                <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                  Auto-refresh: ON (60s)
+        <div className="space-y-6">
+          {/* Tabs Navigation */}
+          <Tabs tabs={tabs} selected={activeTab} setSelected={setActiveTab} />
+
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <Material type="base" className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-1000 mb-2">
+                    Project Overview
+                  </h3>
+                  <p className="text-gray-700">
+                    This project has {currentVersions.length} file version
+                    {currentVersions.length !== 1 ? "s" : ""}.
+                  </p>
                 </div>
-              )}
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-1000 mb-3">
+                    Quick Actions
+                  </h4>
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      type="secondary"
+                      size="medium"
+                      onClick={handleRefresh}
+                      loading={isRefetching}
+                      prefix={
+                        !isRefetching ? (
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                          </svg>
+                        ) : undefined
+                      }
+                    >
+                      {isRefetching ? "Refreshing..." : "Refresh"}
+                    </Button>
+
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-700">
+                        Auto-refresh
+                      </span>
+                      <Toggle
+                        checked={autoRefreshEnabled}
+                        onChange={(e) =>
+                          setAutoRefreshEnabled(e.target.checked)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Material>
+          )}
+
+          {activeTab === "history" && (
+            <div className="space-y-4">
+              {/* Control Panel */}
+              <Material type="base" className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-700">
+                      {isRefetching ? (
+                        <span className="flex items-center space-x-2">
+                          <svg
+                            className="w-4 h-4 animate-spin"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                          </svg>
+                          <span>Checking for updates...</span>
+                        </span>
+                      ) : (
+                        <span>
+                          File History ({currentVersions.length} versions)
+                        </span>
+                      )}
+                    </div>
+                    {autoRefreshEnabled && (
+                      <div className="text-xs bg-success-light text-success px-2 py-1 rounded">
+                        Auto-refresh: ON (60s)
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      type="secondary"
+                      size="small"
+                      onClick={handleRefresh}
+                      loading={isRefetching}
+                    >
+                      Refresh
+                    </Button>
+
+                    <Toggle
+                      checked={autoRefreshEnabled}
+                      onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                    />
+                  </div>
+                </div>
+              </Material>
+
+              <FileHistory history={currentVersions as any} />
             </div>
+          )}
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefetching}
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </Button>
+          {activeTab === "settings" && (
+            <Material type="base" className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-1000 mb-2">
+                    Project Settings
+                  </h3>
+                  <p className="text-gray-700 mb-4">
+                    Configure your project settings and preferences.
+                  </p>
+                </div>
 
-              <Button
-                variant={autoRefreshEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={toggleAutoRefresh}
-              >
-                {autoRefreshEnabled ? (
-                  <>
-                    <Pause className="h-4 w-4" />
-                    Auto-refresh ON
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4" />
-                    Auto-refresh OFF
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-alpha-400">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-1000">
+                        Auto-refresh
+                      </h4>
+                      <p className="text-xs text-gray-600">
+                        Automatically check for file changes every 60 seconds
+                      </p>
+                    </div>
+                    <Toggle
+                      checked={autoRefreshEnabled}
+                      onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                    />
+                  </div>
 
-          <FileHistory history={currentVersions as any} />
+                  <div className="flex items-center justify-between py-3 border-b border-gray-alpha-400">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-1000">
+                        Project Template
+                      </h4>
+                      <p className="text-xs text-gray-600">
+                        {initialProject.template_type}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Material>
+          )}
         </div>
       )}
     </>

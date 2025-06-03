@@ -1,6 +1,6 @@
 import { ProjectList } from "@/components/project-list";
-import { CreateProjectButton } from "@/components/create-project-button";
-import { UserMenu } from "@/components/user-menu";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { Header } from "@/components/layout/header";
 import { createAuthServerClient } from "@shipvibes/database";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -32,47 +32,25 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center">
-          <div className="mr-4 flex">
-            <a className="mr-6 flex items-center space-x-2" href="/">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <span className="text-sm font-bold">S</span>
-              </div>
-              <span className="font-bold">Shipvibes</span>
-            </a>
-          </div>
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div className="w-full flex-1 md:w-auto md:flex-none">
-              <p className="text-sm text-muted-foreground md:hidden">
-                Frontend code editor with auto-deploy
-              </p>
-            </div>
-            <nav className="flex items-center space-x-4">
-              <CreateProjectButton />
-              <UserMenu user={user} />
-            </nav>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background-100">
+      <Header user={user} />
 
       {/* Main Content */}
       <main className="flex-1">
-        <div className="container py-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col space-y-8">
             {/* Hero Section */}
-            <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                  Welcome back, {user.user_metadata?.full_name || user.email}!
+                <h1 className="text-2xl font-semibold text-gray-1000">
+                  Your Projects
                 </h1>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-gray-700">
                   Edit your frontend code locally in Cursor and see changes
-                  deployed instantly. No configuration required.
+                  deployed instantly.
                 </p>
               </div>
+              <CreateProjectDialog />
             </div>
 
             {/* Projects */}

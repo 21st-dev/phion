@@ -1,31 +1,12 @@
-import React, { useEffect, useState } from "react";
+"use client";
+
+import React from "react";
+import { useTheme } from "next-themes";
 
 type TTheme = "system" | "light" | "dark";
 
 export const ThemeSwitcher = () => {
-  const getInitialTheme = (): TTheme => {
-    if (typeof window === "undefined") {
-      return "system";
-    }
-    return (localStorage.getItem("theme") as TTheme) || "system";
-  };
-
-  const [theme, setTheme] = useState<TTheme>(getInitialTheme);
-
-  useEffect(() => {
-    const root = document.documentElement;
-
-    if (theme === "system") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      root.classList.toggle("dark", prefersDark);
-    } else {
-      root.classList.toggle("dark", theme === "dark");
-    }
-
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+  const { theme, setTheme } = useTheme();
 
   return (
     <fieldset className="flex h-8 p-0 m-0 rounded-[999999px] border border-shadow">
