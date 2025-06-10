@@ -31,6 +31,9 @@ export const ProjectSchema = z.object({
   netlify_site_id: z.string().nullable(),
   netlify_url: z.string().url().nullable(),
   deploy_status: DeployStatus,
+  github_repo_url: z.string().url().nullable(),
+  github_repo_name: z.string().nullable(),
+  github_owner: z.string().nullable(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
@@ -52,6 +55,9 @@ export const UpdateProjectSchema = z.object({
   netlify_site_id: z.string().optional(),
   netlify_url: z.string().url().optional(),
   netlify_deploy_id: z.string().optional(),
+  github_repo_url: z.string().url().optional(),
+  github_repo_name: z.string().optional(),
+  github_owner: z.string().optional(),
 });
 
 export type UpdateProject = z.infer<typeof UpdateProjectSchema>;

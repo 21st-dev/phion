@@ -19,6 +19,10 @@ export type ProjectEventType =
   | 'pending_changes_cleared'
   | 'netlify_site_created'
   | 'project_deleted'
+  | 'git_command_success'
+  | 'git_command_error'
+  | 'git_discard_changes'
+  | 'git_sync_initiated'
   | 'error';
 
 // Интерфейс для лог-записи

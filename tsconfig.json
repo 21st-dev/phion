@@ -17,8 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@shipvibes/shared": ["./packages/shared/src"],
-      "@shipvibes/database": ["./packages/database/src"],
-      "@shipvibes/storage": ["./packages/storage/src"]
+      "@shipvibes/database": ["./packages/database/src"]
     }
   },
   "include": ["**/*"],

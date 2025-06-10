@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAuthServerClient, ProjectQueries } from "@shipvibes/database";
 import { cookies } from "next/headers";
+import { githubAppService } from "@/lib/github-service";
 
 /**
  * Удалить Netlify сайт через API
@@ -155,6 +156,21 @@ export async function DELETE(
       }
     } else {
       console.log(`📝 Project ${id} has no Netlify site to delete`);
+    }
+
+    // Если у проекта есть GitHub репозиторий, удаляем его
+    if (project.github_repo_name) {
+      try {
+        console.log(`🐙 Deleting GitHub repository: ${project.github_repo_name}`);
+        await githubAppService.deleteRepository(project.github_repo_name);
+        console.log(`✅ GitHub repository deleted successfully: ${project.github_repo_name}`);
+      } catch (githubError) {
+        console.error(`❌ Error deleting GitHub repository ${project.github_repo_name}:`, githubError);
+        // Продолжаем удаление проекта даже если не удалось удалить GitHub репозиторий
+        // Это может произойти если репозиторий уже был удален вручную или есть проблемы с API
+      }
+    } else {
+      console.log(`📝 Project ${id} has no GitHub repository to delete`);
     }
     
     // Удаляем проект из базы данных

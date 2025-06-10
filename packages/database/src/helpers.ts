@@ -1,12 +1,14 @@
 import { getSupabaseServerClient } from "./client";
 import { ProjectQueries } from "./queries/projects";
 import { FileHistoryQueries } from "./queries/file-history";
+import { CommitHistoryQueries } from "./queries/commit-history";
 import { CreateProject, UpdateProject, CreateFileHistory } from "@shipvibes/shared";
-import { ProjectRow, FileHistoryRow } from "./types";
+import { ProjectRow, FileHistoryRow, CommitHistoryRow } from "./types";
 
 // Создаем экземпляры классов запросов
 const projectQueries = new ProjectQueries(getSupabaseServerClient());
 const fileHistoryQueries = new FileHistoryQueries(getSupabaseServerClient());
+const commitHistoryQueries = new CommitHistoryQueries(getSupabaseServerClient());
 
 // Экспортируем удобные функции для проектов
 export const getAllProjects = (): Promise<ProjectRow[]> => 
@@ -75,3 +77,68 @@ const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient(
 // Export pending changes functions
 export const getPendingChanges = (projectId: string) => 
   pendingChangesQueries.getPendingChanges(projectId);
+
+// GitHub функции для проектов
+export const updateGitHubInfo = (
+  projectId: string,
+  githubInfo: {
+    github_repo_url: string;
+    github_repo_name: string;
+    github_owner?: string;
+  }
+): Promise<ProjectRow> =>
+  projectQueries.updateGitHubInfo(projectId, githubInfo);
+
+export const getProjectByGitHubRepo = (
+  repoName: string,
+  owner?: string
+): Promise<ProjectRow | null> =>
+  projectQueries.getProjectByGitHubRepo(repoName, owner);
+
+export const getProjectsWithGitHub = (): Promise<ProjectRow[]> =>
+  projectQueries.getProjectsWithGitHub();
+
+// Commit history функции
+export const getProjectCommitHistory = (
+  projectId: string,
+  limit?: number,
+  offset?: number
+): Promise<CommitHistoryRow[]> =>
+  commitHistoryQueries.getProjectCommitHistory(projectId, limit, offset);
+
+export const createCommitHistory = (commitData: {
+  project_id: string;
+  github_commit_sha: string;
+  github_commit_url: string;
+  commit_message: string;
+  files_count?: number;
+  committed_by?: string;
+}): Promise<CommitHistoryRow> =>
+  commitHistoryQueries.createCommitHistory(commitData);
+
+export const getCommitBySha = (
+  projectId: string,
+  githubCommitSha: string
+): Promise<CommitHistoryRow | null> =>
+  commitHistoryQueries.getCommitBySha(projectId, githubCommitSha);
+
+export const getLatestCommit = (projectId: string): Promise<CommitHistoryRow | null> =>
+  commitHistoryQueries.getLatestCommit(projectId);
+
+// GitHub функции для file history
+export const createFileHistoryWithGitHub = (
+  historyData: CreateFileHistory & {
+    github_commit_sha?: string;
+    github_commit_url?: string;
+  }
+): Promise<FileHistoryRow> =>
+  fileHistoryQueries.createFileHistoryWithGitHub(historyData);
+
+export const getFilesByGitHubCommit = (
+  projectId: string,
+  githubCommitSha: string
+): Promise<FileHistoryRow[]> =>
+  fileHistoryQueries.getFilesByGitHubCommit(projectId, githubCommitSha);
+
+// Экспортируем новый класс для продвинутого использования
+export { CommitHistoryQueries } from "./queries";

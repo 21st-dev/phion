@@ -4,11 +4,7 @@ require("dotenv").config({ path: "../../.env.local" });
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Включаем поддержку Turborepo (transpilePackages вынесен из experimental в Next.js 14)
-  transpilePackages: [
-    "@shipvibes/shared",
-    "@shipvibes/database",
-    "@shipvibes/storage",
-  ],
+  transpilePackages: ["@shipvibes/shared", "@shipvibes/database"],
   // Настройки для работы с WebSocket
   async rewrites() {
     return [

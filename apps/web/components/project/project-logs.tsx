@@ -4,12 +4,9 @@ import { useState, useEffect } from "react";
 import { Material } from "@/components/geist/material";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Clock,
   FileText,
   GitCommit,
-  Rocket,
   Activity,
   Users,
   AlertCircle,

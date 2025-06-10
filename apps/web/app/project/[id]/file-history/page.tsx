@@ -4,7 +4,7 @@ import { FileHistory } from "@/components/file-history";
 import { PendingChangesSidebar } from "@/components/project/pending-changes-sidebar";
 import { useProject } from "@/components/project/project-layout-client";
 
-export default function ProjectFileHistoryPage() {
+export default function ProjectSaveHistoryPage() {
   const { project, history, pendingChanges, saveAllChanges, isSaving } =
     useProject();
 
@@ -20,7 +20,7 @@ export default function ProjectFileHistoryPage() {
         />
       </div>
 
-      {/* File History Content */}
+      {/* Save History Content */}
       <div className="flex-1 overflow-hidden">
         <FileHistory projectId={project.id} />
       </div>

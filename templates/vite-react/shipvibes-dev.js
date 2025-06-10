@@ -5,6 +5,10 @@ import chokidar from "chokidar";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 // Конфигурация
 const PROJECT_ID = process.env.SHIPVIBES_PROJECT_ID || "__PROJECT_ID__"; // Заменяется при генерации
@@ -16,6 +20,7 @@ class ShipvibesAgent {
     this.socket = null;
     this.watcher = null;
     this.isConnected = false;
+    this.isGitRepo = false;
     // Убираем pending changes - отправляем изменения сразу
   }
 
@@ -25,7 +30,8 @@ class ShipvibesAgent {
     console.log(`🆔 Project ID: ${PROJECT_ID}`);
     console.log("");
 
-    // PROJECT_ID автоматически заменяется при генерации проекта
+    // Проверяем, что мы в git репозитории
+    await this.checkGitRepository();
 
     // Подключаемся к WebSocket
     await this.connectWebSocket();
@@ -36,8 +42,30 @@ class ShipvibesAgent {
     console.log("✅ Shipvibes Agent is running!");
     console.log("📝 Edit your files and see changes sync automatically");
     console.log("🌐 Check your Shipvibes dashboard for updates");
+    if (this.isGitRepo) {
+      console.log("🔄 Git commands available for sync and rollback");
+    }
     console.log("");
     console.log("Press Ctrl+C to stop");
+  }
+
+  async checkGitRepository() {
+    try {
+      await execAsync("git rev-parse --git-dir");
+      this.isGitRepo = true;
+      console.log("✅ Git repository detected");
+
+      // Проверяем remote origin
+      try {
+        const { stdout } = await execAsync("git remote get-url origin");
+        console.log(`🔗 Remote origin: ${stdout.trim()}`);
+      } catch (error) {
+        console.log("⚠️ No remote origin configured");
+      }
+    } catch (error) {
+      this.isGitRepo = false;
+      console.log("⚠️ Not a git repository - git commands will be disabled");
+    }
   }
 
   async connectWebSocket() {
@@ -82,6 +110,22 @@ class ShipvibesAgent {
         console.log(`🔄 File updated by another client: ${data.filePath}`);
       });
 
+      // Новые обработчики для git команд
+      this.socket.on("discard_local_changes", async (data) => {
+        console.log("🔄 Received discard local changes command");
+        await this.discardLocalChanges();
+      });
+
+      this.socket.on("git_pull_with_token", async (data) => {
+        console.log("📥 Received git pull command with token");
+        await this.gitPullWithToken(data.token, data.repoUrl);
+      });
+
+      this.socket.on("update_local_files", async (data) => {
+        console.log("📄 Received file updates from server");
+        await this.updateLocalFiles(data.files);
+      });
+
       this.socket.on("error", (error) => {
         console.error("❌ WebSocket error:", error.message);
       });
@@ -105,7 +149,183 @@ class ShipvibesAgent {
     });
   }
 
+  /**
+   * Откат всех локальных изменений через git reset
+   */
+  async discardLocalChanges() {
+    if (!this.isGitRepo) {
+      console.log("⚠️ Not a git repository - cannot discard changes");
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "discard",
+        success: false,
+        error: "Not a git repository",
+      });
+      return;
+    }
+
+    try {
+      console.log("🔄 Discarding all local changes...");
+
+      // Останавливаем file watcher на время git операций
+      if (this.watcher) {
+        this.watcher.close();
+      }
+
+      // 1. git reset --hard HEAD (откат всех изменений)
+      await execAsync("git reset --hard HEAD");
+      console.log("✅ Reset to HEAD completed");
+
+      // 2. git clean -fd (удаление untracked файлов)
+      await execAsync("git clean -fd");
+      console.log("✅ Cleaned untracked files");
+
+      // Уведомляем сервер об успехе
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "discard",
+        success: true,
+      });
+
+      // Перезапускаем file watcher
+      this.startFileWatcher();
+      console.log("✅ Local changes discarded successfully");
+    } catch (error) {
+      console.error("❌ Error discarding local changes:", error.message);
+
+      // Уведомляем сервер об ошибке
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "discard",
+        success: false,
+        error: error.message,
+      });
+
+      // Перезапускаем file watcher даже при ошибке
+      this.startFileWatcher();
+    }
+  }
+
+  /**
+   * Git pull с временным токеном
+   */
+  async gitPullWithToken(token, repoUrl) {
+    if (!this.isGitRepo) {
+      console.log("⚠️ Not a git repository - cannot pull");
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "pull",
+        success: false,
+        error: "Not a git repository",
+      });
+      return;
+    }
+
+    try {
+      console.log("📥 Pulling latest changes from GitHub...");
+
+      // Останавливаем file watcher на время git операций
+      if (this.watcher) {
+        this.watcher.close();
+      }
+
+      // Формируем URL с токеном для одноразового pull
+      const authenticatedUrl = repoUrl.replace(
+        "https://github.com/",
+        `https://x-access-token:${token}@github.com/`
+      );
+
+      // Выполняем git pull с токеном
+      await execAsync(`git pull ${authenticatedUrl} main`);
+      console.log("✅ Git pull completed successfully");
+
+      // Уведомляем сервер об успехе
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "pull",
+        success: true,
+      });
+
+      // Перезапускаем file watcher
+      this.startFileWatcher();
+    } catch (error) {
+      console.error("❌ Error during git pull:", error.message);
+
+      // Уведомляем сервер об ошибке
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "pull",
+        success: false,
+        error: error.message,
+      });
+
+      // Перезапускаем file watcher даже при ошибке
+      this.startFileWatcher();
+    }
+  }
+
+  /**
+   * Обновление локальных файлов без git (альтернативный способ)
+   */
+  async updateLocalFiles(files) {
+    try {
+      console.log(`📄 Updating ${files.length} local files...`);
+
+      // Останавливаем file watcher на время обновления файлов
+      if (this.watcher) {
+        this.watcher.close();
+      }
+
+      for (const file of files) {
+        try {
+          // Создаем директории если нужно
+          const dir = path.dirname(file.path);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+
+          // Записываем содержимое файла
+          fs.writeFileSync(file.path, file.content, "utf8");
+          console.log(`✅ Updated: ${file.path}`);
+        } catch (fileError) {
+          console.error(
+            `❌ Error updating file ${file.path}:`,
+            fileError.message
+          );
+        }
+      }
+
+      // Уведомляем сервер об успехе
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "update_files",
+        success: true,
+      });
+
+      // Перезапускаем file watcher
+      this.startFileWatcher();
+      console.log("✅ Local files updated successfully");
+    } catch (error) {
+      console.error("❌ Error updating local files:", error.message);
+
+      // Уведомляем сервер об ошибке
+      this.socket?.emit("git_command_result", {
+        projectId: PROJECT_ID,
+        command: "update_files",
+        success: false,
+        error: error.message,
+      });
+
+      // Перезапускаем file watcher даже при ошибке
+      this.startFileWatcher();
+    }
+  }
+
   startFileWatcher() {
+    if (this.watcher) {
+      return; // Уже запущен
+    }
+
     console.log("👀 Watching for file changes...");
 
     this.watcher = chokidar.watch(".", {
@@ -167,9 +387,6 @@ class ShipvibesAgent {
       console.error(`❌ Error reading file ${filePath}:`, error.message);
     }
   }
-
-  // Удалены методы saveFile, saveAllChanges, showPendingStatus
-  // Теперь все изменения отправляются сразу в веб-интерфейс
 
   handleFileDelete(filePath) {
     if (!this.isConnected) {

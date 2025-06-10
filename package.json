@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^20.8.0",
     "concurrently": "^8.2.2",
+    "depcheck": "^1.4.7",
     "turbo": "^1.10.16",
     "typescript": "^5.2.2"
   },

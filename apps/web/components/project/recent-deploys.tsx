@@ -10,7 +10,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-interface CommitItem {
+interface SavePointItem {
   commit_id: string;
   commit_message: string;
   created_at: string;
@@ -22,89 +22,78 @@ interface RecentDeploysProps {
 }
 
 export function RecentDeploys({ projectId }: RecentDeploysProps) {
-  const [commits, setCommits] = useState<CommitItem[]>([]);
+  const [savePoints, setSavePoints] = useState<SavePointItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [projectInfo, setProjectInfo] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRecentCommits();
-    fetchProjectInfo();
+    fetchSavePoints();
   }, [projectId]);
 
-  const fetchRecentCommits = async () => {
+  const fetchSavePoints = async () => {
     try {
       const response = await fetch(`/api/projects/${projectId}/commits`);
-      if (response.ok) {
-        const data = await response.json();
-        const commits = data.commits || [];
-        // Take only the first 5 commits
-        setCommits(Array.isArray(commits) ? commits.slice(0, 5) : []);
+      if (!response.ok) {
+        throw new Error("Failed to fetch save points");
       }
-    } catch (error) {
-      console.error("Error fetching recent commits:", error);
+      const data = await response.json();
+      setSavePoints(data.commits?.slice(0, 5) || []); // Показываем только последние 5
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchProjectInfo = async () => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/status`);
-      if (response.ok) {
-        const data = await response.json();
-        setProjectInfo(data);
-      }
-    } catch (error) {
-      console.error("Error fetching project info:", error);
-    }
-  };
+  const getDeployStatus = (savePoint: SavePointItem) => {
+    // Логика определения статуса деплоя на основе времени
+    const now = new Date();
+    const saveTime = new Date(savePoint.created_at);
+    const diffMinutes = (now.getTime() - saveTime.getTime()) / (1000 * 60);
 
-  const getDeployStatus = (commit: CommitItem) => {
-    // Для простоты считаем что все коммиты успешно задеплоены
-    // В будущем можно добавить tracking статуса каждого деплоя
-    return "success";
+    if (diffMinutes < 2) return "building";
+    if (diffMinutes < 5) return "deploying";
+    return "deployed";
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "success":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "building":
-        return <Clock className="h-4 w-4 text-blue-500" />;
-      case "failed":
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <Clock className="h-4 w-4 text-yellow-500 animate-spin" />;
+      case "deploying":
+        return <Rocket className="h-4 w-4 text-blue-500" />;
+      case "deployed":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <XCircle className="h-4 w-4 text-red-500" />;
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    if (diffMinutes < 1) return "just now";
+    if (diffMinutes < 60) return `${Math.floor(diffMinutes)}m ago`;
+    if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
+    return `${Math.floor(diffMinutes / 1440)}d ago`;
   };
 
   if (loading) {
     return (
-      <Material type="base" className="p-6">
-        <h4 className="text-lg font-semibold text-gray-1000 mb-4">
-          Recent Deploys
-        </h4>
+      <Material type="base" className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-gray-900">Recent Saves</h3>
+        </div>
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex items-center space-x-3">
-              <div className="w-4 h-4 bg-gray-200 rounded-full"></div>
-              <div className="flex-1 h-4 bg-gray-200 rounded"></div>
-              <div className="w-16 h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 w-4 bg-gray-200 rounded-full"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+              </div>
             </div>
           ))}
         </div>
@@ -112,50 +101,54 @@ export function RecentDeploys({ projectId }: RecentDeploysProps) {
     );
   }
 
+  if (error) {
+    return (
+      <Material type="base" className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-gray-900">Recent Saves</h3>
+        </div>
+        <div className="text-center py-4">
+          <XCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      </Material>
+    );
+  }
+
   return (
-    <Material type="base" className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-semibold text-gray-1000">Recent Deploys</h4>
-        {projectInfo?.netlify_url && (
-          <a
-            href={projectInfo.netlify_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <ExternalLink className="h-3 w-3" />
-            View Live Site
-          </a>
+    <Material type="base" className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold text-gray-900">Recent Saves</h3>
+        {savePoints.length > 0 && (
+          <ExternalLink className="h-4 w-4 text-gray-400" />
         )}
       </div>
 
-      {commits.length === 0 ? (
+      {savePoints.length === 0 ? (
         <div className="text-center py-8">
-          <Rocket className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-sm font-medium text-gray-900 mb-1">
-            No deploys yet
-          </h3>
-          <p className="text-sm text-gray-500">
-            Save your first changes to trigger a deployment.
+          <Rocket className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-600">No saves yet</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Start editing your files to see saves here
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {commits.map((commit, index) => {
-            const status = getDeployStatus(commit);
+          {savePoints.map((savePoint, index) => {
+            const status = getDeployStatus(savePoint);
             return (
               <div
-                key={commit.commit_id}
+                key={savePoint.commit_id}
                 className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   {getStatusIcon(status)}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {commit.commit_message}
+                      {savePoint.commit_message}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {commit.commit_id.slice(0, 8)}
+                      Save point #{savePoints.length - index}
                     </p>
                   </div>
                 </div>
@@ -166,17 +159,17 @@ export function RecentDeploys({ projectId }: RecentDeploysProps) {
                     </span>
                   )}
                   <span className="text-xs text-gray-500">
-                    {formatDate(commit.created_at)}
+                    {formatDate(savePoint.created_at)}
                   </span>
                 </div>
               </div>
             );
           })}
 
-          {commits.length >= 5 && (
+          {savePoints.length >= 5 && (
             <div className="text-center pt-2">
               <span className="text-sm text-gray-500">
-                Showing latest 5 deploys
+                Showing latest 5 saves
               </span>
             </div>
           )}

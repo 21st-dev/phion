@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Rocket, Terminal, Edit, Globe, Play, Square } from "lucide-react";

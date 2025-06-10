@@ -12,8 +12,9 @@ import {
   ProjectQueries,
   PendingChangesQueries,
   FileHistoryQueries,
+  CommitHistoryQueries,
 } from "@shipvibes/database";
-import { uploadFileVersion, downloadFile, downloadProjectTemplate } from "@shipvibes/storage";
+// R2 импорты удалены - теперь используем GitHub API
 import { NetlifyService } from "./services/netlify.js";
 import { projectLogger } from '@shipvibes/shared/dist/project-logger-server';
 
@@ -131,95 +132,8 @@ app.get('/health', (req, res) => {
 console.log('🚀 Starting Shipvibes WebSocket Server...');
 console.log(`📡 Port: ${PORT}`);
 
-/**
- * Извлечь файлы из шаблона проекта и сохранить их как первый коммит
- */
-async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
-  console.log(`📦 Extracting template files for project ${projectId}...`);
-  
-  // Логируем начало извлечения шаблона
-  await projectLogger.log({
-    project_id: projectId,
-    event_type: 'template_extracted',
-    details: { action: 'starting', trigger: 'initial_deploy' },
-    trigger: 'initial_deploy'
-  });
-  
-  try {
-    // Скачиваем шаблон из R2
-    const templateZip = await downloadProjectTemplate(projectId);
-    console.log(`✅ Downloaded template ZIP (${templateZip.length} bytes)`);
-    
-    // Извлекаем файлы из ZIP
-    const zip = new AdmZip(templateZip);
-    const zipEntries = zip.getEntries();
-    
-    const templateFiles: Record<string, string> = {};
-    
-    for (const entry of zipEntries) {
-      if (!entry.isDirectory) {
-        const content = entry.getData().toString('utf8');
-        templateFiles[entry.entryName] = content;
-        console.log(`📄 Extracted file: ${entry.entryName} (${content.length} chars)`);
-      }
-    }
-    
-    console.log(`✅ Extracted ${Object.keys(templateFiles).length} files from template`);
-    
-    // Создаем коммит с файлами шаблона
-    const commitId = crypto.randomUUID();
-    const commitMessage = 'Initial commit'; // Изменили на стандартное сообщение
-    
-    const supabase = getSupabaseServerClient();
-    const historyQueries = new FileHistoryQueries(supabase);
-    
-    // Загружаем файлы в R2 и создаем записи в file_history
-    for (const [filePath, content] of Object.entries(templateFiles)) {
-      // Загружаем файл в R2
-      await uploadFileVersion(projectId, commitId, filePath, content);
-      
-      // Создаем запись в file_history С commit_id и commit_message
-      await historyQueries.createFileHistory({
-        project_id: projectId,
-        file_path: filePath,
-        r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
-        content_hash: crypto.createHash('sha256').update(content).digest('hex'),
-        file_size: Buffer.byteLength(content, 'utf-8'),
-        commit_id: commitId,
-        commit_message: commitMessage
-      });
-    }
-    
-    // Логируем успешное создание коммита
-    await projectLogger.logCommitCreated(
-      projectId,
-      commitId,
-      commitMessage,
-      Object.keys(templateFiles).length,
-      'template_extraction'
-    );
-    
-    console.log(`✅ Template files saved as commit ${commitId} for project ${projectId}`);
-    return commitId;
-    
-      } catch (error) {
-      console.error(`❌ Error extracting template files for project ${projectId}:`, error);
-      
-      // Логируем ошибку
-      await projectLogger.log({
-        project_id: projectId,
-        event_type: 'error',
-        details: { 
-          action: 'template_extraction_failed', 
-          error: error instanceof Error ? error.message : String(error),
-          original_trigger: 'initial_deploy'
-        },
-        trigger: 'initial_deploy'
-      });
-      
-      throw error;
-    }
-}
+// УДАЛЕНО: extractAndSaveTemplateFiles больше не нужна
+// Файлы шаблона теперь создаются при создании проекта через GitHub API
 
 /**
  * Создать Netlify сайт для проекта если его еще нет
@@ -267,264 +181,136 @@ async function saveFullProjectSnapshot(
   projectId: string, 
   commitMessage?: string
 ): Promise<string> {
-  console.log(`📸 Creating full project snapshot for ${projectId}...`);
+  console.log(`📸 Creating GitHub commit for project ${projectId}...`);
   
   const supabase = getSupabaseServerClient();
   const pendingQueries = new PendingChangesQueries(supabase);
-  const historyQueries = new FileHistoryQueries(supabase);
+  const projectQueries = new ProjectQueries(supabase);
+  const commitHistoryQueries = new CommitHistoryQueries(supabase);
   
   // Получаем все pending changes (изменения пользователя)
   const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
   
-  // Получаем последние версии всех файлов из истории для полного снапшота
-  const latestFiles = await historyQueries.getProjectFileHistory(projectId, 1000);
+  // Получаем данные проекта для GitHub операций
+  const project = await projectQueries.getProjectById(projectId);
+  if (!project || !project.github_repo_name) {
+    throw new Error(`Project ${projectId} not found or missing GitHub repo data`);
+  }
   
-  // НОВАЯ ПРОВЕРКА: Если нет pending changes И есть файлы в истории, 
-  // возвращаем ID последнего коммита (НЕ создаем новый)
-  if (pendingChanges.length === 0 && latestFiles.length > 0) {
-    const lastCommitId = latestFiles[0]?.commit_id;
-    if (lastCommitId) {
-      console.log(`📄 No pending changes for project ${projectId}, reusing existing commit ${lastCommitId}`);
-      return lastCommitId;
+  // НОВАЯ ПРОВЕРКА: Если нет pending changes, возвращаем последний коммит SHA
+  if (pendingChanges.length === 0) {
+    const lastCommit = await commitHistoryQueries.getLatestCommit(projectId);
+    if (lastCommit?.github_commit_sha) {
+      console.log(`📄 No pending changes for project ${projectId}, reusing existing commit ${lastCommit.github_commit_sha}`);
+      return lastCommit.github_commit_sha;
     }
   }
   
-  // Если нет ни pending changes ни file history, создаем пустой снапшот для первого деплоя
-  if (pendingChanges.length === 0 && latestFiles.length === 0) {
-    console.log(`📄 No changes or history for project ${projectId}, creating initial empty snapshot`);
-    const commitId = crypto.randomUUID();
-    const finalCommitMessage = commitMessage || 'Initial empty deployment';
-    
-    // Создаем минимальную запись в file_history для отслеживания первого деплоя
-    await historyQueries.createFileHistory({
-      project_id: projectId,
-      file_path: '.shipvibes-initial',
-      r2_object_key: `projects/${projectId}/versions/${commitId}/.shipvibes-initial`,
-      content_hash: 'initial',
-      file_size: 0,
-      commit_id: commitId,
-      commit_message: finalCommitMessage
-    });
-    
-    console.log(`✅ Initial snapshot created for project ${projectId} as commit ${commitId}`);
-    return commitId;
+  // Если нет pending changes, но нужно создать первый коммит
+  if (pendingChanges.length === 0) {
+    throw new Error(`No pending changes to commit for project ${projectId}`);
   }
-  
-  // Создаем карту последних файлов
-  const latestFileMap = new Map();
-  for (const file of latestFiles) {
-    const existing = latestFileMap.get(file.file_path);
-    if (!existing || 
-        (file.created_at && existing.created_at && new Date(file.created_at) > new Date(existing.created_at)) ||
-        (file.created_at && !existing.created_at)) {
-      latestFileMap.set(file.file_path, file);
-    }
-  }
-  
-  // Создаем полный снапшот: начинаем с существующих файлов + применяем изменения
-  const fullSnapshot = new Map<string, any>();
-  
-  // 1. Добавляем все существующие файлы
-  for (const [filePath, fileRecord] of latestFileMap) {
-    try {
-      const content = await downloadFile(fileRecord.r2_object_key);
-      const fileContent = Buffer.isBuffer(content.content) 
-        ? content.content.toString() 
-        : content.content;
-      
-      fullSnapshot.set(filePath, {
-        content: fileContent,
-        hash: fileRecord.content_hash,
-        size: fileRecord.file_size,
-        action: 'unchanged'
-      });
-    } catch (error) {
-      console.warn(`⚠️ Could not load existing file ${filePath}:`, error);
-    }
-  }
-  
-  // 2. Применяем pending changes (если есть)
-  const changedFiles: string[] = [];
-  for (const change of pendingChanges) {
-    changedFiles.push(`${change.action}: ${change.file_path}`);
-    
-    if (change.action === 'deleted') {
-      fullSnapshot.delete(change.file_path);
-    } else {
-      fullSnapshot.set(change.file_path, {
-        content: change.content,
-        hash: change.content_hash,
-        size: change.file_size,
-        action: change.action
-      });
-    }
-  }
-  
+
   // Определяем сообщение коммита
-  let finalCommitMessage = commitMessage;
-  if (!finalCommitMessage) {
-    if (pendingChanges.length > 0) {
-      finalCommitMessage = `Updated ${pendingChanges.length} files: ${changedFiles.join(', ')}`;
-    } else {
-      finalCommitMessage = `Snapshot of ${fullSnapshot.size} existing files`;
-    }
-  }
+  const finalCommitMessage = commitMessage || `Save project changes (${pendingChanges.length} files)`;
+  console.log(`📄 Creating GitHub commit: ${finalCommitMessage}`);
   
-  console.log(`📄 Saving commit: ${finalCommitMessage}`);
-  console.log(`📄 Full snapshot contains ${fullSnapshot.size} files`);
+  // Импортируем GitHub сервис
+  const { githubAppService } = await import('./services/github.js');
   
-  // 3. Сохраняем ВСЕ файлы как один коммит
-  const commitId = crypto.randomUUID();
-  
-  // Если есть файлы для сохранения
-  if (fullSnapshot.size > 0) {
-    // Bulk upload всех файлов в R2
-    const uploadPromises: Promise<any>[] = [];
-    for (const [filePath, fileData] of fullSnapshot) {
-      uploadPromises.push(
-        uploadFileVersion(projectId, commitId, filePath, fileData.content)
+  // Создаем коммит в GitHub для каждого измененного файла
+  const commits: string[] = [];
+  for (const change of pendingChanges) {
+    try {
+      if (change.action === 'deleted') {
+        // TODO: Implement file deletion in GitHub
+        console.log(`⚠️ File deletion not yet implemented: ${change.file_path}`);
+        continue;
+      }
+      
+      const result = await githubAppService.createOrUpdateFile(
+        project.github_repo_name!,
+        change.file_path,
+        change.content,
+        `Update ${change.file_path}`
       );
+      
+      commits.push(result.commit.sha);
+      console.log(`✅ Updated file in GitHub: ${change.file_path} (${result.commit.sha})`);
+    } catch (error) {
+      console.error(`❌ Failed to update file ${change.file_path} in GitHub:`, error);
+      throw error;
     }
-    await Promise.all(uploadPromises);
-    
-    // Bulk создание записей в file_history
-    const historyRecords: any[] = [];
-    for (const [filePath, fileData] of fullSnapshot) {
-      historyRecords.push({
-        project_id: projectId,
-        file_path: filePath,
-        r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
-        content_hash: fileData.hash,
-        file_size: fileData.size,
-        commit_id: commitId,
-        commit_message: finalCommitMessage
-      });
-    }
-    
-    // Создаем все записи одним запросом
-    for (const record of historyRecords) {
-      await historyQueries.createFileHistory(record);
-    }
-  } else {
-    // Если нет файлов, создаем пустую запись
-    await historyQueries.createFileHistory({
-      project_id: projectId,
-      file_path: '.shipvibes-empty',
-      r2_object_key: `projects/${projectId}/versions/${commitId}/.shipvibes-empty`,
-      content_hash: 'empty',
-      file_size: 0,
-      commit_id: commitId,
-      commit_message: finalCommitMessage
-    });
   }
   
-  // 4. Очищаем pending changes (если были)
-  if (pendingChanges.length > 0) {
-    await pendingQueries.clearAllPendingChanges(projectId);
-    
-    // Логируем очистку pending changes
-    await projectLogger.log({
-      project_id: projectId,
-      event_type: 'pending_changes_cleared',
-      details: { 
-        clearedChangesCount: pendingChanges.length,
-        action: 'bulk_clear'
-      },
-      trigger: 'commit_save'
-    });
-  }
+  // Сохраняем информацию о коммите в базу данных
+  const mainCommitSha = commits[commits.length - 1]; // Последний коммит
+     await commitHistoryQueries.createCommitHistory({
+     project_id: projectId,
+     commit_message: finalCommitMessage,
+     github_commit_sha: mainCommitSha,
+     github_commit_url: `https://github.com/${project.github_owner}/${project.github_repo_name}/commit/${mainCommitSha}`,
+     files_count: pendingChanges.length
+   });
+  
+  // Очищаем pending changes после успешного коммита
+  await pendingQueries.clearAllPendingChanges(projectId);
+  
+  // Логируем очистку pending changes
+  await projectLogger.log({
+    project_id: projectId,
+    event_type: 'pending_changes_cleared',
+    details: { 
+      clearedChangesCount: pendingChanges.length,
+      action: 'github_commit'
+    },
+    trigger: 'commit_save'
+  });
   
   // Логируем создание коммита
   await projectLogger.logCommitCreated(
     projectId,
-    commitId,
+    mainCommitSha,
     finalCommitMessage,
-    fullSnapshot.size,
-    'manual_save'
+    pendingChanges.length,
+    'github_api'
   );
   
-  console.log(`✅ Full project snapshot saved as commit ${commitId}: ${finalCommitMessage}`);
-  return commitId;
+  console.log(`✅ GitHub commit created: ${mainCommitSha} with ${pendingChanges.length} files`);
+  return mainCommitSha;
 }
 
-async function triggerDeploy(projectId: string, commitId: string): Promise<void> {
+async function triggerDeploy(projectId: string, commitSha: string): Promise<void> {
   try {
-    // Проверяем, есть ли файлы для деплоя
-    const hasFiles = await netlifyService.hasProjectFiles(projectId);
-    if (!hasFiles) {
-      console.log(`⏰ Project ${projectId} has no deployable files, skipping deploy`);
-      
-      // Обновляем статус как ready но без URL
-      const supabase = getSupabaseServerClient();
-      const projectQueries = new ProjectQueries(supabase);
-      await projectQueries.updateProject(projectId, {
-        deploy_status: 'ready'
-      });
-      
-      // Логируем изменение статуса
-      await projectLogger.logDeployStatusChange(
-        projectId,
-        'pending',
-        'ready',
-        undefined,
-        'auto_deploy'
-      );
-      
-      return;
-    }
+    console.log(`🚀 GitHub commit ${commitSha} created for project ${projectId}`);
+    console.log(`🌐 Netlify will automatically deploy from GitHub webhook...`);
     
-    // Убеждаемся что у проекта есть Netlify сайт
-    const siteId = await ensureNetlifySite(projectId);
-    if (!siteId) {
-      console.error(`❌ Cannot deploy project ${projectId}: no Netlify site`);
-      
-      // Логируем ошибку
-      await projectLogger.log({
-        project_id: projectId,
-        event_type: 'error',
-        details: { 
-          message: 'Cannot deploy project: no Netlify site',
-          context: 'triggerDeploy'
-        },
-        trigger: 'deploy_process'
-      });
-      
-      return;
-    }
-
-    console.log(`🚀 Triggering deploy for project ${projectId} (site: ${siteId})...`);
+    // НОВАЯ ЛОГИКА: Netlify автоматически деплоит при GitHub коммите
+    // Просто обновляем статус на "building" и ждем webhook от Netlify
     
-    // Логируем начало деплоя
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    
+    // Логируем начало автоматического деплоя
     await projectLogger.logDeployStatusChange(
       projectId,
       'pending',
       'building',
       undefined,
-      'deploy_process'
+      'github_commit'
     );
     
-    // Обновляем статус деплоя
-    const supabase = getSupabaseServerClient();
-    const projectQueries = new ProjectQueries(supabase);
+    // Обновляем статус - Netlify начнет деплой автоматически
     await projectQueries.updateProject(projectId, {
       deploy_status: 'building'
     });
     
-    // Запускаем деплой
-    const deployResponse = await netlifyService.deployProject(siteId, projectId, commitId);
+    console.log(`✅ GitHub commit created, Netlify auto-deploy initiated for project ${projectId}`);
     
-    // Обновляем статус деплоя (автоматическая проверка статуса запустится в NetlifyService)
-    await projectQueries.updateProject(projectId, {
-      deploy_status: 'building',
-      netlify_url: deployResponse.deploy_url,
-      netlify_deploy_id: deployResponse.id
-    });
-
-    console.log(`✅ Deploy initiated for project ${projectId}: ${deployResponse.deploy_url}`);
   } catch (error) {
-    console.error(`❌ Error deploying project ${projectId}:`, error);
+    console.error(`❌ Error in deploy trigger for project ${projectId}:`, error);
     
-    // Логируем ошибку деплоя
+    // Логируем ошибку
     await projectLogger.logDeployStatusChange(
       projectId,
       'building',
@@ -602,34 +388,57 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
     console.log(`🚀 Project ${projectId} is new and empty (${Math.round(projectAge / 1000)}s old), starting initial deploy...`);
     
     try {
-      // НОВАЯ ЛОГИКА: Сначала проверяем, есть ли уже файлы шаблона в истории
-      // (они могли быть сохранены при создании проекта)
-      const templateFiles = await historyQueries.getProjectFileHistory(projectId, 50);
+      // НОВАЯ ЛОГИКА GitHub: Файлы шаблона создаются при создании проекта
+      // Проверяем, есть ли коммиты в GitHub через commit_history
+      const supabaseMain = getSupabaseServerClient();
+      const commitHistoryQueries = new CommitHistoryQueries(supabaseMain);
+      const existingCommits = await commitHistoryQueries.getProjectCommitHistory(projectId);
       
-      let commitId: string;
+      let commitSha: string;
       
-      if (templateFiles.length > 0) {
-        // Файлы шаблона уже есть в истории - используем последний коммит
-        commitId = templateFiles[0].commit_id || crypto.randomUUID();
-        console.log(`📦 Template files already exist in history, using commit ${commitId}`);
+      if (existingCommits.length > 0) {
+        // Есть коммиты в GitHub - используем последний
+        commitSha = existingCommits[0].github_commit_sha;
+        console.log(`📦 Using existing GitHub commit: ${commitSha}`);
+      } else if (project.github_repo_name) {
+        // Проверяем есть ли коммиты в GitHub репозитории
+        console.log(`📦 No commit history found, checking GitHub directly...`);
+        const { githubAppService } = await import('./services/github.js');
+        
+        try {
+          const commits = await githubAppService.getCommits(project.github_repo_name);
+          if (commits.length > 0) {
+            commitSha = commits[0].sha;
+            console.log(`📦 Found GitHub commit: ${commitSha}`);
+            
+            // Сохраняем коммит в нашей истории для синхронизации
+            await commitHistoryQueries.createCommitHistory({
+              project_id: projectId,
+              commit_message: commits[0].commit.message,
+              github_commit_sha: commitSha,
+              github_commit_url: commits[0].html_url,
+              files_count: 1
+            });
+          } else {
+            console.log(`📦 No commits found in GitHub, skipping initial deploy`);
+            return; // Нет коммитов для деплоя
+          }
+        } catch (githubError) {
+          console.log(`📦 Error checking GitHub commits: ${githubError}, skipping initial deploy`);
+          return;
+        }
       } else {
-        // Файлы шаблона отсутствуют - извлекаем из ZIP
-        console.log(`📦 No template files in history, extracting from template ZIP...`);
-        commitId = await extractAndSaveTemplateFiles(projectId);
-        console.log(`📦 Template files extracted and saved as commit ${commitId}`);
+        console.log(`📦 No GitHub repo configured, skipping initial deploy`);
+        return;
       }
       
-      // Деплоим коммит с файлами шаблона
-      await triggerDeploy(projectId, commitId);
-      console.log(`✅ Initial template deploy triggered for project ${projectId}`);
+      // Деплоим найденный коммит
+      await triggerDeploy(projectId, commitSha);
+      console.log(`✅ Initial deploy triggered for project ${projectId} with commit ${commitSha}`);
       
-    } catch (templateError) {
-      console.error(`❌ Error in initial deploy for project ${projectId}:`, templateError);
-      
-      // Если что-то пошло не так, создаем пустой первый снапшот
-      console.log(`🔄 Falling back to empty initial deploy for project ${projectId}`);
-      const commitId = await saveFullProjectSnapshot(projectId, 'Initial deployment (fallback)');
-      await triggerDeploy(projectId, commitId);
+    } catch (error) {
+      console.error(`❌ Error in initial deploy for project ${projectId}:`, error);
+      // Не создаем fallback - просто логируем ошибку
     }
     
   } catch (error) {
@@ -834,23 +643,146 @@ io.on('connection', (socket) => {
 
       console.log(`💾 Saving all changes for project ${projectId}`);
       
-      const commitId = await saveFullProjectSnapshot(projectId, commitMessage);
+      const commitSha = await saveFullProjectSnapshot(projectId, commitMessage);
 
       // Уведомляем о successful save
       socket.emit('save_success', {
-        commitId,
+        commitId: commitSha,
         timestamp: Date.now()
       });
 
       // Триггерим деплой ТОЛЬКО после сохранения
       console.log(`🚀 Triggering deploy after save for project ${projectId}`);
-      triggerDeploy(projectId, commitId).catch(error => {
+      triggerDeploy(projectId, commitSha).catch(error => {
         console.error(`❌ Deploy failed for project ${projectId}:`, error);
       });
 
     } catch (error) {
       console.error('❌ Error saving changes:', error);
       socket.emit('error', { message: 'Failed to save changes' });
+    }
+  });
+
+  // НОВЫЙ HANDLER: Откат локальных изменений
+  socket.on('discard_all_changes', async (data) => {
+    try {
+      const { projectId } = data;
+      
+      if (!projectId) {
+        socket.emit('error', { message: 'Missing projectId' });
+        return;
+      }
+
+      console.log(`🔄 Discarding all changes for project ${projectId}`);
+      
+      const supabase = getSupabaseServerClient();
+      const pendingQueries = new PendingChangesQueries(supabase);
+      
+      // Очищаем pending changes в базе данных
+      await pendingQueries.clearAllPendingChanges(projectId);
+      
+      // Отправляем команду на откат локальному агенту
+      io.to(`project:${projectId}`).emit('discard_local_changes', {
+        projectId
+      });
+      
+      console.log(`✅ Discard command sent for project ${projectId}`);
+      
+      // Уведомляем клиента об успехе
+      socket.emit('discard_success', {
+        projectId,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ Error discarding changes:', error);
+      socket.emit('error', { message: 'Failed to discard changes' });
+    }
+  });
+
+  // НОВЫЙ HANDLER: Синхронизация с GitHub
+  socket.on('sync_with_github', async (data) => {
+    try {
+      const { projectId } = data;
+      
+      if (!projectId) {
+        socket.emit('error', { message: 'Missing projectId' });
+        return;
+      }
+
+      console.log(`🔄 Syncing project ${projectId} with GitHub`);
+      
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      
+      // Получаем данные проекта
+      const project = await projectQueries.getProjectById(projectId);
+      if (!project || !project.github_repo_url) {
+        socket.emit('error', { message: 'Project not found or missing GitHub repo' });
+        return;
+      }
+      
+      // Импортируем GitHub сервис для создания временного токена
+      const { githubAppService } = await import('./services/github.js');
+      
+      // Создаем временный токен для git pull
+      const temporaryToken = await githubAppService.createTemporaryToken();
+      
+      // Отправляем команду git pull с токеном локальному агенту
+      io.to(`project:${projectId}`).emit('git_pull_with_token', {
+        projectId,
+        token: temporaryToken,
+        repoUrl: project.github_repo_url
+      });
+      
+      console.log(`✅ Git pull command sent for project ${projectId}`);
+      
+      // Уведомляем клиента об отправке команды
+      socket.emit('sync_initiated', {
+        projectId,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ Error syncing with GitHub:', error);
+      socket.emit('error', { message: 'Failed to sync with GitHub' });
+    }
+  });
+
+  // HANDLER: Результат выполнения git команд от локального агента
+  socket.on('git_command_result', async (data) => {
+    try {
+      const { projectId, command, success, error } = data;
+      
+      console.log(`📊 Git command result for project ${projectId}: ${command} - ${success ? 'SUCCESS' : 'FAILED'}`);
+      
+      if (!success) {
+        console.error(`❌ Git command failed: ${error}`);
+      }
+      
+      // Логируем результат git команды
+      await projectLogger.log({
+        project_id: projectId,
+        event_type: success ? 'git_command_success' : 'git_command_error',
+        details: { 
+          command,
+          error: success ? undefined : error,
+          source: 'local_agent'
+        },
+        trigger: 'git_command'
+      });
+      
+      // Уведомляем веб-клиентов о результате
+      io.to(`project:${projectId}`).emit('git_command_completed', {
+        projectId,
+        command,
+        success,
+        error,
+        timestamp: Date.now()
+      });
+
+    } catch (logError) {
+      console.error('❌ Error logging git command result:', logError);
     }
   });
 

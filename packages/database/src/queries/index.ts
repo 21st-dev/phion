@@ -3,6 +3,7 @@ export * from "./projects";
 export * from "./file-history";
 export * from "./pending-changes";
 export * from "./deploy-status";
+export * from "./commit-history";
 
 import { getSupabaseServerClient } from "../client";
 

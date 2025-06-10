@@ -11,22 +11,19 @@
   "dependencies": {
     "@shipvibes/database": "workspace:*",
     "@shipvibes/shared": "workspace:*",
-    "@shipvibes/storage": "workspace:*",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",
-    "archiver": "^7.0.1",
     "cors": "^2.8.5",
-    "diff": "^5.2.0",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",
-    "form-data": "^4.0.0",
+    "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "@types/archiver": "^6.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20.11.24",
     "tsx": "^4.7.1",
     "typescript": "^5.2.2"

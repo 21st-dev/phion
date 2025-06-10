@@ -221,4 +221,76 @@ export class ProjectQueries {
 
     return (data as unknown as ProjectRow[]) || [];
   }
+
+  /**
+   * Обновить GitHub информацию проекта
+   */
+  async updateGitHubInfo(
+    projectId: string,
+    githubInfo: {
+      github_repo_url: string;
+      github_repo_name: string;
+      github_owner?: string;
+    }
+  ): Promise<ProjectRow> {
+    const updateData: ProjectUpdate = {
+      github_repo_url: githubInfo.github_repo_url,
+      github_repo_name: githubInfo.github_repo_name,
+      github_owner: githubInfo.github_owner || "shipvibes",
+    };
+
+    const { data, error } = await this.client
+      .from("projects")
+      .update(updateData)
+      .eq("id", projectId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update GitHub info: ${error.message}`);
+    }
+
+    return data as unknown as ProjectRow;
+  }
+
+  /**
+   * Получить проекты по GitHub репозиторию
+   */
+  async getProjectByGitHubRepo(
+    repoName: string,
+    owner: string = "shipvibes"
+  ): Promise<ProjectRow | null> {
+    const { data, error } = await this.client
+      .from("projects")
+      .select("*")
+      .eq("github_repo_name", repoName)
+      .eq("github_owner", owner)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        return null; // Проект не найден
+      }
+      throw new Error(`Failed to fetch project by GitHub repo: ${error.message}`);
+    }
+
+    return data as unknown as ProjectRow;
+  }
+
+  /**
+   * Получить все проекты с настроенным GitHub репозиторием
+   */
+  async getProjectsWithGitHub(): Promise<ProjectRow[]> {
+    const { data, error } = await this.client
+      .from("projects")
+      .select("*")
+      .not("github_repo_url", "is", null)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch projects with GitHub: ${error.message}`);
+    }
+
+    return (data as unknown as ProjectRow[]) || [];
+  }
 }

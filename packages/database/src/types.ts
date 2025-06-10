@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      commit_history: {
+        Row: {
+          commit_message: string
+          committed_by: string | null
+          created_at: string | null
+          files_count: number | null
+          github_commit_sha: string
+          github_commit_url: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          commit_message: string
+          committed_by?: string | null
+          created_at?: string | null
+          files_count?: number | null
+          github_commit_sha: string
+          github_commit_url: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          commit_message?: string
+          committed_by?: string | null
+          created_at?: string | null
+          files_count?: number | null
+          github_commit_sha?: string
+          github_commit_url?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commit_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deploy_status: {
         Row: {
           commit_id: string
@@ -62,6 +103,8 @@ export type Database = {
           diff_text: string | null
           file_path: string
           file_size: number
+          github_commit_sha: string | null
+          github_commit_url: string | null
           id: string
           project_id: string | null
           r2_object_key: string
@@ -74,6 +117,8 @@ export type Database = {
           diff_text?: string | null
           file_path: string
           file_size?: number
+          github_commit_sha?: string | null
+          github_commit_url?: string | null
           id?: string
           project_id?: string | null
           r2_object_key: string
@@ -86,6 +131,8 @@ export type Database = {
           diff_text?: string | null
           file_path?: string
           file_size?: number
+          github_commit_sha?: string | null
+          github_commit_url?: string | null
           id?: string
           project_id?: string | null
           r2_object_key?: string
@@ -148,6 +195,9 @@ export type Database = {
         Row: {
           created_at: string | null
           deploy_status: string | null
+          github_owner: string | null
+          github_repo_name: string | null
+          github_repo_url: string | null
           id: string
           name: string
           netlify_deploy_id: string | null
@@ -160,6 +210,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           deploy_status?: string | null
+          github_owner?: string | null
+          github_repo_name?: string | null
+          github_repo_url?: string | null
           id?: string
           name?: string
           netlify_deploy_id?: string | null
@@ -172,6 +225,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           deploy_status?: string | null
+          github_owner?: string | null
+          github_repo_name?: string | null
+          github_repo_url?: string | null
           id?: string
           name?: string
           netlify_deploy_id?: string | null
@@ -310,19 +366,23 @@ export const Constants = {
   },
 } as const
 
-// Convenience type exports
-export type ProjectRow = Tables<'projects'>
-export type ProjectInsert = TablesInsert<'projects'>
-export type ProjectUpdate = TablesUpdate<'projects'>
+// Type aliases for convenience
+export type ProjectRow = Tables<"projects">
+export type ProjectInsert = TablesInsert<"projects">
+export type ProjectUpdate = TablesUpdate<"projects">
 
-export type PendingChange = Tables<'pending_changes'>
-export type PendingChangeInsert = TablesInsert<'pending_changes'>
-export type PendingChangeUpdate = TablesUpdate<'pending_changes'>
+export type FileHistoryRow = Tables<"file_history">
+export type FileHistoryInsert = TablesInsert<"file_history">
+export type FileHistoryUpdate = TablesUpdate<"file_history">
 
-export type FileHistoryRow = Tables<'file_history'>
-export type FileHistoryInsert = TablesInsert<'file_history'>
-export type FileHistoryUpdate = TablesUpdate<'file_history'>
+export type PendingChangesRow = Tables<"pending_changes">
+export type PendingChangesInsert = TablesInsert<"pending_changes">
+export type PendingChangesUpdate = TablesUpdate<"pending_changes">
 
-export type DeployStatusRow = Tables<'deploy_status'>
-export type DeployStatusInsert = TablesInsert<'deploy_status'>
-export type DeployStatusUpdate = TablesUpdate<'deploy_status'>
+export type DeployStatusRow = Tables<"deploy_status">
+export type DeployStatusInsert = TablesInsert<"deploy_status">
+export type DeployStatusUpdate = TablesUpdate<"deploy_status">
+
+export type CommitHistoryRow = Tables<"commit_history">
+export type CommitHistoryInsert = TablesInsert<"commit_history">
+export type CommitHistoryUpdate = TablesUpdate<"commit_history">

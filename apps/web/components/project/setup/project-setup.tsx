@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { DatabaseTypes } from "@shipvibes/database";
-import { Material } from "@/components/geist/material";
+// Material удален - не используется
 import {
   ProjectSetupLayout,
   ProjectSetupSidebar,

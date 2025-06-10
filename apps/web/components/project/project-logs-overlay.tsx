@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProjectLogEntry } from "@shipvibes/shared";
-import { Activity, X, Filter } from "lucide-react";
+import { Activity, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProjectLogsOverlayProps {

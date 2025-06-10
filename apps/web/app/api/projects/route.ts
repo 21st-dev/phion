@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllProjects, createProject, getUserProjects, updateProject } from "@shipvibes/database";
+import { createProject, getUserProjects, updateProject } from "@shipvibes/database";
 import { createAuthServerClient } from "@shipvibes/database";
-import { uploadProjectTemplate, uploadTextFile, uploadFileVersion } from "@shipvibes/storage";
 import { cookies } from "next/headers";
 import path from "path";
 import fs from "fs";
-import crypto from "crypto";
-import archiver from "archiver";
-import { CreateProject } from "@shipvibes/shared";
-import { getSupabaseServerClient, ProjectQueries, FileHistoryQueries } from "@shipvibes/database";
+import { getSupabaseServerClient, ProjectQueries, CommitHistoryQueries } from "@shipvibes/database";
 // Server-side import for the project logger
 import { projectLogger } from "@shipvibes/shared/project-logger-server";
+// Добавляем GitHub App service
+import { githubAppService } from "@/lib/github-service";
+// Добавляем Netlify service
+import { netlifyService } from "@/lib/netlify-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -102,26 +102,102 @@ export async function POST(request: NextRequest) {
       'api_request'
     );
 
-    // Создаем ZIP шаблона для скачивания
     try {
-      await generateAndUploadTemplate(project.id, template_type, name);
-    } catch (templateError) {
-      console.error("Error generating template:", templateError);
-      // Проект уже создан, но шаблон не загружен
+      console.log(`🚀 [PROJECT_CREATION] Starting GitHub-based project creation for ${project.id}`);
+      
+      // 1. Создаем GitHub репозиторий
+      const repository = await githubAppService.createRepository(
+        project.id,
+        `Shipvibes project: ${project.name}`
+      );
+      
+      console.log(`✅ [PROJECT_CREATION] GitHub repository created: ${repository.html_url}`);
+
+      // 2. Обновляем проект с GitHub данными
+      const supabaseClient = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabaseClient);
+      
+      await projectQueries.updateGitHubInfo(project.id, {
+        github_repo_url: repository.html_url,
+        github_repo_name: repository.name,
+        github_owner: 'shipvibes'
+      });
+
+      // 3. Загружаем файлы шаблона в GitHub репозиторий
+      const templateFiles = await generateTemplateFiles(project.id, template_type, name);
+      const commits: string[] = [];
+      
+      for (const [filePath, content] of Object.entries(templateFiles)) {
+        const result = await githubAppService.createOrUpdateFile(
+          repository.name,
+          filePath,
+          content,
+          `Add ${filePath} from template`
+        );
+        commits.push(result.commit.sha);
+        console.log(`📝 [PROJECT_CREATION] Added file to GitHub: ${filePath}`);
+      }
+
+      // 4. Создаем запись в commit_history для синхронизации с нашей системой
+      const commitHistoryQueries = new CommitHistoryQueries(supabaseClient);
+      const mainCommitSha = commits[commits.length - 1]; // Последний коммит
+      
+      await commitHistoryQueries.createCommitHistory({
+        project_id: project.id,
+        commit_message: 'Initial commit from template',
+        github_commit_sha: mainCommitSha,
+        github_commit_url: `${repository.html_url}/commit/${mainCommitSha}`,
+        files_count: Object.keys(templateFiles).length
+      });
+
+      console.log(`✅ [PROJECT_CREATION] Template files uploaded to GitHub with commit ${mainCommitSha}`);
+
+             // 5. Создаем Netlify сайт с GitHub интеграцией и deploy keys
+       console.log(`🌐 [PROJECT_CREATION] Creating Netlify site with GitHub integration...`);
+       const netlifySite = await netlifyService.createSiteWithGitHub(
+         project.id,
+         project.name,
+         repository.name,
+         'shipvibes'
+       );
+
+       // 6. Обновляем проект с Netlify данными
+       await projectQueries.updateProject(project.id, {
+         netlify_site_id: netlifySite.id,
+         netlify_url: netlifySite.ssl_url || netlifySite.url,
+         deploy_status: "ready"
+       });
+
+       console.log(`✅ [PROJECT_CREATION] Netlify site created with auto-deploy: ${netlifySite.ssl_url || netlifySite.url}`);
+
+             return NextResponse.json({
+         project: {
+           ...project,
+           github_repo_url: repository.html_url,
+           github_repo_name: repository.name,
+           github_owner: 'shipvibes',
+           netlify_site_id: netlifySite.id,
+           netlify_url: netlifySite.ssl_url || netlifySite.url
+         },
+         downloadUrl: `/api/projects/${project.id}/download`,
+         githubUrl: repository.html_url,
+         liveUrl: netlifySite.ssl_url || netlifySite.url
+       });
+    } catch (githubError) {
+      console.error("❌ [PROJECT_CREATION] Error with GitHub operations:", githubError);
+      
+      // Проект создан в БД, но GitHub/Netlify setup не удался
+      // Обновляем статус на failed
+      await updateProject(project.id, {
+        deploy_status: "failed"
+      });
+      
+      return NextResponse.json({
+        project,
+        downloadUrl: `/api/projects/${project.id}/download`,
+        error: "GitHub setup failed but project was created"
+      });
     }
-
-    // Запускаем сохранение файлов шаблона как первый коммит в фоне
-    // НЕ блокируем ответ пользователю
-    saveTemplateAsInitialCommit(project.id, template_type, name).catch((error) => {
-      console.error("Error saving template as initial commit:", error);
-    });
-
-    // TODO: Создание сайта на Netlify
-
-    return NextResponse.json({
-      project,
-      downloadUrl: `/api/projects/${project.id}/download`,
-    });
   } catch (error) {
     console.error("Error creating project:", error);
     return NextResponse.json(
@@ -131,151 +207,40 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generateAndUploadTemplate(
+/**
+ * Генерирует файлы шаблона с настройками проекта
+ * Заменяет старую функцию generateAndUploadTemplate
+ */
+async function generateTemplateFiles(
   projectId: string,
   templateType: string,
   projectName: string
-): Promise<void> {
-  console.log(`🔄 [TEMPLATE] Starting template generation for ${projectId} (${templateType})`);
+): Promise<Record<string, string>> {
+  console.log(`🔄 [TEMPLATE] Generating template files for ${projectId} (${templateType})`);
   
-  // Путь к шаблону (в корне проекта)
+  // Путь к шаблону
   const templatePath = path.join(process.cwd(), "..", "..", "templates", templateType);
   
-  console.log(`📂 [TEMPLATE] Looking for template at: ${templatePath}`);
-  console.log(`📂 [TEMPLATE] Current working directory: ${process.cwd()}`);
-  
-  // Проверим существование шаблона
   if (!fs.existsSync(templatePath)) {
-    // Попробуем относительный путь от корня монорепо
+    // Пробуем альтернативный путь
     const alternativeTemplatePath = path.join(process.cwd(), "templates", templateType);
-    console.log(`📂 [TEMPLATE] Trying alternative path: ${alternativeTemplatePath}`);
-    
     if (!fs.existsSync(alternativeTemplatePath)) {
-      console.error(`❌ [TEMPLATE] Template ${templateType} not found at either:
-        - ${templatePath}
-        - ${alternativeTemplatePath}`);
       throw new Error(`Template ${templateType} not found`);
     }
-    
-    console.log(`✅ [TEMPLATE] Template found at alternative path`);
-    await createTemplateFromPath(alternativeTemplatePath, projectName, projectId);
-  } else {
-    console.log(`✅ [TEMPLATE] Template found at original path`);
-    await createTemplateFromPath(templatePath, projectName, projectId);
+    return await collectTemplateFiles(alternativeTemplatePath, projectName, projectId);
   }
-}
-
-async function createTemplateFromPath(
-  templatePath: string,
-  projectName: string,
-  projectId: string
-): Promise<void> {
-  console.log(`🏗️ [TEMPLATE] Creating ZIP archive from ${templatePath}`);
   
-  // Создаем ZIP архив шаблона
-  const zipBuffer = await createTemplateZip(templatePath, projectName, projectId);
-  
-  console.log(`✅ [TEMPLATE] ZIP archive created, size: ${zipBuffer.length} bytes`);
-  
-  // Загружаем в R2
-  console.log(`📤 [TEMPLATE] Uploading to R2 for project ${projectId}...`);
-  const uploadResult = await uploadProjectTemplate(projectId, zipBuffer);
-  
-  console.log(`✅ [TEMPLATE] Upload successful:`, uploadResult);
-}
-
-async function createTemplateZip(templatePath: string, projectName: string, projectId: string): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    console.log(`📦 [ZIP] Starting ZIP creation for ${templatePath}`);
-    
-    const archive = archiver('zip', { zlib: { level: 9 } });
-    const chunks: Uint8Array[] = [];
-
-    archive.on('data', (chunk: Uint8Array) => chunks.push(chunk));
-    archive.on('end', () => {
-      const buffer = Buffer.concat(chunks);
-      console.log(`✅ [ZIP] Archive finalized, total size: ${buffer.length} bytes`);
-      resolve(buffer);
-    });
-    archive.on('error', (error) => {
-      console.error(`❌ [ZIP] Archive error:`, error);
-      reject(error);
-    });
-
-    console.log(`📂 [ZIP] Reading template directory: ${templatePath}`);
-
-    // Читаем все файлы из шаблона
-    let files;
-    try {
-      files = fs.readdirSync(templatePath, { withFileTypes: true });
-      console.log(`📋 [ZIP] Found ${files.length} items in template:`, files.map(f => f.name));
-    } catch (error) {
-      console.error(`❌ [ZIP] Error reading template directory:`, error);
-      reject(error);
-      return;
-    }
-    
-    let processedFiles = 0;
-    
-    for (const file of files) {
-      const filePath = path.join(templatePath, file.name);
-      console.log(`📄 [ZIP] Processing: ${file.name} (${file.isDirectory() ? 'directory' : 'file'})`);
-      
-      try {
-        if (file.isDirectory()) {
-          // Добавляем директорию рекурсивно
-          archive.directory(filePath, file.name);
-          console.log(`📁 [ZIP] Added directory: ${file.name}`);
-        } else if (file.name === 'package.json') {
-          // Обновляем package.json с именем проекта
-          const packageJson = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-          packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
-          archive.append(JSON.stringify(packageJson, null, 2), { name: 'package.json' });
-          console.log(`📝 [ZIP] Updated package.json with project name: ${packageJson.name}`);
-        } else if (file.name === 'shipvibes-dev.js') {
-          // Обновляем shipvibes-dev.js с PROJECT_ID
-          let agentContent = fs.readFileSync(filePath, 'utf-8');
-          agentContent = agentContent.replace(/__PROJECT_ID__/g, projectId);
-          archive.append(agentContent, { name: 'shipvibes-dev.js' });
-          console.log(`🔧 [ZIP] Updated shipvibes-dev.js with project ID: ${projectId}`);
-        } else {
-          // Добавляем файл как есть
-          archive.file(filePath, { name: file.name });
-          console.log(`📄 [ZIP] Added file: ${file.name}`);
-        }
-        processedFiles++;
-      } catch (fileError) {
-        console.error(`❌ [ZIP] Error processing file ${file.name}:`, fileError);
-      }
-    }
-
-    console.log(`✅ [ZIP] Processed ${processedFiles}/${files.length} items, finalizing archive...`);
-    archive.finalize();
-  });
+  return await collectTemplateFiles(templatePath, projectName, projectId);
 }
 
 /**
- * Сохранить файлы шаблона как первый коммит в истории проекта
+ * Собирает все файлы из шаблона и применяет необходимые трансформации
  */
-async function saveTemplateAsInitialCommit(
-  projectId: string,
-  templateType: string,
-  projectName: string
-): Promise<string> {
-  console.log(`💾 [INITIAL_COMMIT] Saving template files as initial commit for ${projectId}`);
-  
-  // Определяем путь к шаблону (такая же логика как в generateAndUploadTemplate)
-  let templatePath = path.join(process.cwd(), "..", "..", "templates", templateType);
-  
-  if (!fs.existsSync(templatePath)) {
-    templatePath = path.join(process.cwd(), "templates", templateType);
-    
-    if (!fs.existsSync(templatePath)) {
-      throw new Error(`Template ${templateType} not found`);
-    }
-  }
-  
-  // Собираем все файлы из шаблона
+async function collectTemplateFiles(
+  templatePath: string,
+  projectName: string,
+  projectId: string
+): Promise<Record<string, string>> {
   const templateFiles: Record<string, string> = {};
   
   function collectFiles(dirPath: string, relativePath: string = ''): void {
@@ -295,7 +260,7 @@ async function saveTemplateAsInitialCommit(
       } else {
         let content = fs.readFileSync(fullPath, 'utf-8');
         
-        // Применяем те же трансформации что и в createTemplateZip
+        // Применяем трансформации для специальных файлов
         if (item.name === 'package.json') {
           const packageJson = JSON.parse(content);
           packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
@@ -313,59 +278,7 @@ async function saveTemplateAsInitialCommit(
   
   collectFiles(templatePath);
   
-  console.log(`📋 [INITIAL_COMMIT] Collected ${Object.keys(templateFiles).length} files from template`);
-  
-  // Создаем коммит
-  const commitId = crypto.randomUUID();
-  const commitMessage = 'Initial commit from template';
-  
-  const supabase = getSupabaseServerClient();
-  const historyQueries = new FileHistoryQueries(supabase);
-  
-  // Сохраняем каждый файл в R2 и создаем запись в file_history
-  for (const [filePath, content] of Object.entries(templateFiles)) {
-    try {
-      // Загружаем файл в R2 в структуре версий
-      await uploadFileVersion(projectId, commitId, filePath, content);
-      
-      // Создаем запись в file_history
-      await historyQueries.createFileHistory({
-        project_id: projectId,
-        file_path: filePath,
-        r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
-        content_hash: crypto.createHash('sha256').update(content).digest('hex'),
-        file_size: Buffer.byteLength(content, 'utf-8'),
-        commit_id: commitId,
-        commit_message: commitMessage
-      });
-      
-      console.log(`💾 [INITIAL_COMMIT] Saved file: ${filePath} (${content.length} chars)`);
-    } catch (error) {
-      console.error(`❌ [INITIAL_COMMIT] Error saving file ${filePath}:`, error);
-      // Продолжаем с другими файлами
-    }
-  }
-  
-  // Логируем создание коммита
-  await projectLogger.logCommitCreated(
-    projectId,
-    commitId,
-    commitMessage,
-    Object.keys(templateFiles).length,
-    'initial_template_save'
-  );
-
-  // Обновляем статус проекта на "ready" после завершения инициализации
-  try {
-    await updateProject(projectId, {
-      deploy_status: "ready"
-    });
-    console.log(`✅ [INITIAL_COMMIT] Project ${projectId} status updated to ready`);
-  } catch (statusError) {
-    console.error(`❌ [INITIAL_COMMIT] Failed to update project status:`, statusError);
-  }
-  
-  console.log(`✅ [INITIAL_COMMIT] Template files saved as commit ${commitId} for project ${projectId}`);
-  return commitId;
+  console.log(`📋 [TEMPLATE] Collected ${Object.keys(templateFiles).length} files from template`);
+  return templateFiles;
 }
 

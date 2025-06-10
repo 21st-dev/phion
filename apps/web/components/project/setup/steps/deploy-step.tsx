@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
-import { CheckCircle, Clock, AlertCircle, Loader2, Globe } from "lucide-react";
+import { CheckCircle, Clock, Loader2, Globe } from "lucide-react";
 
 interface ProjectStatus {
   id: string;

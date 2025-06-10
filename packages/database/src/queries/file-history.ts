@@ -245,4 +245,116 @@ export class FileHistoryQueries {
 
     return Array.from(latestVersionsMap.values());
   }
+
+  /**
+   * Создать запись истории файла с GitHub информацией
+   */
+  async createFileHistoryWithGitHub(
+    historyData: CreateFileHistory & {
+      github_commit_sha?: string;
+      github_commit_url?: string;
+    }
+  ): Promise<FileHistoryRow> {
+    const insertData: FileHistoryInsert = {
+      project_id: historyData.project_id,
+      file_path: historyData.file_path,
+      r2_object_key: historyData.r2_object_key,
+      content_hash: historyData.content_hash,
+      diff_text: historyData.diff_text,
+      file_size: historyData.file_size,
+      commit_id: historyData.commit_id,
+      commit_message: historyData.commit_message,
+      github_commit_sha: historyData.github_commit_sha,
+      github_commit_url: historyData.github_commit_url,
+    };
+
+    const { data, error } = await this.client
+      .from("file_history")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create file history with GitHub: ${error.message}`);
+    }
+
+    return data as unknown as FileHistoryRow;
+  }
+
+  /**
+   * Обновить GitHub информацию для записи истории файла
+   */
+  async updateGitHubInfo(
+    fileHistoryId: string,
+    githubInfo: {
+      github_commit_sha: string;
+      github_commit_url: string;
+    }
+  ): Promise<FileHistoryRow> {
+    const updateData: FileHistoryUpdate = {
+      github_commit_sha: githubInfo.github_commit_sha,
+      github_commit_url: githubInfo.github_commit_url,
+    };
+
+    const { data, error } = await this.client
+      .from("file_history")
+      .update(updateData)
+      .eq("id", fileHistoryId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update GitHub info: ${error.message}`);
+    }
+
+    return data as unknown as FileHistoryRow;
+  }
+
+  /**
+   * Получить файлы по GitHub commit SHA
+   */
+  async getFilesByGitHubCommit(
+    projectId: string,
+    githubCommitSha: string
+  ): Promise<FileHistoryRow[]> {
+    const { data, error } = await this.client
+      .from("file_history")
+      .select("*")
+      .eq("project_id", projectId)
+      .eq("github_commit_sha", githubCommitSha)
+      .order("file_path", { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch files by GitHub commit: ${error.message}`);
+    }
+
+    return (data as unknown as FileHistoryRow[]) || [];
+  }
+
+  /**
+   * Получить записи без GitHub информации (для миграции)
+   */
+  async getFilesWithoutGitHubInfo(
+    projectId?: string,
+    limit: number = 100
+  ): Promise<FileHistoryRow[]> {
+    let query = this.client
+      .from("file_history")
+      .select("*")
+      .is("github_commit_sha", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (projectId) {
+      query = query.eq("project_id", projectId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch files without GitHub info: ${error.message}`);
+    }
+
+    return (data as unknown as FileHistoryRow[]) || [];
+  }
 }
