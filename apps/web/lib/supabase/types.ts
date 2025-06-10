@@ -6,60 +6,182 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
+      deploy_status: {
+        Row: {
+          commit_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          logs: string[] | null
+          project_id: string
+          status: string
+          step: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          commit_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          logs?: string[] | null
+          project_id: string
+          status: string
+          step?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          commit_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          logs?: string[] | null
+          project_id?: string
+          status?: string
+          step?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deploy_status_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_history: {
+        Row: {
+          commit_id: string | null
+          commit_message: string | null
+          content_hash: string | null
+          created_at: string | null
+          diff_text: string | null
+          file_path: string
+          file_size: number
+          id: string
+          project_id: string | null
+          r2_object_key: string
+        }
+        Insert: {
+          commit_id?: string | null
+          commit_message?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          diff_text?: string | null
+          file_path: string
+          file_size?: number
+          id?: string
+          project_id?: string | null
+          r2_object_key: string
+        }
+        Update: {
+          commit_id?: string | null
+          commit_message?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          diff_text?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          project_id?: string | null
+          r2_object_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_changes: {
+        Row: {
+          action: string
+          content: string
+          content_hash: string | null
+          created_at: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action: string
+          content: string
+          content_hash?: string | null
+          created_at?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action?: string
+          content?: string
+          content_hash?: string | null
+          created_at?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_changes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
+          created_at: string | null
+          deploy_status: string | null
           id: string
           name: string
-          user_id: string
+          netlify_deploy_id: string | null
           netlify_site_id: string | null
           netlify_url: string | null
-          created_at: string
-          updated_at: string
+          template_type: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
-          id?: string
-          name: string
-          user_id: string
-          netlify_site_id?: string | null
-          netlify_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
+          created_at?: string | null
+          deploy_status?: string | null
           id?: string
           name?: string
-          user_id?: string
+          netlify_deploy_id?: string | null
           netlify_site_id?: string | null
           netlify_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      project_versions: {
-        Row: {
-          id: string
-          project_id: string
-          version_number: number
-          commit_message: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          version_number: number
-          commit_message?: string | null
-          created_at?: string
+          template_type?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
+          created_at?: string | null
+          deploy_status?: string | null
           id?: string
-          project_id?: string
-          version_number?: number
-          commit_message?: string | null
-          created_at?: string
+          name?: string
+          netlify_deploy_id?: string | null
+          netlify_site_id?: string | null
+          netlify_url?: string | null
+          template_type?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
+        Relationships: []
       }
     }
     Views: {
@@ -71,23 +193,119 @@ export interface Database {
     Enums: {
       [_ in never]: never
     }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-// Helper types
-export type User = {
-  id: string
-  email?: string
-  user_metadata?: {
-    name?: string
-    avatar_url?: string
-    full_name?: string
+type DefaultSchema = Database[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
   }
-}
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-export type Project = Database['public']['Tables']['projects']['Row']
-export type ProjectInsert = Database['public']['Tables']['projects']['Insert']
-export type ProjectUpdate = Database['public']['Tables']['projects']['Update']
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
-export type ProjectVersion = Database['public']['Tables']['project_versions']['Row']
-export type ProjectVersionInsert = Database['public']['Tables']['project_versions']['Insert'] 
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof Database },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

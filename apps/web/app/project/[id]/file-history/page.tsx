@@ -5,16 +5,18 @@ import { PendingChangesSidebar } from "@/components/project/pending-changes-side
 import { useProject } from "@/components/project/project-layout-client";
 
 export default function ProjectFileHistoryPage() {
-  const { project, history, pendingChanges } = useProject();
+  const { project, history, pendingChanges, saveAllChanges, isSaving } =
+    useProject();
 
   return (
     <div className="flex gap-6 h-[calc(100vh-200px)]">
       {/* Pending Changes Sidebar */}
       <div className="w-64 flex-shrink-0">
         <PendingChangesSidebar
-          onSaveAll={() => {}}
+          onSaveAll={saveAllChanges}
           projectId={project.id}
           pendingChanges={pendingChanges}
+          isLoading={isSaving}
         />
       </div>
 

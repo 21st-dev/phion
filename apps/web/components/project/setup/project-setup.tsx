@@ -26,6 +26,7 @@ export function ProjectSetup({
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentComplete, setDeploymentComplete] = useState(false);
   const [projectUrl, setProjectUrl] = useState<string | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
 
   // Состояния выполнения для каждого шага
   const [downloadCompleted, setDownloadCompleted] = useState(false);
@@ -42,6 +43,108 @@ export function ProjectSetup({
     { id: "setup", title: "Open in Cursor", status: "QUEUED" },
     { id: "deploy", title: "Go Live", status: "QUEUED" },
   ]);
+
+  // Проверяем статус проекта при загрузке компонента
+  useEffect(() => {
+    const checkProjectStatus = async () => {
+      try {
+        const response = await fetch(`/api/projects/${project.id}/status`);
+        if (response.ok) {
+          const statusData = await response.json();
+
+          // Если проект уже задеплоен
+          if (statusData.deploy_status === "ready" && statusData.netlify_url) {
+            setDeploymentComplete(true);
+            setProjectUrl(statusData.netlify_url);
+            setDownloadCompleted(true);
+            setSetupCompleted(true);
+            setDeployCompleted(true);
+            setCurrentStep(2);
+
+            setSteps([
+              { id: "download", title: "Get Files", status: "READY" },
+              { id: "setup", title: "Open in Cursor", status: "READY" },
+              { id: "deploy", title: "Go Live", status: "READY" },
+            ]);
+          }
+          // Если проект в процессе деплоя
+          else if (statusData.deploy_status === "building") {
+            setIsDeploying(true);
+            setDownloadCompleted(true);
+            setSetupCompleted(true);
+            setCurrentStep(2);
+
+            setSteps([
+              { id: "download", title: "Get Files", status: "READY" },
+              { id: "setup", title: "Open in Cursor", status: "READY" },
+              { id: "deploy", title: "Go Live", status: "BUILDING" },
+            ]);
+
+            // Начинаем мониторинг деплоя
+            startDeployStatusMonitoring();
+          }
+          // Если проект создан но не деплоился
+          else {
+            // Проект новый, оставляем дефолтное состояние
+            setCurrentStep(0);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking project status:", error);
+      } finally {
+        setIsLoadingStatus(false);
+      }
+    };
+
+    checkProjectStatus();
+  }, [project.id]);
+
+  // Функция для мониторинга статуса деплоя
+  const startDeployStatusMonitoring = () => {
+    const checkDeployStatus = async () => {
+      try {
+        const statusResponse = await fetch(
+          `/api/projects/${project.id}/status`
+        );
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+
+          // Если деплой завершен успешно
+          if (statusData.deploy_status === "ready" && statusData.netlify_url) {
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === "deploy" ? { ...step, status: "READY" } : step
+              )
+            );
+            setIsDeploying(false);
+            setDeploymentComplete(true);
+            setDeployCompleted(true);
+            setProjectUrl(statusData.netlify_url);
+            setCurrentStep(2);
+          }
+          // Если деплой еще в процессе, проверяем снова через 2 секунды
+          else if (statusData.deploy_status === "building") {
+            setTimeout(checkDeployStatus, 2000);
+          }
+          // Если деплой провалился
+          else if (statusData.deploy_status === "failed") {
+            throw new Error("Deployment failed");
+          }
+        }
+      } catch (error) {
+        console.error("Error checking deploy status:", error);
+        setSteps((prev) =>
+          prev.map((step) =>
+            step.id === "deploy" ? { ...step, status: "ERROR" } : step
+          )
+        );
+        setIsDeploying(false);
+      }
+    };
+
+    // Начинаем проверку статуса через 3 секунды
+    setTimeout(checkDeployStatus, 3000);
+  };
 
   // Функция плавного скролла к следующему шагу
   const scrollToStep = (stepIndex: number) => {
@@ -122,6 +225,18 @@ export function ProjectSetup({
   };
 
   const handleDeploy = async () => {
+    // Проверяем что проект еще не задеплоен
+    const statusResponse = await fetch(`/api/projects/${project.id}/status`);
+    if (statusResponse.ok) {
+      const statusData = await statusResponse.json();
+      if (statusData.deploy_status === "ready") {
+        // Проект уже задеплоен, не нужно деплоить снова
+        setDeploymentComplete(true);
+        setProjectUrl(statusData.netlify_url);
+        return;
+      }
+    }
+
     setIsDeploying(true);
     setSteps((prev) =>
       prev.map((step) =>
@@ -140,53 +255,8 @@ export function ProjectSetup({
 
       const data = await response.json();
 
-      // Проверяем статус деплоя периодически
-      const checkDeployStatus = async () => {
-        try {
-          const statusResponse = await fetch(
-            `/api/projects/${project.id}/status`
-          );
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-
-            // Если деплой завершен успешно
-            if (
-              statusData.deploy_status === "ready" &&
-              statusData.netlify_url
-            ) {
-              setSteps((prev) =>
-                prev.map((step) =>
-                  step.id === "deploy" ? { ...step, status: "READY" } : step
-                )
-              );
-              setIsDeploying(false);
-              setDeploymentComplete(true);
-              setDeployCompleted(true);
-              setProjectUrl(statusData.netlify_url); // Используем реальный URL
-              setCurrentStep(2);
-            }
-            // Если деплой еще в процессе, проверяем снова через 2 секунды
-            else if (statusData.deploy_status === "building") {
-              setTimeout(checkDeployStatus, 2000);
-            }
-            // Если деплой провалился
-            else if (statusData.deploy_status === "failed") {
-              throw new Error("Deployment failed");
-            }
-          }
-        } catch (error) {
-          console.error("Error checking deploy status:", error);
-          setSteps((prev) =>
-            prev.map((step) =>
-              step.id === "deploy" ? { ...step, status: "ERROR" } : step
-            )
-          );
-          setIsDeploying(false);
-        }
-      };
-
-      // Начинаем проверку статуса через 3 секунды
-      setTimeout(checkDeployStatus, 3000);
+      // Начинаем мониторинг деплоя
+      startDeployStatusMonitoring();
     } catch (error) {
       console.error("Publishing error:", error);
       setSteps((prev) =>
@@ -212,6 +282,22 @@ export function ProjectSetup({
       scrollToStep(stepIndex);
     }
   };
+
+  // Показываем загрузку пока проверяем статус
+  if (isLoadingStatus) {
+    return (
+      <ProjectSetupLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Checking project status...
+            </p>
+          </div>
+        </div>
+      </ProjectSetupLayout>
+    );
+  }
 
   // Show congratulations page if deployment is complete
   if (deploymentComplete && projectUrl) {

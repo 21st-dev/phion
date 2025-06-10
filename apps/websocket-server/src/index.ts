@@ -128,7 +128,7 @@ async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
       }
     }
     
-    console.log(`�� Extracted ${Object.keys(templateFiles).length} files from template`);
+    console.log(`✅ Extracted ${Object.keys(templateFiles).length} files from template`);
     
     // Создаем коммит с файлами шаблона
     const commitId = crypto.randomUUID();
@@ -426,6 +426,7 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
     
     const supabase = getSupabaseServerClient();
     const projectQueries = new ProjectQueries(supabase);
+    const historyQueries = new FileHistoryQueries(supabase);
     
     // Получаем проект
     const project = await projectQueries.getProjectById(projectId);
@@ -434,38 +435,59 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
       return;
     }
 
-    // Если у проекта уже есть netlify_url, то деплой уже был
+    // СТРОГАЯ ПРОВЕРКА 1: Если у проекта уже есть netlify_url, то деплой уже был
     if (project.netlify_url) {
       console.log(`✅ Project ${projectId} already has deployment: ${project.netlify_url}`);
       return;
     }
 
-    // Если проект только что создан (в течение последних 5 минут), запускаем автоматический деплой
+    // СТРОГАЯ ПРОВЕРКА 2: Если статус уже 'ready' - деплой завершен
+    if (project.deploy_status === 'ready') {
+      console.log(`✅ Project ${projectId} deploy status is 'ready', skipping auto-deploy`);
+      return;
+    }
+
+    // СТРОГАЯ ПРОВЕРКА 3: Если статус 'building' - деплой уже в процессе
+    if (project.deploy_status === 'building') {
+      console.log(`⏳ Project ${projectId} is already building, skipping auto-deploy`);
+      return;
+    }
+
+    // СТРОГАЯ ПРОВЕРКА 4: Проверяем есть ли уже файлы в истории (значит проект не пустой)
+    const existingFiles = await historyQueries.getLatestFileVersions(projectId);
+    if (existingFiles.length > 0) {
+      console.log(`📄 Project ${projectId} already has ${existingFiles.length} files in history, skipping auto-deploy`);
+      return;
+    }
+
+    // СТРОГАЯ ПРОВЕРКА 5: Проверяем возраст проекта (только новые проекты)
     const projectAge = Date.now() - new Date(project.created_at).getTime();
     const fiveMinutes = 5 * 60 * 1000;
     
-    if (projectAge < fiveMinutes) {
-      console.log(`🚀 Project ${projectId} is new (${Math.round(projectAge / 1000)}s old), extracting template and deploying...`);
-      
-      try {
-        // Извлекаем файлы из шаблона и сохраняем их как первый коммит
-        const commitId = await extractAndSaveTemplateFiles(projectId);
-        console.log(`📦 Template files extracted and saved as commit ${commitId}`);
-        
-        // Деплоим шаблон
-        await triggerDeploy(projectId, commitId);
-        console.log(`✅ Initial template deploy triggered for project ${projectId}`);
-        
-      } catch (templateError) {
-        console.error(`❌ Error extracting template for project ${projectId}:`, templateError);
-        
-        // Если не удалось извлечь шаблон, создаем обычный первый снапшот
-        console.log(`🔄 Falling back to standard initial deploy for project ${projectId}`);
-        const commitId = await saveFullProjectSnapshot(projectId, 'Initial deployment (fallback)');
-        await triggerDeploy(projectId, commitId);
-      }
-    } else {
+    if (projectAge >= fiveMinutes) {
       console.log(`⏰ Project ${projectId} is too old (${Math.round(projectAge / 1000)}s), skipping auto-deploy`);
+      return;
+    }
+
+    // ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ - проект новый и пустой, нужен автодеплой
+    console.log(`🚀 Project ${projectId} is new and empty (${Math.round(projectAge / 1000)}s old), extracting template and deploying...`);
+    
+    try {
+      // Извлекаем файлы из шаблона и сохраняем их как первый коммит
+      const commitId = await extractAndSaveTemplateFiles(projectId);
+      console.log(`📦 Template files extracted and saved as commit ${commitId}`);
+      
+      // Деплоим шаблон
+      await triggerDeploy(projectId, commitId);
+      console.log(`✅ Initial template deploy triggered for project ${projectId}`);
+      
+    } catch (templateError) {
+      console.error(`❌ Error extracting template for project ${projectId}:`, templateError);
+      
+      // Если не удалось извлечь шаблон, создаем обычный первый снапшот
+      console.log(`🔄 Falling back to standard initial deploy for project ${projectId}`);
+      const commitId = await saveFullProjectSnapshot(projectId, 'Initial deployment (fallback)');
+      await triggerDeploy(projectId, commitId);
     }
     
   } catch (error) {

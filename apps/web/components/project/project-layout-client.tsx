@@ -13,6 +13,8 @@ interface ProjectContextType {
   lastUpdated: Date;
   updateHistory: (history: any[]) => void;
   updatePendingChanges: (changes: any[]) => void;
+  saveAllChanges: (commitMessage?: string) => void;
+  isSaving: boolean;
 }
 
 const ProjectContext = createContext<ProjectContextType | null>(null);
@@ -42,9 +44,10 @@ export function ProjectLayoutClient({
   const [pendingChanges, setPendingChanges] = useState(initialPendingChanges);
   const [agentConnected, setAgentConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [isSaving, setIsSaving] = useState(false);
 
   // WebSocket для real-time обновлений
-  const { isConnected } = useWebSocket({
+  const { isConnected, saveAllChanges: socketSaveAllChanges } = useWebSocket({
     projectId: project.id,
     onAgentConnected: (data) => {
       console.log("🟢 [ProjectLayout] Agent connected event received:", data);
@@ -97,6 +100,17 @@ export function ProjectLayoutClient({
         setLastUpdated(new Date());
       }
     },
+    onSaveSuccess: (data) => {
+      console.log("💾 [ProjectLayout] Save success received:", data);
+      setIsSaving(false);
+      // Очищаем pending changes после успешного сохранения
+      setPendingChanges([]);
+      setLastUpdated(new Date());
+    },
+    onError: (error) => {
+      console.error("❌ [ProjectLayout] WebSocket error:", error);
+      setIsSaving(false);
+    },
   });
 
   const updateHistory = (newHistory: any[]) => {
@@ -109,6 +123,12 @@ export function ProjectLayoutClient({
     setLastUpdated(new Date());
   };
 
+  const saveAllChanges = (commitMessage?: string) => {
+    console.log("💾 [ProjectLayout] Starting save all changes...");
+    setIsSaving(true);
+    socketSaveAllChanges(commitMessage);
+  };
+
   const contextValue: ProjectContextType = {
     project,
     history,
@@ -118,6 +138,8 @@ export function ProjectLayoutClient({
     lastUpdated,
     updateHistory,
     updatePendingChanges,
+    saveAllChanges,
+    isSaving,
   };
 
   return (
