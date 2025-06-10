@@ -10,12 +10,21 @@ const states = {
 };
 
 const titles = {
-  QUEUED: "This deployment is queued.",
+  QUEUED: "Project is initializing...",
   BUILDING: "This deployment is building.",
   ERROR: "This deployment had an error.",
   READY: "This deployment is ready.",
   CURRENT: "This is the current step.",
   CANCELED: "This deployment was canceled.",
+};
+
+const labels = {
+  QUEUED: "initializing",
+  BUILDING: "building",
+  ERROR: "error",
+  READY: "ready",
+  CURRENT: "current",
+  CANCELED: "canceled",
 };
 
 interface StatusDotProps {
@@ -34,8 +43,8 @@ export const StatusDot = ({ state, label }: StatusDotProps) => {
         className={`inline-block w-2.5 h-2.5 rounded-[5px] ${states[state]}`}
       />
       {label && (
-        <span className="font-sans text-[14px] leading-4 text-gray-1000 capitalize">
-          {state.toLowerCase()}
+        <span className="font-sans text-[14px] leading-4 text-gray-1000">
+          {labels[state]}
         </span>
       )}
     </span>

@@ -2,10 +2,10 @@
 
 import React, { createContext, useContext, useState } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
-import type { ProjectRow } from "@shipvibes/database";
+import type { DatabaseTypes } from "@shipvibes/database";
 
 interface ProjectContextType {
-  project: ProjectRow;
+  project: DatabaseTypes.ProjectRow;
   history: any[];
   pendingChanges: any[];
   agentConnected: boolean;
@@ -28,7 +28,7 @@ export function useProject() {
 }
 
 interface ProjectLayoutClientProps {
-  project: ProjectRow;
+  project: DatabaseTypes.ProjectRow;
   initialHistory: any[];
   initialPendingChanges: any[];
   children: React.ReactNode;

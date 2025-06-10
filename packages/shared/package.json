@@ -25,6 +25,10 @@
     "./project-logger-server": {
       "types": "./dist/project-logger-server.d.ts",
       "default": "./dist/project-logger-server.js"
+    },
+    "./dist/project-logger-server": {
+      "types": "./dist/project-logger-server.d.ts",
+      "default": "./dist/project-logger-server.js"
     }
   },
   "scripts": {

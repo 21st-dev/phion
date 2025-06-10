@@ -40,7 +40,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               {project.name}
             </Link>
             {project.deploy_status && (
-              <StatusDot state={project.deploy_status} />
+              <StatusDot state={project.deploy_status} label />
             )}
           </div>
 

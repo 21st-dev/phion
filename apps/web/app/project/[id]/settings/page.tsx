@@ -160,7 +160,11 @@ export default function ProjectSettingsPage() {
             <div>
               <Label>Created</Label>
               <p className="text-sm text-muted-foreground mt-1">
-                <DateTimeDisplay timestamp={project.created_at} />
+                {project.created_at ? (
+                  <DateTimeDisplay timestamp={project.created_at} />
+                ) : (
+                  <span>Unknown</span>
+                )}
               </p>
             </div>
           </div>

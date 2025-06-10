@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllProjects, createProject, getUserProjects } from "@shipvibes/database";
+import { getAllProjects, createProject, getUserProjects, updateProject } from "@shipvibes/database";
 import { createAuthServerClient } from "@shipvibes/database";
-import { uploadProjectTemplate, uploadTextFile } from "@shipvibes/storage";
+import { uploadProjectTemplate, uploadTextFile, uploadFileVersion } from "@shipvibes/storage";
 import { cookies } from "next/headers";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import archiver from "archiver";
 import { CreateProject } from "@shipvibes/shared";
-import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
+import { getSupabaseServerClient, ProjectQueries, FileHistoryQueries } from "@shipvibes/database";
 // Server-side import for the project logger
 import { projectLogger } from "@shipvibes/shared/project-logger-server";
 
@@ -101,13 +102,19 @@ export async function POST(request: NextRequest) {
       'api_request'
     );
 
-    // ТОЛЬКО создаем ZIP шаблона для скачивания (мгновенно)
+    // Создаем ZIP шаблона для скачивания
     try {
       await generateAndUploadTemplate(project.id, template_type, name);
     } catch (templateError) {
       console.error("Error generating template:", templateError);
       // Проект уже создан, но шаблон не загружен
     }
+
+    // Запускаем сохранение файлов шаблона как первый коммит в фоне
+    // НЕ блокируем ответ пользователю
+    saveTemplateAsInitialCommit(project.id, template_type, name).catch((error) => {
+      console.error("Error saving template as initial commit:", error);
+    });
 
     // TODO: Создание сайта на Netlify
 
@@ -245,5 +252,120 @@ async function createTemplateZip(templatePath: string, projectName: string, proj
     console.log(`✅ [ZIP] Processed ${processedFiles}/${files.length} items, finalizing archive...`);
     archive.finalize();
   });
+}
+
+/**
+ * Сохранить файлы шаблона как первый коммит в истории проекта
+ */
+async function saveTemplateAsInitialCommit(
+  projectId: string,
+  templateType: string,
+  projectName: string
+): Promise<string> {
+  console.log(`💾 [INITIAL_COMMIT] Saving template files as initial commit for ${projectId}`);
+  
+  // Определяем путь к шаблону (такая же логика как в generateAndUploadTemplate)
+  let templatePath = path.join(process.cwd(), "..", "..", "templates", templateType);
+  
+  if (!fs.existsSync(templatePath)) {
+    templatePath = path.join(process.cwd(), "templates", templateType);
+    
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template ${templateType} not found`);
+    }
+  }
+  
+  // Собираем все файлы из шаблона
+  const templateFiles: Record<string, string> = {};
+  
+  function collectFiles(dirPath: string, relativePath: string = ''): void {
+    const items = fs.readdirSync(dirPath, { withFileTypes: true });
+    
+    for (const item of items) {
+      // Пропускаем служебные папки
+      if (item.name === 'node_modules' || item.name === '.git' || item.name === 'dist' || item.name === '.next') {
+        continue;
+      }
+      
+      const fullPath = path.join(dirPath, item.name);
+      const relativeFilePath = relativePath ? path.join(relativePath, item.name) : item.name;
+      
+      if (item.isDirectory()) {
+        collectFiles(fullPath, relativeFilePath);
+      } else {
+        let content = fs.readFileSync(fullPath, 'utf-8');
+        
+        // Применяем те же трансформации что и в createTemplateZip
+        if (item.name === 'package.json') {
+          const packageJson = JSON.parse(content);
+          packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
+          content = JSON.stringify(packageJson, null, 2);
+        } else if (item.name === 'shipvibes-dev.js') {
+          content = content.replace(/__PROJECT_ID__/g, projectId);
+        }
+        
+        // Нормализуем пути (заменяем \ на /)
+        const normalizedPath = relativeFilePath.replace(/\\/g, '/');
+        templateFiles[normalizedPath] = content;
+      }
+    }
+  }
+  
+  collectFiles(templatePath);
+  
+  console.log(`📋 [INITIAL_COMMIT] Collected ${Object.keys(templateFiles).length} files from template`);
+  
+  // Создаем коммит
+  const commitId = crypto.randomUUID();
+  const commitMessage = 'Initial commit from template';
+  
+  const supabase = getSupabaseServerClient();
+  const historyQueries = new FileHistoryQueries(supabase);
+  
+  // Сохраняем каждый файл в R2 и создаем запись в file_history
+  for (const [filePath, content] of Object.entries(templateFiles)) {
+    try {
+      // Загружаем файл в R2 в структуре версий
+      await uploadFileVersion(projectId, commitId, filePath, content);
+      
+      // Создаем запись в file_history
+      await historyQueries.createFileHistory({
+        project_id: projectId,
+        file_path: filePath,
+        r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
+        content_hash: crypto.createHash('sha256').update(content).digest('hex'),
+        file_size: Buffer.byteLength(content, 'utf-8'),
+        commit_id: commitId,
+        commit_message: commitMessage
+      });
+      
+      console.log(`💾 [INITIAL_COMMIT] Saved file: ${filePath} (${content.length} chars)`);
+    } catch (error) {
+      console.error(`❌ [INITIAL_COMMIT] Error saving file ${filePath}:`, error);
+      // Продолжаем с другими файлами
+    }
+  }
+  
+  // Логируем создание коммита
+  await projectLogger.logCommitCreated(
+    projectId,
+    commitId,
+    commitMessage,
+    Object.keys(templateFiles).length,
+    'initial_template_save'
+  );
+
+  // Обновляем статус проекта на "ready" после завершения инициализации
+  try {
+    await updateProject(projectId, {
+      deploy_status: "ready"
+    });
+    console.log(`✅ [INITIAL_COMMIT] Project ${projectId} status updated to ready`);
+  } catch (statusError) {
+    console.error(`❌ [INITIAL_COMMIT] Failed to update project status:`, statusError);
+  }
+  
+  console.log(`✅ [INITIAL_COMMIT] Template files saved as commit ${commitId} for project ${projectId}`);
+  return commitId;
 }
 

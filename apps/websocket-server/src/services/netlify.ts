@@ -2,14 +2,12 @@ import { resolve as resolvePath, dirname, join } from 'path';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import fetch from 'node-fetch';
-import FormData from 'form-data';
 import fs from 'fs/promises';
-import fsSync from 'fs';
 import AdmZip from 'adm-zip';
 import os from 'os';
 import { downloadTextFile } from '@shipvibes/storage';
 import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries, DeployStatusQueries } from '@shipvibes/database';
-import { projectLogger } from '@shipvibes/shared/project-logger-server';
+import { projectLogger } from '@shipvibes/shared/dist/project-logger-server';
 
 const execAsync = promisify(exec);
 
@@ -25,7 +23,7 @@ interface NetlifyDeployResponse {
   id: string;
   url: string;
   deploy_url: string;
-  state: 'new' | 'building' | 'ready' | 'error';
+  state: 'new' | 'building' | 'ready' | 'error' | 'enqueued';
   error_message?: string;
 }
 
@@ -84,7 +82,7 @@ export class NetlifyService {
             // Копируем файл только если его нет в existingFiles
             if (!existingFiles[relativeFilePath]) {
               const content = await fs.readFile(srcPath);
-              await fs.writeFile(targetPath, content);
+              await fs.writeFile(targetPath, content.toString());
               console.log(`📄 Restored template file: ${relativeFilePath}`);
             }
           }
@@ -120,7 +118,9 @@ export class NetlifyService {
       
       for (const fileRecord of allHistory) {
         const existing = latestFiles.get(fileRecord.file_path);
-        if (!existing || new Date(fileRecord.created_at) > new Date(existing.created_at)) {
+        if (!existing || 
+            (fileRecord.created_at && existing.created_at && new Date(fileRecord.created_at) > new Date(existing.created_at)) ||
+            (fileRecord.created_at && !existing.created_at)) {
           latestFiles.set(fileRecord.file_path, fileRecord);
         }
       }
@@ -349,7 +349,7 @@ export class NetlifyService {
         
         await projectQueries.updateProject(projectId, {
           deploy_status: newStatus,
-          netlify_url: deployInfo.deploy_url || project.netlify_url
+          netlify_url: deployInfo.deploy_url || project.netlify_url || undefined
         });
 
         // Логируем изменение статуса деплоя

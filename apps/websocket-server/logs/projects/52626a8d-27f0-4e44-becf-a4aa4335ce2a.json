@@ -38,5 +38,127 @@
     },
     "trigger": "deploy_error",
     "timestamp": "2025-06-10T13:48:40.072Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "61545358-b292-461d-b843-dab7bf57d5a6",
+      "commitMessage": "Initial commit",
+      "filesCount": 68
+    },
+    "trigger": "template_extraction",
+    "timestamp": "2025-06-10T13:50:22.482Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "deploy_building",
+    "details": {
+      "oldStatus": "pending",
+      "newStatus": "building"
+    },
+    "trigger": "deploy_process",
+    "timestamp": "2025-06-10T13:51:39.231Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "deploy_completed",
+    "details": {
+      "oldStatus": "building",
+      "newStatus": "ready",
+      "deployUrl": "http://684838b0973cad45d7af827f--shipvibes-52626a8d.netlify.app"
+    },
+    "trigger": "netlify_webhook",
+    "timestamp": "2025-06-10T13:52:55.187Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "2CpeMCXn8rg4cLQ2AAAD"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:00:21.789Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "hK92nLpIVUDDrOlDAAAD"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T14:00:24.744Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "hK92nLpIVUDDrOlDAAAD"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:00:32.483Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "CgLzBExPpQvn5-VBAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T14:00:33.691Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "CgLzBExPpQvn5-VBAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:00:41.925Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "kEbeIPWmAuWjtL-OAAAD"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T14:00:45.378Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "kEbeIPWmAuWjtL-OAAAD"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:00:49.664Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "rgIxQh79gIzf85jpAAAD"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T14:00:52.623Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "rgIxQh79gIzf85jpAAAD"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:00:55.889Z"
   }
 ]

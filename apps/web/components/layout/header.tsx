@@ -6,7 +6,7 @@ import { Avatar } from "@/components/geist/avatar";
 import { Button } from "@/components/geist/button";
 import { useSupabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import type { ProjectRow } from "@shipvibes/database";
+import type { DatabaseTypes } from "@shipvibes/database";
 
 interface HeaderProps {
   user?: {
@@ -16,7 +16,7 @@ interface HeaderProps {
       avatar_url?: string;
     };
   };
-  project?: ProjectRow;
+  project?: DatabaseTypes.ProjectRow;
 }
 
 // Slash icon component

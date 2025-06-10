@@ -1,0 +1,42 @@
+[
+  {
+    "project_id": "30fb5578-d0e0-44a6-b236-6e590faed138",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "gDBz2oXdqxttiUA0AAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T14:28:46.750Z"
+  },
+  {
+    "project_id": "30fb5578-d0e0-44a6-b236-6e590faed138",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "gDBz2oXdqxttiUA0AAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:29:14.965Z"
+  },
+  {
+    "project_id": "30fb5578-d0e0-44a6-b236-6e590faed138",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "6FYYssGxLmp7ZEd6AAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T14:29:23.779Z"
+  },
+  {
+    "project_id": "30fb5578-d0e0-44a6-b236-6e590faed138",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "6FYYssGxLmp7ZEd6AAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T14:30:31.215Z"
+  }
+]

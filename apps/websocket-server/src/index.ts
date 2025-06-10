@@ -15,7 +15,7 @@ import {
 } from "@shipvibes/database";
 import { uploadFileVersion, downloadFile, downloadProjectTemplate } from "@shipvibes/storage";
 import { NetlifyService } from "./services/netlify.js";
-import { projectLogger } from '@shipvibes/shared/project-logger-server';
+import { projectLogger } from '@shipvibes/shared/dist/project-logger-server';
 
 const app = express();
 const httpServer = createServer(app);
@@ -202,23 +202,23 @@ async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
     console.log(`✅ Template files saved as commit ${commitId} for project ${projectId}`);
     return commitId;
     
-  } catch (error) {
-    console.error(`❌ Error extracting template files for project ${projectId}:`, error);
-    
-    // Логируем ошибку
-    await projectLogger.log({
-      project_id: projectId,
-      event_type: 'error',
-      details: { 
-        action: 'template_extraction_failed', 
-        error: error.message,
-        original_trigger: 'initial_deploy'
-      },
-      trigger: 'initial_deploy'
-    });
-    
-    throw error;
-  }
+      } catch (error) {
+      console.error(`❌ Error extracting template files for project ${projectId}:`, error);
+      
+      // Логируем ошибку
+      await projectLogger.log({
+        project_id: projectId,
+        event_type: 'error',
+        details: { 
+          action: 'template_extraction_failed', 
+          error: error instanceof Error ? error.message : String(error),
+          original_trigger: 'initial_deploy'
+        },
+        trigger: 'initial_deploy'
+      });
+      
+      throw error;
+    }
 }
 
 /**
@@ -314,7 +314,9 @@ async function saveFullProjectSnapshot(
   const latestFileMap = new Map();
   for (const file of latestFiles) {
     const existing = latestFileMap.get(file.file_path);
-    if (!existing || new Date(file.created_at) > new Date(existing.created_at)) {
+    if (!existing || 
+        (file.created_at && existing.created_at && new Date(file.created_at) > new Date(existing.created_at)) ||
+        (file.created_at && !existing.created_at)) {
       latestFileMap.set(file.file_path, file);
     }
   }
@@ -588,7 +590,7 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
     }
 
     // СТРОГАЯ ПРОВЕРКА 5: Проверяем возраст проекта (только новые проекты)
-    const projectAge = Date.now() - new Date(project.created_at).getTime();
+    const projectAge = Date.now() - (project.created_at ? new Date(project.created_at).getTime() : Date.now());
     const fiveMinutes = 5 * 60 * 1000;
     
     if (projectAge >= fiveMinutes) {
@@ -597,22 +599,35 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
     }
 
     // ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ - проект новый и пустой, нужен автодеплой
-    console.log(`🚀 Project ${projectId} is new and empty (${Math.round(projectAge / 1000)}s old), extracting template and deploying...`);
+    console.log(`🚀 Project ${projectId} is new and empty (${Math.round(projectAge / 1000)}s old), starting initial deploy...`);
     
     try {
-      // Извлекаем файлы из шаблона и сохраняем их как первый коммит
-      const commitId = await extractAndSaveTemplateFiles(projectId);
-      console.log(`📦 Template files extracted and saved as commit ${commitId}`);
+      // НОВАЯ ЛОГИКА: Сначала проверяем, есть ли уже файлы шаблона в истории
+      // (они могли быть сохранены при создании проекта)
+      const templateFiles = await historyQueries.getProjectFileHistory(projectId, 50);
       
-      // Деплоим шаблон
+      let commitId: string;
+      
+      if (templateFiles.length > 0) {
+        // Файлы шаблона уже есть в истории - используем последний коммит
+        commitId = templateFiles[0].commit_id || crypto.randomUUID();
+        console.log(`📦 Template files already exist in history, using commit ${commitId}`);
+      } else {
+        // Файлы шаблона отсутствуют - извлекаем из ZIP
+        console.log(`📦 No template files in history, extracting from template ZIP...`);
+        commitId = await extractAndSaveTemplateFiles(projectId);
+        console.log(`📦 Template files extracted and saved as commit ${commitId}`);
+      }
+      
+      // Деплоим коммит с файлами шаблона
       await triggerDeploy(projectId, commitId);
       console.log(`✅ Initial template deploy triggered for project ${projectId}`);
       
     } catch (templateError) {
-      console.error(`❌ Error extracting template for project ${projectId}:`, templateError);
+      console.error(`❌ Error in initial deploy for project ${projectId}:`, templateError);
       
-      // Если не удалось извлечь шаблон, создаем обычный первый снапшот
-      console.log(`🔄 Falling back to standard initial deploy for project ${projectId}`);
+      // Если что-то пошло не так, создаем пустой первый снапшот
+      console.log(`🔄 Falling back to empty initial deploy for project ${projectId}`);
       const commitId = await saveFullProjectSnapshot(projectId, 'Initial deployment (fallback)');
       await triggerDeploy(projectId, commitId);
     }

@@ -1,0 +1,49 @@
+[
+  {
+    "project_id": "eae11acb-c3b4-4bfa-80e0-eb20fb73c138",
+    "event_type": "project_created",
+    "details": {
+      "projectData": {
+        "id": "eae11acb-c3b4-4bfa-80e0-eb20fb73c138",
+        "name": "1813",
+        "template_type": "vite-react",
+        "netlify_site_id": null,
+        "netlify_url": null,
+        "deploy_status": "pending",
+        "created_at": "2025-06-10T14:13:19.384629+00:00",
+        "updated_at": "2025-06-10T14:13:19.384629+00:00",
+        "netlify_deploy_id": null,
+        "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
+      }
+    },
+    "trigger": "api_request",
+    "database_state": {
+      "after": {
+        "project": {
+          "id": "eae11acb-c3b4-4bfa-80e0-eb20fb73c138",
+          "name": "1813",
+          "template_type": "vite-react",
+          "netlify_site_id": null,
+          "netlify_url": null,
+          "deploy_status": "pending",
+          "created_at": "2025-06-10T14:13:19.384629+00:00",
+          "updated_at": "2025-06-10T14:13:19.384629+00:00",
+          "netlify_deploy_id": null,
+          "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
+        }
+      }
+    },
+    "timestamp": "2025-06-10T14:13:19.509Z"
+  },
+  {
+    "project_id": "eae11acb-c3b4-4bfa-80e0-eb20fb73c138",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "1987ad98-d2f9-42c1-9b78-80e8b779e04d",
+      "commitMessage": "Initial commit from template",
+      "filesCount": 68
+    },
+    "trigger": "initial_template_save",
+    "timestamp": "2025-06-10T14:14:53.692Z"
+  }
+]

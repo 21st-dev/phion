@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ProjectRow } from "@shipvibes/database";
+import type { DatabaseTypes } from "@shipvibes/database";
 import { Material } from "@/components/geist/material";
 import {
   ProjectSetupLayout,
@@ -14,7 +14,7 @@ import {
 } from "./index";
 
 interface ProjectSetupProps {
-  project: ProjectRow;
+  project: DatabaseTypes.ProjectRow;
   agentConnected?: boolean; // Статус агента получаем извне
 }
 

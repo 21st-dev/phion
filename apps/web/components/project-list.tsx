@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/project/project-card";
 import { EmptyState } from "@/components/project/empty-state";
 import { Skeleton } from "@/components/geist/skeleton";
-import type { ProjectRow } from "@shipvibes/database";
+import type { DatabaseTypes } from "@shipvibes/database";
 
 export function ProjectList() {
-  const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [projects, setProjects] = useState<DatabaseTypes.ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,14 +37,15 @@ export function ProjectList() {
   };
 
   // Конвертируем данные для совместимости с ProjectCard
-  const formatProjectsForCards = (projects: ProjectRow[]) => {
+  const formatProjectsForCards = (projects: DatabaseTypes.ProjectRow[]) => {
     return projects.map((project) => ({
       id: project.id,
       name: project.name,
       url: project.netlify_url || undefined,
-      deploy_status: mapDeployStatus(project.deploy_status),
-      updated_at: project.updated_at || project.created_at,
-      created_at: project.created_at,
+      deploy_status: mapDeployStatus(project.deploy_status || ""),
+      updated_at:
+        project.updated_at || project.created_at || new Date().toISOString(),
+      created_at: project.created_at || new Date().toISOString(),
     }));
   };
 

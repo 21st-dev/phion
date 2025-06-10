@@ -3,13 +3,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Rocket, Terminal, Edit, Globe, Play, Square } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Tabs } from "../geist/tabs";
 
 interface LogsDialogProps {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+// Simple date formatting function
+function formatDate(date: Date): string {
+  return date.toLocaleString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 // Хелпер для получения иконки по типу события
@@ -113,19 +124,19 @@ export function LogsDialog({ projectId, open, onOpenChange }: LogsDialogProps) {
           <DialogTitle>Логи проекта</DialogTitle>
         </DialogHeader>
 
-        <Tabs
-          value={tab}
-          onValueChange={setTab}
-          className="flex-1 flex flex-col"
-        >
-          <TabsList>
-            <TabsTrigger value="all">Все события</TabsTrigger>
-            <TabsTrigger value="commits">Коммиты</TabsTrigger>
-            <TabsTrigger value="deploys">Деплои</TabsTrigger>
-            <TabsTrigger value="files">Файлы</TabsTrigger>
-          </TabsList>
+        <div className="flex-1 flex flex-col">
+          <Tabs
+            selected={tab}
+            setSelected={setTab}
+            tabs={[
+              { title: "Все события", value: "all" },
+              { title: "Коммиты", value: "commits" },
+              { title: "Деплои", value: "deploys" },
+              { title: "Файлы", value: "files" },
+            ]}
+          />
 
-          <TabsContent value={tab} className="flex-1 overflow-y-auto mt-4">
+          <div className="flex-1 overflow-y-auto mt-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <p className="text-muted-foreground">Загрузка логов...</p>
@@ -154,10 +165,7 @@ export function LogsDialog({ projectId, open, onOpenChange }: LogsDialogProps) {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {format(
-                          new Date(event.timestamp),
-                          "HH:mm:ss dd/MM/yyyy"
-                        )}
+                        {formatDate(new Date(event.timestamp))}
                         {event.trigger && <> • {event.trigger}</>}
                       </p>
                       {event.details &&
@@ -179,8 +187,8 @@ export function LogsDialog({ projectId, open, onOpenChange }: LogsDialogProps) {
                 </p>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
-import type { ProjectRow } from "@shipvibes/database";
+import type { DatabaseTypes } from "@shipvibes/database";
 
 interface DownloadStepProps {
-  project: ProjectRow;
+  project: DatabaseTypes.ProjectRow;
   onDownload: () => void;
   isCompleted?: boolean;
 }
