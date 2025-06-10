@@ -1,7 +1,7 @@
 import React from "react";
-import { notFound } from "next/navigation";
-import { StatusDot } from "@/components/geist/status-dot";
-import { Skeleton } from "@/components/geist/skeleton";
+import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { Header } from "@/components/layout/header";
 import { ProjectNavigation } from "@/components/project/project-navigation";
 import { ProjectWebSocketProvider } from "@/components/project/project-websocket-provider";
 import { ProjectLayoutClient } from "@/components/project/project-layout-client";
@@ -9,6 +9,7 @@ import {
   getProjectById,
   getProjectFileHistory,
   getPendingChanges,
+  createAuthServerClient,
 } from "@shipvibes/database";
 
 interface ProjectLayoutProps {
@@ -21,6 +22,32 @@ export default async function ProjectLayout({
   params,
 }: ProjectLayoutProps) {
   const { id } = await params;
+
+  // Получаем пользователя для Header
+  const cookieStore = await cookies();
+  const supabase = createAuthServerClient({
+    getAll() {
+      return cookieStore.getAll();
+    },
+    setAll(cookiesToSet) {
+      try {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          cookieStore.set(name, value, options)
+        );
+      } catch {
+        // Игнорируем ошибки установки cookies в Server Components
+      }
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Если пользователь не авторизован, перенаправляем на страницу входа
+  if (!user) {
+    redirect("/login");
+  }
 
   const [project, history, pendingChanges] = await Promise.all([
     getProjectById(id),
@@ -43,30 +70,13 @@ export default async function ProjectLayout({
         initialHistory={history}
         initialPendingChanges={pendingChanges}
       >
-        <div className="min-h-screen bg-background">
-          {/* Project Header */}
+        <div className="min-h-screen bg-background-100">
+          {/* Используем единый Header как на главной */}
+          <Header user={user} project={project} />
+
+          {/* Navigation Tabs */}
           <div className="border-b border-border bg-card">
             <div className="container mx-auto px-6">
-              <div className="flex items-center justify-between py-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
-                    {project.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground">
-                      {project.name}
-                    </h1>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <StatusDot state="READY" />
-                      <span className="text-sm text-muted-foreground">
-                        Agent: Offline
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation Tabs */}
               <ProjectNavigation projectId={project.id} />
             </div>
           </div>

@@ -1,8 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-import { StatusDot } from "@/components/geist/status-dot";
-import { ProjectNavigation } from "@/components/project/project-navigation";
 import { useWebSocket } from "@/hooks/use-websocket";
 import type { ProjectRow } from "@shipvibes/database";
 
@@ -116,39 +114,7 @@ export function ProjectLayoutClient({
 
   return (
     <ProjectContext.Provider value={contextValue}>
-      <div className="min-h-screen bg-background">
-        {/* Project Header */}
-        <div className="border-b border-border bg-card">
-          <div className="container mx-auto px-6">
-            <div className="flex items-center justify-between py-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
-                  {project.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    {project.name}
-                  </h1>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <StatusDot
-                      state={agentConnected ? "READY" : "ERROR"}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      Agent: {agentConnected ? "Connected" : "Offline"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation Tabs */}
-            <ProjectNavigation projectId={project.id} />
-          </div>
-        </div>
-
-        {/* Page Content */}
-        <div className="container mx-auto px-6 py-8">{children}</div>
-      </div>
+      {children}
     </ProjectContext.Provider>
   );
 }
