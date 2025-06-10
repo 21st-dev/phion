@@ -47,16 +47,24 @@ export function ProjectLayoutClient({
   const { isConnected } = useWebSocket({
     projectId: project.id,
     onAgentConnected: (data) => {
+      console.log("🟢 [ProjectLayout] Agent connected event received:", data);
       if (data.projectId === project.id) {
+        console.log("✅ [ProjectLayout] Setting agentConnected to true");
         setAgentConnected(true);
       }
     },
     onAgentDisconnected: (data) => {
+      console.log(
+        "🔴 [ProjectLayout] Agent disconnected event received:",
+        data
+      );
       if (data.projectId === project.id) {
+        console.log("❌ [ProjectLayout] Setting agentConnected to false");
         setAgentConnected(false);
       }
     },
     onFileTracked: (data) => {
+      console.log("📝 [ProjectLayout] File tracked event received:", data);
       if (data.projectId === project.id) {
         setPendingChanges((prev) => {
           const existing = prev.find(

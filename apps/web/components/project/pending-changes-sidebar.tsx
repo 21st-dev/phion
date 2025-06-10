@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Material } from "@/components/geist/material";
 import { Button } from "@/components/geist/button";
 import { FileText, Save, Plus, Minus, Edit } from "lucide-react";
@@ -19,6 +19,17 @@ interface PendingChangesSidebarProps {
   pendingChanges: PendingChange[];
   onSaveAll: (commitMessage: string) => void;
   isLoading?: boolean;
+}
+
+// Client-side only time display component
+function TimeDisplay({ timestamp }: { timestamp: string }) {
+  const [timeString, setTimeString] = useState<string>("");
+
+  useEffect(() => {
+    setTimeString(new Date(timestamp).toLocaleTimeString());
+  }, [timestamp]);
+
+  return <span>{timeString || "Loading..."}</span>;
 }
 
 export function PendingChangesSidebar({
@@ -125,7 +136,7 @@ export function PendingChangesSidebar({
               className="ml-5 text-xs mt-1"
               style={{ color: "var(--ds-gray-500)" }}
             >
-              {new Date(change.updated_at).toLocaleTimeString()}
+              <TimeDisplay timestamp={change.updated_at} />
             </div>
           </div>
         ))}

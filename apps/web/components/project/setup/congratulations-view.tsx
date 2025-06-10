@@ -3,6 +3,7 @@
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
 import { ProjectSetupLayout } from "./setup-layout";
+import { ExternalLink } from "lucide-react";
 
 interface CongratulationsViewProps {
   projectUrl: string;
@@ -12,64 +13,37 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
   return (
     <ProjectSetupLayout>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Project Preview */}
+        {/* Left Column - Live Preview */}
         <div className="lg:col-span-2">
           <Material type="base" className="p-0 overflow-hidden">
-            <div className="bg-gray-1000 text-gray-100 px-4 py-3 text-sm font-mono">
-              Get started by editing src/App.jsx
+            {/* Header with URL */}
+            <div className="bg-muted border-b border-border px-4 py-3 text-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="font-mono">{projectUrl}</span>
+                </div>
+                <a
+                  href={projectUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="text-xs">Open</span>
+                </a>
+              </div>
             </div>
-            <div className="aspect-video bg-gradient-to-br from-blue-900 via-purple-900 to-gray-1000 flex items-center justify-center relative">
-              <div className="absolute top-4 right-4">
-                <div className="bg-gray-1000/20 backdrop-blur-sm rounded-lg px-3 py-1 border border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                    <span className="text-white text-sm font-medium">
-                      Shipvibes
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-6xl font-bold text-white mb-4">
-                  NEXT.js
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-white">
-                  <div className="text-left">
-                    <div className="text-lg font-semibold mb-2">Docs →</div>
-                    <div className="text-sm opacity-80">
-                      Find in-depth information about
-                      <br />
-                      Next.js features and API.
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-lg font-semibold mb-2">Learn →</div>
-                    <div className="text-sm opacity-80">
-                      Learn about Next.js in an
-                      <br />
-                      interactive course with quizzes!
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-lg font-semibold mb-2">
-                      Templates →
-                    </div>
-                    <div className="text-sm opacity-80">
-                      Explore the Next.js 13
-                      <br />
-                      playground.
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="text-lg font-semibold mb-2">Publish →</div>
-                    <div className="text-sm opacity-80">
-                      Instantly publish your Next.js site
-                      <br />
-                      to a public URL with Shipvibes.
-                    </div>
-                  </div>
-                </div>
-              </div>
+
+            {/* Live iframe */}
+            <div className="aspect-video bg-background">
+              <iframe
+                src={projectUrl}
+                className="w-full h-full border-0"
+                title="Live Preview"
+                loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation"
+              />
             </div>
           </Material>
         </div>
@@ -77,12 +51,26 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
         {/* Right Column - Next Steps */}
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-foreground mb-4 font-sans">
-              Next Steps
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              🎉 Your site is live!
             </h2>
 
+            <div className="p-4 bg-muted border border-border rounded-lg mb-6">
+              <div className="text-sm text-muted-foreground mb-2">
+                Your project is now available at:
+              </div>
+              <a
+                href={projectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-mono text-blue-600 hover:text-blue-700 break-all"
+              >
+                {projectUrl}
+              </a>
+            </div>
+
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accents-1 transition-colors cursor-pointer">
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                 <div className="w-5 h-5 mt-0.5">
                   <svg
                     width="20"
@@ -95,16 +83,16 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
                   </svg>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground font-sans">
+                  <div className="font-medium text-foreground">
                     Live Updates
                   </div>
-                  <div className="text-sm text-muted-foreground font-sans">
+                  <div className="text-sm text-muted-foreground">
                     See changes instantly as you code locally
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accents-1 transition-colors cursor-pointer">
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                 <div className="w-5 h-5 mt-0.5">
                   <svg
                     width="20"
@@ -123,7 +111,7 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
                   </svg>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground flex items-center gap-2 font-sans">
+                  <div className="font-medium text-foreground flex items-center gap-2">
                     Custom Domain
                     <svg
                       width="12"
@@ -139,13 +127,13 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
                       />
                     </svg>
                   </div>
-                  <div className="text-sm text-muted-foreground font-sans">
+                  <div className="text-sm text-muted-foreground">
                     Connect your own domain to this project
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accents-1 transition-colors cursor-pointer">
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                 <div className="w-5 h-5 mt-0.5">
                   <svg
                     width="20"
@@ -164,7 +152,7 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
                   </svg>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground flex items-center gap-2 font-sans">
+                  <div className="font-medium text-foreground flex items-center gap-2">
                     Analytics
                     <svg
                       width="12"
@@ -180,7 +168,7 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
                       />
                     </svg>
                   </div>
-                  <div className="text-sm text-muted-foreground font-sans">
+                  <div className="text-sm text-muted-foreground">
                     Track how users experience your site
                   </div>
                 </div>
@@ -194,20 +182,8 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
               fullWidth
               onClick={() => window.open(projectUrl, "_blank")}
             >
-              Continue to Dashboard
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="ml-2"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M5.50001 1.93933L6.03034 2.46966L10.8536 7.29288C11.2441 7.68341 11.2441 8.31657 10.8536 8.7071L6.03034 13.5303L5.50001 14.0607L4.43935 13L4.96968 12.4697L9.43935 7.99999L4.96968 3.53032L4.43935 2.99999L5.50001 1.93933Z"
-                />
-              </svg>
+              Open Live Site
+              <ExternalLink className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </div>

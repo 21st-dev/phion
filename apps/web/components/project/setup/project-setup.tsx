@@ -140,19 +140,53 @@ export function ProjectSetup({
 
       const data = await response.json();
 
-      // Simulate deployment process
-      setTimeout(() => {
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === "deploy" ? { ...step, status: "READY" } : step
-          )
-        );
-        setIsDeploying(false);
-        setDeploymentComplete(true);
-        setDeployCompleted(true);
-        setProjectUrl(data.url || `https://${project.name}.netlify.app`);
-        setCurrentStep(2);
-      }, 3000);
+      // Проверяем статус деплоя периодически
+      const checkDeployStatus = async () => {
+        try {
+          const statusResponse = await fetch(
+            `/api/projects/${project.id}/status`
+          );
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+
+            // Если деплой завершен успешно
+            if (
+              statusData.deploy_status === "ready" &&
+              statusData.netlify_url
+            ) {
+              setSteps((prev) =>
+                prev.map((step) =>
+                  step.id === "deploy" ? { ...step, status: "READY" } : step
+                )
+              );
+              setIsDeploying(false);
+              setDeploymentComplete(true);
+              setDeployCompleted(true);
+              setProjectUrl(statusData.netlify_url); // Используем реальный URL
+              setCurrentStep(2);
+            }
+            // Если деплой еще в процессе, проверяем снова через 2 секунды
+            else if (statusData.deploy_status === "building") {
+              setTimeout(checkDeployStatus, 2000);
+            }
+            // Если деплой провалился
+            else if (statusData.deploy_status === "failed") {
+              throw new Error("Deployment failed");
+            }
+          }
+        } catch (error) {
+          console.error("Error checking deploy status:", error);
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === "deploy" ? { ...step, status: "ERROR" } : step
+            )
+          );
+          setIsDeploying(false);
+        }
+      };
+
+      // Начинаем проверку статуса через 3 секунды
+      setTimeout(checkDeployStatus, 3000);
     } catch (error) {
       console.error("Publishing error:", error);
       setSteps((prev) =>

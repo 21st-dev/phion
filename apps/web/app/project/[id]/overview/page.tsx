@@ -9,12 +9,20 @@ import { Toggle } from "@/components/geist/toggle";
 import { AlertTriangle, RefreshCw, Globe, Package, Clock } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
 import { RecentDeploys } from "@/components/project/recent-deploys";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ProjectOverviewPage() {
   const { project, pendingChanges, agentConnected, lastUpdated } = useProject();
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeDisplay, setTimeDisplay] = useState<string>("");
+  const [dateDisplay, setDateDisplay] = useState<string>("");
+
+  // Fix hydration mismatch by updating time only on client side
+  useEffect(() => {
+    setTimeDisplay(lastUpdated.toLocaleTimeString());
+    setDateDisplay(lastUpdated.toLocaleDateString());
+  }, [lastUpdated]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -78,10 +86,10 @@ export default function ProjectOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {lastUpdated.toLocaleTimeString()}
+              {timeDisplay || "Loading..."}
             </div>
             <p className="text-xs text-muted-foreground">
-              {lastUpdated.toLocaleDateString()}
+              {dateDisplay || "Loading..."}
             </p>
           </CardContent>
         </Card>

@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAuthServerClient, ProjectQueries } from "@shipvibes/database";
 import { cookies } from "next/headers";
 
+/**
+ * Удалить Netlify сайт через API
+ */
+async function deleteNetlifySite(siteId: string): Promise<void> {
+  const netlifyToken = process.env.NETLIFY_ACCESS_TOKEN;
+  
+  if (!netlifyToken) {
+    throw new Error('NETLIFY_ACCESS_TOKEN not configured');
+  }
+
+  const response = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${netlifyToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete Netlify site: ${response.status} ${errorText}`);
+  }
+}
+
 async function getAuthenticatedUser(request: NextRequest) {
   const cookieStore = await cookies();
   const supabase = createAuthServerClient({
@@ -107,8 +130,37 @@ export async function DELETE(
 
     const projectQueries = new ProjectQueries(supabase);
     
-    // RLS автоматически проверит, что пользователь может удалить проект
+    // Сначала получаем информацию о проекте для удаления Netlify сайта
+    const project = await projectQueries.getProjectById(id);
+    
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found or access denied" },
+        { status: 404 }
+      );
+    }
+
+    console.log(`🗑️ Deleting project ${id}: ${project.name}`);
+    
+    // Если у проекта есть Netlify сайт, удаляем его
+    if (project.netlify_site_id) {
+      try {
+        console.log(`🌐 Deleting Netlify site: ${project.netlify_site_id}`);
+        await deleteNetlifySite(project.netlify_site_id);
+        console.log(`✅ Netlify site deleted successfully: ${project.netlify_site_id}`);
+      } catch (netlifyError) {
+        console.error(`❌ Error deleting Netlify site ${project.netlify_site_id}:`, netlifyError);
+        // Продолжаем удаление проекта даже если не удалось удалить Netlify сайт
+        // Это может произойти если сайт уже был удален вручную или есть проблемы с API
+      }
+    } else {
+      console.log(`📝 Project ${id} has no Netlify site to delete`);
+    }
+    
+    // Удаляем проект из базы данных
+    console.log(`🗄️ Deleting project from database: ${id}`);
     await projectQueries.deleteProject(id);
+    console.log(`✅ Project deleted successfully: ${id}`);
     
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Material } from "@/components/geist/material";
 import { Button } from "@/components/geist/button";
 import { Input } from "@/components/ui/input";
@@ -9,34 +10,103 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, ExternalLink, Copy, Trash2 } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
 
+// Client-side only date/time display component
+function DateTimeDisplay({ timestamp }: { timestamp: string }) {
+  const [dateString, setDateString] = useState<string>("");
+  const [timeString, setTimeString] = useState<string>("");
+
+  useEffect(() => {
+    const date = new Date(timestamp);
+    setDateString(date.toLocaleDateString());
+    setTimeString(date.toLocaleTimeString());
+  }, [timestamp]);
+
+  if (!dateString || !timeString) {
+    return <span>Loading...</span>;
+  }
+
+  return (
+    <span>
+      {dateString} at {timeString}
+    </span>
+  );
+}
+
 export default function ProjectSettingsPage() {
+  const router = useRouter();
   const { project } = useProject();
   const [projectName, setProjectName] = useState(project.name);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    // Add save logic here
-    setTimeout(() => setIsSaving(false), 1000);
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: projectName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
+      }
+
+      // TODO: Add toast notification for success
+      console.log("Settings saved successfully");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      // TODO: Add toast notification for error
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCopyProjectId = () => {
     navigator.clipboard.writeText(project.id);
-    // Add toast notification
+    // TODO: Add toast notification
+    console.log("Project ID copied to clipboard");
   };
 
-  const handleDeleteProject = () => {
+  const handleDeleteProject = async () => {
     if (
-      confirm(
+      !confirm(
         "Are you sure you want to delete this project? This action cannot be undone."
       )
     ) {
-      // Add delete logic here
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete project");
+      }
+
+      // TODO: Add toast notification for success
+      console.log("Project deleted successfully");
+
+      // Redirect to home page
+      router.push("/");
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      // TODO: Add toast notification for error
+      alert("Failed to delete project. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8 max-w-2xl mx-auto">
       {/* General Settings */}
       <Material type="base" className="p-6">
         <div className="space-y-6">
@@ -90,8 +160,7 @@ export default function ProjectSettingsPage() {
             <div>
               <Label>Created</Label>
               <p className="text-sm text-muted-foreground mt-1">
-                {new Date(project.created_at).toLocaleDateString()} at{" "}
-                {new Date(project.created_at).toLocaleTimeString()}
+                <DateTimeDisplay timestamp={project.created_at} />
               </p>
             </div>
           </div>
@@ -168,17 +237,24 @@ export default function ProjectSettingsPage() {
       </Material>
 
       {/* Danger Zone */}
-      <Material type="base" className="p-6 border-red-200 bg-red-50">
+      <Material
+        type="base"
+        className="p-6 border-destructive/20 bg-destructive/5"
+      >
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <h3 className="text-lg font-semibold text-red-900">Danger Zone</h3>
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+            <h3 className="text-lg font-semibold text-destructive">
+              Danger Zone
+            </h3>
           </div>
 
           <div className="space-y-4">
             <div>
-              <h4 className="font-medium text-red-900 mb-2">Delete Project</h4>
-              <p className="text-sm text-red-700 mb-4">
+              <h4 className="font-medium text-destructive mb-2">
+                Delete Project
+              </h4>
+              <p className="text-sm text-destructive/80 mb-4">
                 Once you delete a project, there is no going back. Please be
                 certain. This will permanently delete all files, deployments,
                 and history.
@@ -186,9 +262,10 @@ export default function ProjectSettingsPage() {
               <Button
                 type="error"
                 onClick={handleDeleteProject}
+                disabled={isDeleting}
                 prefix={<Trash2 className="w-4 h-4" />}
               >
-                Delete Project
+                {isDeleting ? "Deleting..." : "Delete Project"}
               </Button>
             </div>
           </div>

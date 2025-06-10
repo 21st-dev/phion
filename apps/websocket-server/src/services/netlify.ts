@@ -144,6 +144,30 @@ export class NetlifyService {
   }
 
   /**
+   * Проверить, есть ли файлы для деплоя в проекте
+   */
+  async hasProjectFiles(projectId: string): Promise<boolean> {
+    try {
+      const projectFiles = await this.getLatestProjectFiles(projectId);
+      
+      // Проверяем, есть ли реальные файлы проекта (не служебные)
+      const realFiles = Object.keys(projectFiles).filter(filePath => 
+        !filePath.startsWith('.shipvibes-') && 
+        filePath !== '.gitkeep' &&
+        filePath !== '.gitignore' &&
+        filePath.trim() !== ''
+      );
+      
+      console.log(`📋 Project ${projectId} has ${realFiles.length} deployable files:`, realFiles.slice(0, 5));
+      
+      return realFiles.length > 0;
+    } catch (error) {
+      console.error(`Error checking project files for ${projectId}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Создать новый сайт на Netlify
    */
   async createSite(projectId: string, projectName: string): Promise<NetlifyCreateSiteResponse> {
