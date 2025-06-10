@@ -309,3 +309,20 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+// Convenience type exports
+export type ProjectRow = Tables<'projects'>
+export type ProjectInsert = TablesInsert<'projects'>
+export type ProjectUpdate = TablesUpdate<'projects'>
+
+export type PendingChange = Tables<'pending_changes'>
+export type PendingChangeInsert = TablesInsert<'pending_changes'>
+export type PendingChangeUpdate = TablesUpdate<'pending_changes'>
+
+export type FileHistoryRow = Tables<'file_history'>
+export type FileHistoryInsert = TablesInsert<'file_history'>
+export type FileHistoryUpdate = TablesUpdate<'file_history'>
+
+export type DeployStatusRow = Tables<'deploy_status'>
+export type DeployStatusInsert = TablesInsert<'deploy_status'>
+export type DeployStatusUpdate = TablesUpdate<'deploy_status'>

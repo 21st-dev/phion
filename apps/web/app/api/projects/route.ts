@@ -6,6 +6,10 @@ import { cookies } from "next/headers";
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
+import { CreateProject } from "@shipvibes/shared";
+import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
+// Server-side import for the project logger
+import { projectLogger } from "@shipvibes/shared/project-logger-server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,6 +93,13 @@ export async function POST(request: NextRequest) {
       template_type,
       user_id: user.id, // Привязываем к текущему пользователю
     });
+
+    // Логируем создание проекта
+    await projectLogger.logProjectCreated(
+      project.id,
+      project,
+      'api_request'
+    );
 
     // ТОЛЬКО создаем ZIP шаблона для скачивания (мгновенно)
     try {

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
-import { Server as SocketIOServer } from "socket.io";
+import { Server } from "socket.io";
 import cors from "cors";
 import crypto from "crypto";
 import AdmZip from "adm-zip";
@@ -15,6 +15,7 @@ import {
 } from "@shipvibes/database";
 import { uploadFileVersion, downloadFile, downloadProjectTemplate } from "@shipvibes/storage";
 import { NetlifyService } from "./services/netlify.js";
+import { projectLogger } from '@shipvibes/shared/project-logger-server';
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,7 +31,7 @@ app.use(
 app.use(express.json());
 
 // Настройка Socket.IO
-const io = new SocketIOServer(httpServer, {
+const io = new Server(httpServer, {
   cors: {
     origin: "http://localhost:3004",
     methods: ["GET", "POST"],
@@ -70,14 +71,41 @@ app.post('/api/deploy', async (req, res) => {
         console.error(`❌ Deploy failed for project ${projectId}:`, error);
       });
     } else {
-      // Для backward compatibility - создаем снапшот и потом деплоим
-      saveFullProjectSnapshot(projectId, 'Manual deploy via HTTP API')
-        .then(newCommitId => {
-          return triggerDeploy(projectId, newCommitId);
-        })
-        .catch(error => {
-          console.error(`❌ Deploy failed for project ${projectId}:`, error);
-        });
+      // НОВАЯ ЛОГИКА: проверяем, есть ли что деплоить перед созданием коммита
+      const supabase = getSupabaseServerClient();
+      const pendingQueries = new PendingChangesQueries(supabase);
+      const historyQueries = new FileHistoryQueries(supabase);
+      
+      // Проверяем есть ли pending changes или это первый деплой
+      const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
+      const existingFiles = await historyQueries.getProjectFileHistory(projectId, 1);
+      
+      if (pendingChanges.length === 0 && existingFiles.length > 0) {
+        // Нет изменений для деплоя, используем последний коммит
+        const lastCommitId = existingFiles[0]?.commit_id;
+        if (lastCommitId) {
+          console.log(`📄 No changes to deploy, using existing commit: ${lastCommitId}`);
+          triggerDeploy(projectId, lastCommitId).catch(error => {
+            console.error(`❌ Deploy failed for project ${projectId}:`, error);
+          });
+        } else {
+          console.log(`❌ No changes and no existing commits for project ${projectId}`);
+          res.status(400).json({ 
+            success: false, 
+            error: 'No changes to deploy and no existing commits' 
+          });
+          return;
+        }
+      } else {
+        // Есть изменения или это первый деплой - создаем снапшот
+        saveFullProjectSnapshot(projectId, 'Manual deploy via HTTP API')
+          .then(newCommitId => {
+            return triggerDeploy(projectId, newCommitId);
+          })
+          .catch(error => {
+            console.error(`❌ Deploy failed for project ${projectId}:`, error);
+          });
+      }
     }
 
     res.json({ 
@@ -109,6 +137,14 @@ console.log(`📡 Port: ${PORT}`);
 async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
   console.log(`📦 Extracting template files for project ${projectId}...`);
   
+  // Логируем начало извлечения шаблона
+  await projectLogger.log({
+    project_id: projectId,
+    event_type: 'template_extracted',
+    details: { action: 'starting', trigger: 'initial_deploy' },
+    trigger: 'initial_deploy'
+  });
+  
   try {
     // Скачиваем шаблон из R2
     const templateZip = await downloadProjectTemplate(projectId);
@@ -132,7 +168,7 @@ async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
     
     // Создаем коммит с файлами шаблона
     const commitId = crypto.randomUUID();
-    const commitMessage = 'Initial template files';
+    const commitMessage = 'Initial commit'; // Изменили на стандартное сообщение
     
     const supabase = getSupabaseServerClient();
     const historyQueries = new FileHistoryQueries(supabase);
@@ -142,7 +178,7 @@ async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
       // Загружаем файл в R2
       await uploadFileVersion(projectId, commitId, filePath, content);
       
-      // Создаем запись в file_history
+      // Создаем запись в file_history С commit_id и commit_message
       await historyQueries.createFileHistory({
         project_id: projectId,
         file_path: filePath,
@@ -154,11 +190,33 @@ async function extractAndSaveTemplateFiles(projectId: string): Promise<string> {
       });
     }
     
+    // Логируем успешное создание коммита
+    await projectLogger.logCommitCreated(
+      projectId,
+      commitId,
+      commitMessage,
+      Object.keys(templateFiles).length,
+      'template_extraction'
+    );
+    
     console.log(`✅ Template files saved as commit ${commitId} for project ${projectId}`);
     return commitId;
     
   } catch (error) {
     console.error(`❌ Error extracting template files for project ${projectId}:`, error);
+    
+    // Логируем ошибку
+    await projectLogger.log({
+      project_id: projectId,
+      event_type: 'error',
+      details: { 
+        action: 'template_extraction_failed', 
+        error: error.message,
+        original_trigger: 'initial_deploy'
+      },
+      trigger: 'initial_deploy'
+    });
+    
     throw error;
   }
 }
@@ -220,6 +278,16 @@ async function saveFullProjectSnapshot(
   
   // Получаем последние версии всех файлов из истории для полного снапшота
   const latestFiles = await historyQueries.getProjectFileHistory(projectId, 1000);
+  
+  // НОВАЯ ПРОВЕРКА: Если нет pending changes И есть файлы в истории, 
+  // возвращаем ID последнего коммита (НЕ создаем новый)
+  if (pendingChanges.length === 0 && latestFiles.length > 0) {
+    const lastCommitId = latestFiles[0]?.commit_id;
+    if (lastCommitId) {
+      console.log(`📄 No pending changes for project ${projectId}, reusing existing commit ${lastCommitId}`);
+      return lastCommitId;
+    }
+  }
   
   // Если нет ни pending changes ни file history, создаем пустой снапшот для первого деплоя
   if (pendingChanges.length === 0 && latestFiles.length === 0) {
@@ -351,7 +419,27 @@ async function saveFullProjectSnapshot(
   // 4. Очищаем pending changes (если были)
   if (pendingChanges.length > 0) {
     await pendingQueries.clearAllPendingChanges(projectId);
+    
+    // Логируем очистку pending changes
+    await projectLogger.log({
+      project_id: projectId,
+      event_type: 'pending_changes_cleared',
+      details: { 
+        clearedChangesCount: pendingChanges.length,
+        action: 'bulk_clear'
+      },
+      trigger: 'commit_save'
+    });
   }
+  
+  // Логируем создание коммита
+  await projectLogger.logCommitCreated(
+    projectId,
+    commitId,
+    finalCommitMessage,
+    fullSnapshot.size,
+    'manual_save'
+  );
   
   console.log(`✅ Full project snapshot saved as commit ${commitId}: ${finalCommitMessage}`);
   return commitId;
@@ -371,6 +459,15 @@ async function triggerDeploy(projectId: string, commitId: string): Promise<void>
         deploy_status: 'ready'
       });
       
+      // Логируем изменение статуса
+      await projectLogger.logDeployStatusChange(
+        projectId,
+        'pending',
+        'ready',
+        undefined,
+        'auto_deploy'
+      );
+      
       return;
     }
     
@@ -378,10 +475,31 @@ async function triggerDeploy(projectId: string, commitId: string): Promise<void>
     const siteId = await ensureNetlifySite(projectId);
     if (!siteId) {
       console.error(`❌ Cannot deploy project ${projectId}: no Netlify site`);
+      
+      // Логируем ошибку
+      await projectLogger.log({
+        project_id: projectId,
+        event_type: 'error',
+        details: { 
+          message: 'Cannot deploy project: no Netlify site',
+          context: 'triggerDeploy'
+        },
+        trigger: 'deploy_process'
+      });
+      
       return;
     }
 
     console.log(`🚀 Triggering deploy for project ${projectId} (site: ${siteId})...`);
+    
+    // Логируем начало деплоя
+    await projectLogger.logDeployStatusChange(
+      projectId,
+      'pending',
+      'building',
+      undefined,
+      'deploy_process'
+    );
     
     // Обновляем статус деплоя
     const supabase = getSupabaseServerClient();
@@ -403,6 +521,15 @@ async function triggerDeploy(projectId: string, commitId: string): Promise<void>
     console.log(`✅ Deploy initiated for project ${projectId}: ${deployResponse.deploy_url}`);
   } catch (error) {
     console.error(`❌ Error deploying project ${projectId}:`, error);
+    
+    // Логируем ошибку деплоя
+    await projectLogger.logDeployStatusChange(
+      projectId,
+      'building',
+      'failed',
+      undefined,
+      'deploy_error'
+    );
     
     // Обновляем статус деплоя как failed
     try {
@@ -453,10 +580,10 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
       return;
     }
 
-    // СТРОГАЯ ПРОВЕРКА 4: Проверяем есть ли уже файлы в истории (значит проект не пустой)
-    const existingFiles = await historyQueries.getLatestFileVersions(projectId);
-    if (existingFiles.length > 0) {
-      console.log(`📄 Project ${projectId} already has ${existingFiles.length} files in history, skipping auto-deploy`);
+    // СТРОГАЯ ПРОВЕРКА 4: Проверяем есть ли уже коммиты (любые коммиты означают что инициализация уже была)
+    const existingCommits = await historyQueries.getProjectFileHistory(projectId, 1);
+    if (existingCommits.length > 0) {
+      console.log(`📄 Project ${projectId} already has commits, skipping auto-deploy`);
       return;
     }
 
@@ -535,6 +662,14 @@ io.on('connection', (socket) => {
       
       console.log(`📡 Emitted agent_connected event for project ${projectId} to project room`);
       
+      // Логируем подключение агента
+      projectLogger.logAgentConnection(
+        projectId,
+        true,
+        socket.id,
+        'websocket_connection'
+      ).catch(console.error);
+      
       // Проверяем нужен ли автоматический первый деплой
       checkAndTriggerInitialDeploy(projectId).catch(error => {
         console.error(`❌ Error checking initial deploy for project ${projectId}:`, error);
@@ -592,6 +727,14 @@ io.on('connection', (socket) => {
         content_hash: hash,
         file_size: Buffer.byteLength(content, 'utf-8'),
       });
+
+      // Логируем изменение файла
+      await projectLogger.logFileChange(
+        projectId,
+        filePath,
+        action,
+        'file_watcher'
+      );
 
       // Уведомляем клиента о tracking (БЕЗ деплоя)
       socket.emit('file_tracked', {
@@ -721,6 +864,14 @@ io.on('connection', (socket) => {
         });
         
         console.log(`📡 Emitted agent_disconnected event for project ${socket.data.projectId} to project room`);
+        
+        // Логируем отключение агента
+        projectLogger.logAgentConnection(
+          socket.data.projectId,
+          false,
+          socket.id,
+          'websocket_disconnection'
+        ).catch(console.error);
       }
       
       // Уведомляем других клиентов в комнате

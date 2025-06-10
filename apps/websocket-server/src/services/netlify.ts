@@ -1,13 +1,15 @@
+import { resolve as resolvePath, dirname, join } from 'path';
+import { promisify } from 'util';
+import { exec } from 'child_process';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
-import AdmZip from 'adm-zip';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import fs from 'fs/promises';
-import path from 'path';
+import fsSync from 'fs';
+import AdmZip from 'adm-zip';
 import os from 'os';
 import { downloadTextFile } from '@shipvibes/storage';
 import { getSupabaseServerClient, FileHistoryQueries, ProjectQueries, DeployStatusQueries } from '@shipvibes/database';
+import { projectLogger } from '@shipvibes/shared/project-logger-server';
 
 const execAsync = promisify(exec);
 
@@ -47,7 +49,7 @@ export class NetlifyService {
   private async restoreTemplateFiles(tempDir: string, existingFiles: Record<string, string>): Promise<void> {
     try {
       // Путь к шаблону vite-react
-      const templatePath = path.resolve(process.cwd(), '../../templates/vite-react');
+      const templatePath = resolvePath(process.cwd(), '../../templates/vite-react');
       
       console.log(`📁 Looking for template at: ${templatePath}`);
       
@@ -56,7 +58,7 @@ export class NetlifyService {
         await fs.access(templatePath);
       } catch {
         // Попробуем другой путь если не нашли
-        const alternativePath = path.resolve(process.cwd(), 'templates/vite-react');
+        const alternativePath = resolvePath(process.cwd(), 'templates/vite-react');
         await fs.access(alternativePath);
         console.log(`📁 Using alternative template path: ${alternativePath}`);
       }
@@ -71,9 +73,9 @@ export class NetlifyService {
             continue;
           }
           
-          const srcPath = path.join(srcDir, item.name);
-          const targetPath = path.join(targetDir, item.name);
-          const relativeFilePath = relativePath ? path.join(relativePath, item.name) : item.name;
+                     const srcPath = join(srcDir, item.name);
+           const targetPath = join(targetDir, item.name);
+           const relativeFilePath = relativePath ? join(relativePath, item.name) : item.name;
           
           if (item.isDirectory()) {
             await fs.mkdir(targetPath, { recursive: true });
@@ -215,13 +217,13 @@ export class NetlifyService {
       }
       
       // Создаем временную директорию для проекта
-      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `shipvibes-project-${projectId}-`));
+             tempDir = await fs.mkdtemp(join(os.tmpdir(), `shipvibes-project-${projectId}-`));
       console.log(`📁 Created temp directory: ${tempDir}`);
       
       // Восстанавливаем файлы проекта во временной директории
       for (const [filePath, content] of Object.entries(projectFiles)) {
-        const fullPath = path.join(tempDir, filePath);
-        const dir = path.dirname(fullPath);
+                 const fullPath = join(tempDir, filePath);
+         const dir = dirname(fullPath);
         
         // Создаем директории если нужно
         await fs.mkdir(dir, { recursive: true });
@@ -269,7 +271,7 @@ export class NetlifyService {
       }
       
       // Проверяем наличие папки dist
-      const distPath = path.join(tempDir, 'dist');
+             const distPath = join(tempDir, 'dist');
       try {
         await fs.access(distPath);
         console.log(`📁 Found dist directory at ${distPath}`);
@@ -284,8 +286,8 @@ export class NetlifyService {
         const items = await fs.readdir(dirPath, { withFileTypes: true });
         
         for (const item of items) {
-          const fullPath = path.join(dirPath, item.name);
-          const zipItemPath = zipPath ? path.join(zipPath, item.name) : item.name;
+                     const fullPath = join(dirPath, item.name);
+           const zipItemPath = zipPath ? join(zipPath, item.name) : item.name;
           
           if (item.isDirectory()) {
             await addDirectoryToZip(fullPath, zipItemPath);
@@ -322,69 +324,74 @@ export class NetlifyService {
    */
   async checkAndUpdateDeployStatus(projectId: string): Promise<void> {
     try {
+      // Получаем текущий проект
       const supabase = getSupabaseServerClient();
       const projectQueries = new ProjectQueries(supabase);
-      
-      // Получаем проект из базы данных
       const project = await projectQueries.getProjectById(projectId);
+      
       if (!project || !project.netlify_site_id || !project.netlify_deploy_id) {
-        console.warn(`❌ Cannot check deploy status for project ${projectId}: missing site_id or deploy_id`);
+        console.log(`⚠️ Cannot check status: project ${projectId} not found or missing Netlify IDs`);
         return;
       }
       
-      console.log(`🔍 Checking deploy status for project ${projectId}, deploy ${project.netlify_deploy_id}`);
+      // Получаем статус деплоя из Netlify
+      const deployInfo = await this.getDeployStatus(project.netlify_site_id, project.netlify_deploy_id);
       
-      const deployStatus = await this.getDeployStatus(project.netlify_site_id, project.netlify_deploy_id);
+      console.log(`📊 Netlify deploy status for ${projectId}: ${deployInfo.state}`);
       
-      // Обновляем статус в базе данных
-      let dbStatus: 'ready' | 'building' | 'failed';
-      
-      switch (deployStatus.state) {
-        case 'ready':
-          dbStatus = 'ready';
-          console.log(`✅ Deploy completed for project ${projectId}`);
-          break;
-        case 'error':
-          dbStatus = 'failed';
-          console.log(`❌ Deploy failed for project ${projectId}: ${deployStatus.error_message || 'Unknown error'}`);
-          break;
-        case 'building':
-        case 'new':
-        default:
-          dbStatus = 'building';
-          console.log(`🔄 Deploy still in progress for project ${projectId}: ${deployStatus.state}`);
-          break;
+      // Проверяем, изменился ли статус
+      if (
+        (deployInfo.state === 'ready' && project.deploy_status !== 'ready') ||
+        (deployInfo.state === 'error' && project.deploy_status !== 'failed')
+      ) {
+        // Обновляем статус в базе данных
+        const newStatus = deployInfo.state === 'ready' ? 'ready' : 'failed';
+        
+        await projectQueries.updateProject(projectId, {
+          deploy_status: newStatus,
+          netlify_url: deployInfo.deploy_url || project.netlify_url
+        });
+
+        // Логируем изменение статуса деплоя
+        const oldStatus = project.deploy_status || 'building';
+        await projectLogger.logDeployStatusChange(
+          projectId,
+          oldStatus,
+          newStatus,
+          deployInfo.deploy_url,
+          'netlify_webhook'
+        );
+        
+        // Отправляем уведомление через WebSocket
+        if (this.io) {
+          this.io.to(projectId).emit('deploy_status_update', {
+            projectId,
+            status: newStatus,
+            url: deployInfo.deploy_url,
+            timestamp: new Date().toISOString()
+          });
+          
+          console.log(`📡 Emitted deploy status update: ${newStatus} - ${deployInfo.deploy_url || 'no URL'}`);
+        }
       }
       
-      await projectQueries.updateProject(projectId, {
-        deploy_status: dbStatus,
-        netlify_url: deployStatus.deploy_url || deployStatus.url
-      });
-      
-      console.log(`📊 Updated deploy status for project ${projectId}: ${dbStatus}`);
-      
-      // Если деплой еще не завершен, проверим еще раз через 10 секунд
-      if (dbStatus === 'building') {
+      // Если статус все еще building, запланируем еще одну проверку
+      if (deployInfo.state === 'building' || deployInfo.state === 'enqueued' || deployInfo.state === 'new') {
         setTimeout(() => {
-          this.checkAndUpdateDeployStatus(projectId).catch(error => {
-            console.error(`❌ Error checking deploy status for project ${projectId}:`, error);
+          this.checkAndUpdateDeployStatus(projectId).catch(err => {
+            console.error(`❌ Error checking deploy status: ${err.message}`);
           });
-        }, 10000); // 10 секунд
+        }, 10000); // Проверяем каждые 10 секунд
       }
       
     } catch (error) {
-      console.error(`❌ Error checking deploy status for project ${projectId}:`, error);
-      
-      // В случае ошибки проверки, отмечаем как failed
-      try {
-        const supabase = getSupabaseServerClient();
-        const projectQueries = new ProjectQueries(supabase);
-        await projectQueries.updateProject(projectId, {
-          deploy_status: 'failed'
+      console.error(`❌ Error checking deploy status:`, error);
+      // Продолжим пытаться, пока не получим ответ
+      setTimeout(() => {
+        this.checkAndUpdateDeployStatus(projectId).catch(() => {
+          // Игнорируем ошибки внутри обработчика таймаута
         });
-      } catch (updateError) {
-        console.error(`❌ Error updating failed status for project ${projectId}:`, updateError);
-      }
+      }, 15000); // Увеличенный интервал при ошибке
     }
   }
 

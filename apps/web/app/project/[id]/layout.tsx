@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { ProjectNavigation } from "@/components/project/project-navigation";
 import { ProjectWebSocketProvider } from "@/components/project/project-websocket-provider";
 import { ProjectLayoutClient } from "@/components/project/project-layout-client";
+import { ProjectLogsOverlay } from "@/components/project/project-logs-overlay";
 import {
   getProjectById,
   getProjectFileHistory,
@@ -83,6 +84,9 @@ export default async function ProjectLayout({
 
           {/* Page Content */}
           <div className="container mx-auto px-6 py-8">{children}</div>
+
+          {/* Floating logs overlay */}
+          <ProjectLogsOverlay projectId={project.id} />
         </div>
       </ProjectWebSocketProvider>
     </ProjectLayoutClient>

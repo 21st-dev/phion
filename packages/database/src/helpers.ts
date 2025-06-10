@@ -62,8 +62,12 @@ export const getLatestFileVersion = (projectId: string, filePath: string): Promi
 export const getFileHistoryById = (id: string): Promise<FileHistoryRow | null> => 
   fileHistoryQueries.getFileHistoryById(id);
 
+export const getLatestFileVersions = (projectId: string): Promise<FileHistoryRow[]> => 
+  fileHistoryQueries.getLatestFileVersions(projectId);
+
 // Экспортируем классы для продвинутого использования
-export { ProjectQueries, FileHistoryQueries }; 
+export { ProjectQueries, FileHistoryQueries } from "./queries";
+
 // Import and initialize PendingChangesQueries
 import { PendingChangesQueries } from "./queries/pending-changes";
 const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient());

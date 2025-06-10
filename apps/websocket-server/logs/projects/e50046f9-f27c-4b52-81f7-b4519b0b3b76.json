@@ -1,0 +1,42 @@
+[
+  {
+    "project_id": "e50046f9-f27c-4b52-81f7-b4519b0b3b76",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "m-JuQpWM7KAN77nIAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:13:42.797Z"
+  },
+  {
+    "project_id": "e50046f9-f27c-4b52-81f7-b4519b0b3b76",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "m-JuQpWM7KAN77nIAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:14:08.312Z"
+  },
+  {
+    "project_id": "e50046f9-f27c-4b52-81f7-b4519b0b3b76",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "9-3al4C-TqJTlwsYAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:14:28.909Z"
+  },
+  {
+    "project_id": "e50046f9-f27c-4b52-81f7-b4519b0b3b76",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "9-3al4C-TqJTlwsYAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:15:33.231Z"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "project_id": "33a41a7c-d544-47f4-b60b-7f4eeb5dd570",
+    "event_type": "project_created",
+    "details": {
+      "projectData": {
+        "id": "33a41a7c-d544-47f4-b60b-7f4eeb5dd570",
+        "name": "1725",
+        "template_type": "vite-react",
+        "netlify_site_id": null,
+        "netlify_url": null,
+        "deploy_status": "pending",
+        "created_at": "2025-06-10T13:25:40.385769+00:00",
+        "updated_at": "2025-06-10T13:25:40.385769+00:00",
+        "netlify_deploy_id": null,
+        "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
+      }
+    },
+    "trigger": "api_request",
+    "database_state": {
+      "after": {
+        "project": {
+          "id": "33a41a7c-d544-47f4-b60b-7f4eeb5dd570",
+          "name": "1725",
+          "template_type": "vite-react",
+          "netlify_site_id": null,
+          "netlify_url": null,
+          "deploy_status": "pending",
+          "created_at": "2025-06-10T13:25:40.385769+00:00",
+          "updated_at": "2025-06-10T13:25:40.385769+00:00",
+          "netlify_deploy_id": null,
+          "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
+        }
+      }
+    },
+    "timestamp": "2025-06-10T13:25:40.477Z"
+  }
+]

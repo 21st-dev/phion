@@ -1,0 +1,42 @@
+[
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "2CpeMCXn8rg4cLQ2AAAD"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:48:08.571Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "template_extracted",
+    "details": {
+      "action": "starting",
+      "trigger": "initial_deploy"
+    },
+    "trigger": "initial_deploy",
+    "timestamp": "2025-06-10T13:48:10.337Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "deploy_building",
+    "details": {
+      "oldStatus": "pending",
+      "newStatus": "building"
+    },
+    "trigger": "deploy_process",
+    "timestamp": "2025-06-10T13:48:17.380Z"
+  },
+  {
+    "project_id": "52626a8d-27f0-4e44-becf-a4aa4335ce2a",
+    "event_type": "deploy_failed",
+    "details": {
+      "oldStatus": "building",
+      "newStatus": "failed"
+    },
+    "trigger": "deploy_error",
+    "timestamp": "2025-06-10T13:48:40.072Z"
+  }
+]

@@ -1,0 +1,218 @@
+[
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "FT3OfsJlPPMJ0nyjAAAH"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:39:12.786Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "template_extracted",
+    "details": {
+      "action": "starting",
+      "trigger": "initial_deploy"
+    },
+    "trigger": "initial_deploy",
+    "timestamp": "2025-06-10T13:39:14.515Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "57dbb730-7a3e-4016-b831-d5961c5bed3e",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 2
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:39:23.795Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "deploy_building",
+    "details": {
+      "oldStatus": "pending",
+      "newStatus": "building"
+    },
+    "trigger": "deploy_process",
+    "timestamp": "2025-06-10T13:39:29.897Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "deploy_failed",
+    "details": {
+      "oldStatus": "building",
+      "newStatus": "failed"
+    },
+    "trigger": "deploy_error",
+    "timestamp": "2025-06-10T13:39:56.685Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "f18dbfa3-a983-4172-9896-8c1b1d7a549d",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 40
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:41:09.498Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "43671ecb-e091-4a28-8ed5-f49268e681c9",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 40
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:41:12.259Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "cdc802df-764f-4b78-8467-7d259872032d",
+      "commitMessage": "Initial commit",
+      "filesCount": 68
+    },
+    "trigger": "template_extraction",
+    "timestamp": "2025-06-10T13:41:16.744Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "FT3OfsJlPPMJ0nyjAAAH"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:41:20.990Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "XIWboYGvLG4SOkkGAAAD"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:41:27.579Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "XIWboYGvLG4SOkkGAAAD"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:42:45.554Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "q62-NqwwdN-i_J8ZAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:42:53.125Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "74800985-bede-4293-82fa-4776a7c84636",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 68
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:44:58.310Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "d15ed0b6-cb8a-4970-b90e-9503ff8ce4dc",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 68
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:45:08.606Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "error",
+    "details": {
+      "message": "Cannot deploy project: no Netlify site",
+      "context": "triggerDeploy"
+    },
+    "trigger": "deploy_process",
+    "timestamp": "2025-06-10T13:45:46.010Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "error",
+    "details": {
+      "message": "Cannot deploy project: no Netlify site",
+      "context": "triggerDeploy"
+    },
+    "trigger": "deploy_process",
+    "timestamp": "2025-06-10T13:46:06.169Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "q62-NqwwdN-i_J8ZAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:46:06.774Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "816pLiXoWnM5Y-pmAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:46:08.403Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "816pLiXoWnM5Y-pmAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:46:10.013Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "RXIEMin1WYjjgt2CAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:46:12.983Z"
+  },
+  {
+    "project_id": "147c1533-a3a8-49e7-a66d-117037146c19",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "RXIEMin1WYjjgt2CAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:46:16.109Z"
+  }
+]

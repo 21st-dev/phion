@@ -3,14 +3,14 @@ import { Database } from "../types";
 
 export interface PendingChange {
   id: string;
-  project_id: string;
+  project_id: string | null;
   file_path: string;
   content: string;
   action: 'modified' | 'added' | 'deleted';
   content_hash: string | null;
-  file_size: number;
-  created_at: string;
-  updated_at: string;
+  file_size: number | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface CreatePendingChange {
@@ -33,7 +33,7 @@ export class PendingChangesQueries {
       .order('updated_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data as unknown as PendingChange[]) || [];
   }
 
   async getPendingChange(projectId: string, filePath: string): Promise<PendingChange | null> {
@@ -45,7 +45,7 @@ export class PendingChangesQueries {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data || null;
+    return (data as unknown as PendingChange) || null;
   }
 
   async upsertPendingChange(changeData: CreatePendingChange): Promise<PendingChange> {
@@ -59,7 +59,7 @@ export class PendingChangesQueries {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as PendingChange;
   }
 
   async getAllPendingChanges(projectId: string): Promise<PendingChange[]> {
@@ -70,7 +70,7 @@ export class PendingChangesQueries {
       .order('file_path', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data as unknown as PendingChange[]) || [];
   }
 
   async clearAllPendingChanges(projectId: string): Promise<void> {

@@ -30,6 +30,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.478.0",
     "dotenv": "^16.5.0",
+    "server-only": "^0.0.1",
     "shiki": "^3.4.2"
   }
 }

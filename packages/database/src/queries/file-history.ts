@@ -94,6 +94,8 @@ export class FileHistoryQueries {
       content_hash: historyData.content_hash,
       diff_text: historyData.diff_text,
       file_size: historyData.file_size,
+      commit_id: historyData.commit_id,
+      commit_message: historyData.commit_message,
     };
 
     const { data, error } = await this.client
@@ -213,5 +215,34 @@ export class FileHistoryQueries {
       total_size: totalSize,
       last_updated: lastUpdated,
     };
+  }
+
+  /**
+   * Получить последние версии всех файлов проекта
+   */
+  async getLatestFileVersions(projectId: string): Promise<FileHistoryRow[]> {
+    const { data, error } = await this.client
+      .from("file_history")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch latest file versions: ${error.message}`);
+    }
+
+    // Группируем по file_path и берем последнюю версию каждого файла
+    const latestVersionsMap = new Map<string, FileHistoryRow>();
+    
+    for (const file of (data as unknown as FileHistoryRow[]) || []) {
+      const existing = latestVersionsMap.get(file.file_path);
+      if (!existing || 
+          (file.created_at && existing.created_at && new Date(file.created_at) > new Date(existing.created_at)) ||
+          (file.created_at && !existing.created_at)) {
+        latestVersionsMap.set(file.file_path, file);
+      }
+    }
+
+    return Array.from(latestVersionsMap.values());
   }
 }

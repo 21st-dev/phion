@@ -1,0 +1,138 @@
+[
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "QxMPl_4nkqAb13DGAAAH"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:15:56.283Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "template_extracted",
+    "details": {
+      "action": "starting",
+      "trigger": "initial_deploy"
+    },
+    "trigger": "initial_deploy",
+    "timestamp": "2025-06-10T13:15:57.990Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "b422c188-fa3f-4e90-b1d9-f47ff3ea4557",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 1
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:16:08.453Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "6478c67e-2448-46a9-9b7f-b8cbb2f0ce56",
+      "commitMessage": "Initial commit",
+      "filesCount": 68
+    },
+    "trigger": "template_extraction",
+    "timestamp": "2025-06-10T13:17:30.081Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "4bb44dd8-d6e5-4468-acee-3ff001d468cf",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 68
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:18:47.309Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "b72e5343-14a7-4bec-be2a-7153f005f36d",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 68
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:18:53.724Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "662ccea5-310b-45f4-ab4e-57dcf110afaf",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 68
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:19:25.131Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "061b3d35-2b6f-4a0b-845c-8752f416b352",
+      "commitMessage": "Manual deploy via HTTP API",
+      "filesCount": 68
+    },
+    "trigger": "manual_save",
+    "timestamp": "2025-06-10T13:19:34.778Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "QxMPl_4nkqAb13DGAAAH"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:20:13.384Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "mS51KPeE7Ab-JsQuAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:20:19.487Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "mS51KPeE7Ab-JsQuAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:20:19.949Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "h-v3Y1b0JjD13OQxAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T13:20:21.103Z"
+  },
+  {
+    "project_id": "44f7409b-fd49-4506-8edf-96a5ef2ffff6",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "h-v3Y1b0JjD13OQxAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T13:21:37.867Z"
+  }
+]
