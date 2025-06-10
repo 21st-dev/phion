@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { ProjectHeader } from "@/components/project-header";
 import { ProjectPageClient } from "@/components/project-page-client";
 import { Header } from "@/components/layout/header";
 import {
@@ -70,17 +69,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     console.error("Error fetching pending changes:", error);
   }
 
-  const hasVersions = fileHistory && fileHistory.length > 0;
-
   return (
     <div className="min-h-screen bg-background-100">
       <Header user={user} project={project} />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <ProjectHeader
-          project={project as any}
-          hideDownloadButton={!hasVersions}
-        />
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ProjectPageClient
           initialProject={project as any}
           initialHistory={(fileHistory || []) as any}

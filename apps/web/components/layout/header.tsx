@@ -47,25 +47,25 @@ export function Header({ user, project }: HeaderProps) {
   };
 
   return (
-    <header className="border-b border-gray-alpha-400 bg-background-100">
+    <header className="bg-background-100">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo и навигация */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-md bg-gray-1000 flex items-center justify-center">
+              <div className="h-6 w-6 rounded-md bg-gray-1000 flex items-center justify-center">
                 <span className="text-background-100 font-bold text-sm">S</span>
               </div>
-              <span className="text-gray-1000 font-semibold text-lg">
+              <span className="text-gray-1000 font-semibold text-sm">
                 Shipvibes
               </span>
             </Link>
 
             {/* Показываем название проекта через слеш если проект передан */}
             {project && (
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-1 ml-1">
                 <SlashIcon />
-                <span className="text-gray-700 font-medium text-lg">
+                <span className="text-gray-700 font-medium text-sm">
                   {project.name}
                 </span>
               </div>
