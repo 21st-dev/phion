@@ -102,12 +102,24 @@ export function useWebSocket({
         console.log('📝 [WebSocket] File tracked:', data);
         onFileTracked(data);
       });
+
+      // Новое событие для staged изменений
+      newSocket.on('file_change_staged', (data) => {
+        console.log('📝 [WebSocket] File change staged:', data);
+        onFileTracked(data);
+      });
     }
 
     if (onSaveSuccess) {
       newSocket.on('save_success', (data) => {
         console.log('💾 [WebSocket] Save success:', data);
         onSaveSuccess(data);
+      });
+
+      // Обработчик для discard_success (очистка pending changes при откате)
+      newSocket.on('discard_success', (data) => {
+        console.log('🔄 [WebSocket] Discard success:', data);
+        onSaveSuccess(data); // Используем тот же callback для очистки pending changes
       });
     }
 
@@ -170,11 +182,22 @@ export function useWebSocket({
     }
   };
 
+  const discardAllChanges = () => {
+    if (socket && isConnected) {
+      socket.emit('discard_all_changes', { 
+        projectId 
+      });
+    } else {
+      onError?.({ message: 'Not connected to server' });
+    }
+  };
+
   return {
     socket,
     isConnected,
     connectionError,
     saveAllChanges,
+    discardAllChanges,
     disconnect,
   };
 } 

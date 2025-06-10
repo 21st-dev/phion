@@ -101,7 +101,7 @@ export function ProjectLogs({ projectId }: ProjectLogsProps) {
 
   if (loading) {
     return (
-      <Material type="base" className="p-6">
+      <Material className="p-6">
         <div className="flex items-center justify-center py-8">
           <Loader className="h-6 w-6 animate-spin" />
           <span className="ml-2">Loading logs...</span>
@@ -112,7 +112,7 @@ export function ProjectLogs({ projectId }: ProjectLogsProps) {
 
   return (
     <div className="space-y-6">
-      <Material type="base" className="p-6">
+      <Material className="p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Project Logs</h2>

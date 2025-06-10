@@ -294,29 +294,16 @@ async function uploadTemplateFilesInBackground(
       });
     }
 
-    // 4. Создаем Netlify сайт с GitHub интеграцией (БЕЗ вебхуков)
-    console.log(`🌐 [BACKGROUND] Creating Netlify site for ${projectId}...`);
-    const netlifySite = await netlifyService.createSiteWithGitHub(
-      projectId,
-      projectName,
-      repositoryName,
-      'shipvibes'
-    );
-
-    // 5. СРАЗУ сохраняем netlify_site_id в базу данных!
-    await projectQueries.updateProject(projectId, {
-      netlify_site_id: netlifySite.id,
-      // НЕ сохраняем netlify_url - получим его через webhook
-      deploy_status: "building" // Ждем автоматический деплой от Netlify
-    });
+    // 4. ✅ ТЕПЕРЬ НЕ СОЗДАЕМ NETLIFY САЙТ СРАЗУ!
+    // Netlify сайт будет создан только при первом Save All Changes пользователя
+    // Это позволит показать онбординг пользователю
     
-    console.log(`💾 [BACKGROUND] Netlify site ID saved to database: ${netlifySite.id}`);
+    // Обновляем статус проекта как готовый к работе (но без netlify_site_id)
+    await projectQueries.updateProject(projectId, {
+      deploy_status: "pending" // Ждем первого коммита пользователя
+    });
 
-    // 6. ТЕПЕРЬ настраиваем вебхуки - проект уже найдется в базе данных!
-    console.log(`🔗 [BACKGROUND] Setting up webhooks for ${netlifySite.id}...`);
-    await netlifyService.setupWebhookForSite(netlifySite.id, projectId);
-
-    console.log(`🎉 [BACKGROUND] Template upload completed for ${projectId}! Netlify site created (${netlifySite.id}), waiting for auto-deploy...`);
+    console.log(`🎉 [BACKGROUND] Template upload completed for ${projectId}! Project ready for development.`);
 
   } catch (error) {
     console.error(`❌ [BACKGROUND] Template upload failed for ${projectId}:`, error);

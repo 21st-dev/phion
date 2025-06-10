@@ -136,45 +136,6 @@ console.log(`📡 Port: ${PORT}`);
 // Файлы шаблона теперь создаются при создании проекта через GitHub API
 
 /**
- * Создать Netlify сайт для проекта если его еще нет
- */
-async function ensureNetlifySite(projectId: string): Promise<string | null> {
-  try {
-    const supabase = getSupabaseServerClient();
-    const projectQueries = new ProjectQueries(supabase);
-    
-    // Получаем проект из базы данных
-    const project = await projectQueries.getProjectById(projectId);
-    if (!project) {
-      console.error(`❌ Project not found: ${projectId}`);
-      return null;
-    }
-
-    // Если у проекта уже есть Netlify сайт, возвращаем его ID
-    if (project.netlify_site_id) {
-      return project.netlify_site_id;
-    }
-
-    // Создаем новый Netlify сайт
-    console.log(`🌐 Creating Netlify site for project ${projectId}...`);
-    const netlifyResponse = await netlifyService.createSite(projectId, project.name);
-    
-    // Обновляем проект в базе данных
-    await projectQueries.updateProject(projectId, {
-      netlify_site_id: netlifyResponse.id,
-      netlify_url: netlifyResponse.ssl_url || netlifyResponse.url,
-      deploy_status: 'ready'
-    });
-
-    console.log(`✅ Netlify site created: ${netlifyResponse.url}`);
-    return netlifyResponse.id;
-  } catch (error) {
-    console.error(`❌ Error creating Netlify site for project ${projectId}:`, error);
-    return null;
-  }
-}
-
-/**
  * Сохранить полный снапшот всех файлов проекта КАК ОДИН КОММИТ
  */
 async function saveFullProjectSnapshot(
@@ -209,6 +170,40 @@ async function saveFullProjectSnapshot(
   // Если нет pending changes, но нужно создать первый коммит
   if (pendingChanges.length === 0) {
     throw new Error(`No pending changes to commit for project ${projectId}`);
+  }
+
+  // 🆕 ПРОВЕРЯЕМ ЕСТЬ ЛИ NETLIFY САЙТ - если нет, создаем при первом коммите
+  const isFirstUserCommit = !project.netlify_site_id;
+  if (isFirstUserCommit) {
+    console.log(`🌐 [FIRST_COMMIT] Creating Netlify site for project ${projectId} (first user commit)...`);
+    
+    try {
+      // Импортируем Netlify сервис
+      const { NetlifyService } = await import('./services/netlify.js');
+      const netlifyService = new NetlifyService();
+      
+      // Создаем Netlify сайт с GitHub интеграцией
+      const netlifySite = await netlifyService.createSiteWithGitHub(
+        projectId,
+        project.name,
+        project.github_repo_name,
+        'shipvibes'
+      );
+
+      // Сохраняем netlify_site_id в базу данных
+      await projectQueries.updateProject(projectId, {
+        netlify_site_id: netlifySite.id,
+        deploy_status: "building" // Будет автоматически деплоиться после коммита
+      });
+      
+      // Настраиваем webhooks для уведомлений о деплое
+      await netlifyService.setupWebhookForSite(netlifySite.id, projectId);
+      
+      console.log(`✅ [FIRST_COMMIT] Netlify site created: ${netlifySite.id} for project ${projectId}`);
+    } catch (error) {
+      console.error(`❌ [FIRST_COMMIT] Failed to create Netlify site for project ${projectId}:`, error);
+      // Продолжаем с коммитом даже если Netlify не удался
+    }
   }
 
   // Определяем сообщение коммита
@@ -262,7 +257,8 @@ async function saveFullProjectSnapshot(
     event_type: 'pending_changes_cleared',
     details: { 
       clearedChangesCount: pendingChanges.length,
-      action: 'github_commit'
+      action: 'github_commit',
+      isFirstUserCommit: isFirstUserCommit
     },
     trigger: 'commit_save'
   });
@@ -276,7 +272,7 @@ async function saveFullProjectSnapshot(
     'github_api'
   );
   
-  console.log(`✅ GitHub commit created: ${mainCommitSha} with ${pendingChanges.length} files`);
+  console.log(`✅ GitHub commit created: ${mainCommitSha} with ${pendingChanges.length} files${isFirstUserCommit ? ' (first user commit + Netlify site created)' : ''}`);
   return mainCommitSha;
 }
 

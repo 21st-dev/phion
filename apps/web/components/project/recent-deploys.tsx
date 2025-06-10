@@ -82,7 +82,7 @@ export function RecentDeploys({ projectId }: RecentDeploysProps) {
 
   if (loading) {
     return (
-      <Material type="base" className="p-4">
+      <Material className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Recent Saves</h3>
         </div>
@@ -103,7 +103,7 @@ export function RecentDeploys({ projectId }: RecentDeploysProps) {
 
   if (error) {
     return (
-      <Material type="base" className="p-4">
+      <Material className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Recent Saves</h3>
         </div>
@@ -116,7 +116,7 @@ export function RecentDeploys({ projectId }: RecentDeploysProps) {
   }
 
   return (
-    <Material type="base" className="p-4">
+    <Material className="p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-900">Recent Saves</h3>
         {savePoints.length > 0 && (

@@ -19,6 +19,7 @@ export default function ProjectOverviewPage() {
     agentConnected,
     lastUpdated,
     saveAllChanges,
+    discardAllChanges,
     isSaving,
   } = useProject();
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
@@ -113,7 +114,7 @@ export default function ProjectOverviewPage() {
 
         {/* Pending Changes Alert */}
         {pendingChanges.length > 0 && (
-          <Material type="base" className="p-4 bg-amber-50 border-amber-200">
+          <Material className="p-4 bg-amber-50 border-amber-200">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
               <div className="flex-1">
@@ -168,7 +169,7 @@ export default function ProjectOverviewPage() {
         </div>
 
         {/* Quick Actions */}
-        <Material type="base" className="p-6">
+        <Material className="p-6">
           <div>
             <h4 className="text-lg font-semibold text-gray-1000 mb-4">
               Quick Actions
@@ -199,6 +200,7 @@ export default function ProjectOverviewPage() {
       <div className="w-80 flex-shrink-0">
         <PendingChangesSidebar
           onSaveAll={saveAllChanges}
+          onDiscardAll={discardAllChanges}
           projectId={project.id}
           pendingChanges={pendingChanges}
           isLoading={isSaving}

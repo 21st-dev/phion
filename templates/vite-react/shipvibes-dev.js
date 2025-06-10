@@ -63,8 +63,43 @@ class ShipvibesAgent {
         console.log("⚠️ No remote origin configured");
       }
     } catch (error) {
+      // Git репозиторий не найден - инициализируем
+      console.log("⚠️ Not a git repository - initializing...");
+      await this.initializeGitRepository();
+    }
+  }
+
+  async initializeGitRepository() {
+    try {
+      console.log("🔧 Initializing git repository...");
+
+      // 1. Инициализируем git
+      await execAsync("git init");
+      console.log("✅ Git repository initialized");
+
+      // 2. Настраиваем remote origin для GitHub репозитория проекта
+      const repoUrl = `https://github.com/shipvibes/shipvibes-project-${PROJECT_ID}.git`;
+      await execAsync(`git remote add origin ${repoUrl}`);
+      console.log(`✅ Remote origin configured: ${repoUrl}`);
+
+      // 3. Создаем initial commit если файлы уже есть
+      try {
+        await execAsync("git add .");
+        await execAsync(
+          'git commit -m "Initial commit from Shipvibes template"'
+        );
+        console.log("✅ Initial commit created");
+      } catch (commitError) {
+        // Ignore если не получилось сделать коммит (нет файлов и т.д.)
+        console.log("⚠️ Could not create initial commit (files may be empty)");
+      }
+
+      this.isGitRepo = true;
+      console.log("🎉 Git repository setup completed");
+    } catch (error) {
+      console.error("❌ Failed to initialize git repository:", error.message);
       this.isGitRepo = false;
-      console.log("⚠️ Not a git repository - git commands will be disabled");
+      console.log("⚠️ Git commands will be disabled");
     }
   }
 
@@ -170,6 +205,7 @@ class ShipvibesAgent {
       // Останавливаем file watcher на время git операций
       if (this.watcher) {
         this.watcher.close();
+        this.watcher = null;
       }
 
       // 1. git reset --hard HEAD (откат всех изменений)
@@ -190,6 +226,7 @@ class ShipvibesAgent {
       // Перезапускаем file watcher
       this.startFileWatcher();
       console.log("✅ Local changes discarded successfully");
+      console.log("👀 File watcher restarted - ready to track new changes");
     } catch (error) {
       console.error("❌ Error discarding local changes:", error.message);
 
@@ -227,6 +264,7 @@ class ShipvibesAgent {
       // Останавливаем file watcher на время git операций
       if (this.watcher) {
         this.watcher.close();
+        this.watcher = null;
       }
 
       // Формируем URL с токеном для одноразового pull
@@ -274,6 +312,7 @@ class ShipvibesAgent {
       // Останавливаем file watcher на время обновления файлов
       if (this.watcher) {
         this.watcher.close();
+        this.watcher = null;
       }
 
       for (const file of files) {
@@ -408,6 +447,7 @@ class ShipvibesAgent {
 
     if (this.watcher) {
       this.watcher.close();
+      this.watcher = null;
     }
 
     if (this.socket) {

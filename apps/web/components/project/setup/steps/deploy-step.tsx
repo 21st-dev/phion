@@ -174,7 +174,7 @@ export function DeployStep({
   // Показываем онбординг если НЕТ деплоя (независимо от файлов)
   if (!projectStatus?.netlify_url) {
     return (
-      <Material type="base" className="p-6">
+      <Material className="p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Initial Setup
         </h3>
@@ -283,7 +283,7 @@ export function DeployStep({
     );
 
     return (
-      <Material type="base" className="p-6">
+      <Material className="p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Go Live</h3>
 
         <div className="space-y-4">
@@ -342,7 +342,7 @@ export function DeployStep({
   }
 
   return (
-    <Material type="base" className="p-6">
+    <Material className="p-6">
       <h3 className="text-lg font-semibold text-foreground mb-4">Go Live</h3>
 
       <div className="space-y-4">

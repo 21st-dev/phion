@@ -1,0 +1,44 @@
+[
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "project_created",
+    "details": {
+      "projectData": {
+        "id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+        "name": "0242",
+        "template_type": "vite-react",
+        "netlify_site_id": null,
+        "netlify_url": null,
+        "deploy_status": "pending",
+        "created_at": "2025-06-10T22:42:29.392822+00:00",
+        "updated_at": "2025-06-10T22:42:29.392822+00:00",
+        "netlify_deploy_id": null,
+        "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0",
+        "github_repo_url": null,
+        "github_repo_name": null,
+        "github_owner": "shipvibes"
+      }
+    },
+    "trigger": "api_request",
+    "database_state": {
+      "after": {
+        "project": {
+          "id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+          "name": "0242",
+          "template_type": "vite-react",
+          "netlify_site_id": null,
+          "netlify_url": null,
+          "deploy_status": "pending",
+          "created_at": "2025-06-10T22:42:29.392822+00:00",
+          "updated_at": "2025-06-10T22:42:29.392822+00:00",
+          "netlify_deploy_id": null,
+          "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0",
+          "github_repo_url": null,
+          "github_repo_name": null,
+          "github_owner": "shipvibes"
+        }
+      }
+    },
+    "timestamp": "2025-06-10T22:42:29.110Z"
+  }
+]

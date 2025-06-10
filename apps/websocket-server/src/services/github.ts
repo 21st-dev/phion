@@ -246,6 +246,20 @@ export class GitHubAppService {
     sha?: string
   ): Promise<{ sha: string; commit: GitHubCommit }> {
     try {
+      let fileSha = sha;
+      
+      // Если SHA не предоставлен, пытаемся получить существующий файл
+      if (!fileSha) {
+        try {
+          const existingFile = await this.getFileContent(repoName, filePath);
+          fileSha = existingFile.sha;
+          console.log('🔍 Found existing file, using SHA for update:', fileSha);
+        } catch (error) {
+          // Файл не существует, создаем новый (SHA не нужен)
+          console.log('📄 File does not exist, creating new file');
+        }
+      }
+      
       const base64Content = Buffer.from(content, 'utf8').toString('base64');
       
       const requestBody: CreateFileRequest | UpdateFileRequest = {
@@ -260,7 +274,7 @@ export class GitHubAppService {
           name: 'Shipvibes Bot',
           email: 'bot@shipvibes.dev'
         },
-        ...(sha ? { sha } : {})
+        ...(fileSha ? { sha: fileSha } : {})
       };
 
       const response = await this.makeAuthenticatedRequest(
@@ -281,6 +295,7 @@ export class GitHubAppService {
       console.log('📝 Created/updated file in GitHub', {
         repoName,
         filePath,
+        action: fileSha ? 'updated' : 'created',
         sha: result.content.sha,
         commitSha: result.commit.sha
       });

@@ -1,3 +1,5 @@
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import jwt from 'jsonwebtoken';
 import fetch from 'node-fetch';
 import type { Response as NodeFetchResponse } from 'node-fetch';

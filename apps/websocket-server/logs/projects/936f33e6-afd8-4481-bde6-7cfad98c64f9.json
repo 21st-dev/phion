@@ -1,0 +1,134 @@
+[
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "TBmVtdlW7ZWLOX2AAAAS"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T22:45:25.486Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "deploy_building",
+    "details": {
+      "oldStatus": "pending",
+      "newStatus": "building"
+    },
+    "trigger": "github_commit",
+    "timestamp": "2025-06-10T22:45:26.830Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "deploy_building",
+    "details": {
+      "oldStatus": "pending",
+      "newStatus": "building"
+    },
+    "trigger": "github_commit",
+    "timestamp": "2025-06-10T22:45:34.702Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "file_changed",
+    "details": {
+      "filePath": "src/App.tsx",
+      "action": "added"
+    },
+    "trigger": "file_watcher",
+    "timestamp": "2025-06-10T22:45:45.348Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "TBmVtdlW7ZWLOX2AAAAS"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T22:47:23.432Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "mFC_Ch_Zb7dCr20XAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T22:47:30.424Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "mFC_Ch_Zb7dCr20XAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T22:47:31.546Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "qu0vDSf2NWTq0vp-AAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T22:47:34.499Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "qu0vDSf2NWTq0vp-AAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-10T22:48:58.643Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "5vLcdOUuJXikHFJLAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-10T22:49:00.412Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "pending_changes_cleared",
+    "details": {
+      "clearedChangesCount": 1,
+      "action": "github_commit",
+      "isFirstUserCommit": false
+    },
+    "trigger": "commit_save",
+    "timestamp": "2025-06-10T22:49:16.350Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "commit_created",
+    "details": {
+      "commitId": "c51a4bd87a76616fcf386ad5e826895f95c5f95d",
+      "commitMessage": "Update 1 files",
+      "filesCount": 1
+    },
+    "trigger": "github_api",
+    "timestamp": "2025-06-10T22:49:16.353Z"
+  },
+  {
+    "project_id": "936f33e6-afd8-4481-bde6-7cfad98c64f9",
+    "event_type": "deploy_building",
+    "details": {
+      "oldStatus": "pending",
+      "newStatus": "building"
+    },
+    "trigger": "github_commit",
+    "timestamp": "2025-06-10T22:49:16.354Z"
+  }
+]

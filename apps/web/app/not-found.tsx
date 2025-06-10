@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-100">
       <div className="max-w-md w-full px-4">
-        <Material type="base" className="p-8 text-center">
+        <Material className="p-8 text-center">
           <div className="space-y-6">
             <div className="w-16 h-16 mx-auto rounded-full bg-gray-100 flex items-center justify-center">
               <span className="text-2xl">🚫</span>

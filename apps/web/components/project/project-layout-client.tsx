@@ -14,6 +14,7 @@ interface ProjectContextType {
   updateHistory: (history: any[]) => void;
   updatePendingChanges: (changes: any[]) => void;
   saveAllChanges: (commitMessage?: string) => void;
+  discardAllChanges: () => void;
   isSaving: boolean;
 }
 
@@ -47,25 +48,25 @@ export function ProjectLayoutClient({
   const [isSaving, setIsSaving] = useState(false);
 
   // WebSocket для real-time обновлений
-  const { isConnected, saveAllChanges: socketSaveAllChanges } = useWebSocket({
+  const {
+    isConnected,
+    saveAllChanges: socketSaveAllChanges,
+    discardAllChanges: socketDiscardAllChanges,
+  } = useWebSocket({
     projectId: project.id,
+
     onAgentConnected: (data) => {
-      console.log("🟢 [ProjectLayout] Agent connected event received:", data);
-      if (data.projectId === project.id) {
-        console.log("✅ [ProjectLayout] Setting agentConnected to true");
-        setAgentConnected(true);
-      }
+      console.log("🟢 [ProjectLayout] Agent connected:", data);
+      setAgentConnected(true);
+      setLastUpdated(new Date());
     },
+
     onAgentDisconnected: (data) => {
-      console.log(
-        "🔴 [ProjectLayout] Agent disconnected event received:",
-        data
-      );
-      if (data.projectId === project.id) {
-        console.log("❌ [ProjectLayout] Setting agentConnected to false");
-        setAgentConnected(false);
-      }
+      console.log("🔴 [ProjectLayout] Agent disconnected:", data);
+      setAgentConnected(false);
+      setLastUpdated(new Date());
     },
+
     onFileTracked: (data) => {
       console.log("📝 [ProjectLayout] File tracked event received:", data);
       if (data.projectId === project.id) {
@@ -129,6 +130,11 @@ export function ProjectLayoutClient({
     socketSaveAllChanges(commitMessage);
   };
 
+  const discardAllChanges = () => {
+    console.log("🗑️ [ProjectLayout] Discarding all changes...");
+    socketDiscardAllChanges();
+  };
+
   const contextValue: ProjectContextType = {
     project,
     history,
@@ -139,6 +145,7 @@ export function ProjectLayoutClient({
     updateHistory,
     updatePendingChanges,
     saveAllChanges,
+    discardAllChanges,
     isSaving,
   };
 

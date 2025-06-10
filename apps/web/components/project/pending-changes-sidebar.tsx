@@ -18,6 +18,7 @@ interface PendingChangesSidebarProps {
   projectId: string;
   pendingChanges: PendingChange[];
   onSaveAll: (commitMessage: string) => void;
+  onDiscardAll: () => void;
   isLoading?: boolean;
 }
 
@@ -36,6 +37,7 @@ export function PendingChangesSidebar({
   projectId,
   pendingChanges,
   onSaveAll,
+  onDiscardAll,
   isLoading = false,
 }: PendingChangesSidebarProps) {
   const [commitMessage, setCommitMessage] = useState("");
@@ -150,15 +152,28 @@ export function PendingChangesSidebar({
         }}
       >
         {!showCommitDialog ? (
-          <Button
-            type="primary"
-            onClick={() => setShowCommitDialog(true)}
-            fullWidth
-            disabled={isLoading}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isLoading ? "Saving..." : `Save All (${pendingChanges.length})`}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              type="primary"
+              onClick={() => setShowCommitDialog(true)}
+              fullWidth
+              disabled={isLoading}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? "Saving..." : `Save All (${pendingChanges.length})`}
+            </Button>
+
+            <Button
+              type="secondary"
+              onClick={onDiscardAll}
+              fullWidth
+              disabled={isLoading}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Minus className="h-4 w-4 mr-2" />
+              Discard All Changes
+            </Button>
+          </div>
         ) : (
           <div className="space-y-3">
             <textarea
