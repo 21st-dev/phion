@@ -8,19 +8,25 @@
     "packages/*"
   ],
   "scripts": {
+    "_comment": "🚀 DEV COMMANDS: dev = turbo (websocket+packages) + web с ngrok, dev:basic = turbo все, dev:all = legacy",
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "concurrently \"turbo dev --filter=!@shipvibes/web\" \"cd apps/web && pnpm dev:ngrok\"",
+    "dev:basic": "turbo dev",
     "dev:all": "concurrently \"turbo dev\" \"cd apps/websocket-server && pnpm dev\"",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "clean": "turbo clean",
-    "test": "turbo test"
+    "test": "turbo test",
+    "diagnose:github": "tsx scripts/diagnose-github-app.ts",
+    "test:manual-repo": "tsx scripts/create-test-repo.ts",
+    "test:upload-files": "tsx scripts/test-file-upload.ts"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
     "concurrently": "^8.2.2",
     "depcheck": "^1.4.7",
     "turbo": "^1.10.16",
+    "tsx": "^4.6.0",
     "typescript": "^5.2.2"
   },
   "packageManager": "pnpm@8.10.0",
@@ -30,7 +36,11 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.478.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node-fetch": "^2.6.12",
     "dotenv": "^16.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
     "server-only": "^0.0.1",
     "shiki": "^3.4.2"
   }

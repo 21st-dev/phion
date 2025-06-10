@@ -123,71 +123,41 @@ export async function POST(request: NextRequest) {
         github_owner: 'shipvibes'
       });
 
-      // 3. Загружаем файлы шаблона в GitHub репозиторий
-      const templateFiles = await generateTemplateFiles(project.id, template_type, name);
-      const commits: string[] = [];
-      
-      for (const [filePath, content] of Object.entries(templateFiles)) {
-        const result = await githubAppService.createOrUpdateFile(
-          repository.name,
-          filePath,
-          content,
-          `Add ${filePath} from template`
-        );
-        commits.push(result.commit.sha);
-        console.log(`📝 [PROJECT_CREATION] Added file to GitHub: ${filePath}`);
-      }
-
-      // 4. Создаем запись в commit_history для синхронизации с нашей системой
-      const commitHistoryQueries = new CommitHistoryQueries(supabaseClient);
-      const mainCommitSha = commits[commits.length - 1]; // Последний коммит
-      
-      await commitHistoryQueries.createCommitHistory({
-        project_id: project.id,
-        commit_message: 'Initial commit from template',
-        github_commit_sha: mainCommitSha,
-        github_commit_url: `${repository.html_url}/commit/${mainCommitSha}`,
-        files_count: Object.keys(templateFiles).length
+      // 3. Устанавливаем статус "building" пока файлы загружаются
+      await projectQueries.updateProject(project.id, {
+        deploy_status: "building"
       });
 
-      console.log(`✅ [PROJECT_CREATION] Template files uploaded to GitHub with commit ${mainCommitSha}`);
+      // 4. 🚀 АСИНХРОННО загружаем файлы в фоне
+      console.log(`🔄 [PROJECT_CREATION] Starting background template upload...`);
+      uploadTemplateFilesInBackground(project.id, template_type, name, repository.name)
+        .catch(error => {
+          console.error(`❌ [PROJECT_CREATION] Background upload failed for ${project.id}:`, error);
+          // Обновляем статус на failed
+          projectQueries.updateProject(project.id, { deploy_status: "failed" });
+        });
 
-             // 5. Создаем Netlify сайт с GitHub интеграцией и deploy keys
-       console.log(`🌐 [PROJECT_CREATION] Creating Netlify site with GitHub integration...`);
-       const netlifySite = await netlifyService.createSiteWithGitHub(
-         project.id,
-         project.name,
-         repository.name,
-         'shipvibes'
-       );
+      // 5. 🎯 НЕМЕДЛЕННО возвращаем ответ пользователю
+      console.log(`✅ [PROJECT_CREATION] Project created, files uploading in background...`);
+      
+      return NextResponse.json({
+        project: {
+          ...project,
+          github_repo_url: repository.html_url,
+          github_repo_name: repository.name,
+          github_owner: 'shipvibes',
+          deploy_status: "building" // Показываем что идет процесс
+        },
+        downloadUrl: `/api/projects/${project.id}/download`,
+        githubUrl: repository.html_url,
+        status: "building", // Клиент знает что нужно ждать
+        message: "Project created! Template files are being uploaded in the background..."
+      });
 
-       // 6. Обновляем проект с Netlify данными
-       await projectQueries.updateProject(project.id, {
-         netlify_site_id: netlifySite.id,
-         netlify_url: netlifySite.ssl_url || netlifySite.url,
-         deploy_status: "ready"
-       });
-
-       console.log(`✅ [PROJECT_CREATION] Netlify site created with auto-deploy: ${netlifySite.ssl_url || netlifySite.url}`);
-
-             return NextResponse.json({
-         project: {
-           ...project,
-           github_repo_url: repository.html_url,
-           github_repo_name: repository.name,
-           github_owner: 'shipvibes',
-           netlify_site_id: netlifySite.id,
-           netlify_url: netlifySite.ssl_url || netlifySite.url
-         },
-         downloadUrl: `/api/projects/${project.id}/download`,
-         githubUrl: repository.html_url,
-         liveUrl: netlifySite.ssl_url || netlifySite.url
-       });
     } catch (githubError) {
       console.error("❌ [PROJECT_CREATION] Error with GitHub operations:", githubError);
       
-      // Проект создан в БД, но GitHub/Netlify setup не удался
-      // Обновляем статус на failed
+      // Проект создан в БД, но GitHub setup не удался
       await updateProject(project.id, {
         deploy_status: "failed"
       });
@@ -280,5 +250,85 @@ async function collectTemplateFiles(
   
   console.log(`📋 [TEMPLATE] Collected ${Object.keys(templateFiles).length} files from template`);
   return templateFiles;
+}
+
+/**
+ * 🚀 НОВАЯ ФУНКЦИЯ: Асинхронная загрузка файлов шаблона в фоне
+ * Не блокирует ответ API - выполняется в background
+ */
+async function uploadTemplateFilesInBackground(
+  projectId: string,
+  templateType: string,
+  projectName: string,
+  repositoryName: string
+): Promise<void> {
+  console.log(`🔄 [BACKGROUND] Starting template upload for ${projectId}...`);
+  
+  try {
+    const supabaseClient = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabaseClient);
+    const commitHistoryQueries = new CommitHistoryQueries(supabaseClient);
+
+    // 1. Генерируем файлы шаблона 
+    const templateFiles = await generateTemplateFiles(projectId, templateType, projectName);
+    console.log(`📋 [BACKGROUND] Generated ${Object.keys(templateFiles).length} template files`);
+
+    // 2. 🚀 Загружаем все файлы ОДНИМ КОММИТОМ (избегаем конфликтов)
+    const result = await githubAppService.createMultipleFiles(
+      repositoryName,
+      templateFiles,
+      'Initial commit from template'
+    );
+    
+    console.log(`✅ [BACKGROUND] Uploaded ${Object.keys(templateFiles).length} files in one commit`);
+    const mainCommitSha = result.commitSha;
+
+    // 3. Создаем запись в commit_history
+    if (mainCommitSha) {
+      await commitHistoryQueries.createCommitHistory({
+        project_id: projectId,
+        commit_message: 'Initial commit from template',
+        github_commit_sha: mainCommitSha,
+        github_commit_url: `https://github.com/shipvibes/${repositoryName}/commit/${mainCommitSha}`,
+        files_count: Object.keys(templateFiles).length
+      });
+    }
+
+    // 4. Создаем Netlify сайт с GitHub интеграцией (БЕЗ вебхуков)
+    console.log(`🌐 [BACKGROUND] Creating Netlify site for ${projectId}...`);
+    const netlifySite = await netlifyService.createSiteWithGitHub(
+      projectId,
+      projectName,
+      repositoryName,
+      'shipvibes'
+    );
+
+    // 5. СРАЗУ сохраняем netlify_site_id в базу данных!
+    await projectQueries.updateProject(projectId, {
+      netlify_site_id: netlifySite.id,
+      // НЕ сохраняем netlify_url - получим его через webhook
+      deploy_status: "building" // Ждем автоматический деплой от Netlify
+    });
+    
+    console.log(`💾 [BACKGROUND] Netlify site ID saved to database: ${netlifySite.id}`);
+
+    // 6. ТЕПЕРЬ настраиваем вебхуки - проект уже найдется в базе данных!
+    console.log(`🔗 [BACKGROUND] Setting up webhooks for ${netlifySite.id}...`);
+    await netlifyService.setupWebhookForSite(netlifySite.id, projectId);
+
+    console.log(`🎉 [BACKGROUND] Template upload completed for ${projectId}! Netlify site created (${netlifySite.id}), waiting for auto-deploy...`);
+
+  } catch (error) {
+    console.error(`❌ [BACKGROUND] Template upload failed for ${projectId}:`, error);
+    
+    // Обновляем статус на failed
+    const supabaseClient = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabaseClient);
+    await projectQueries.updateProject(projectId, {
+      deploy_status: "failed"
+    });
+    
+    throw error;
+  }
 }
 

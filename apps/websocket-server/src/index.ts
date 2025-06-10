@@ -860,4 +860,117 @@ process.on('SIGTERM', () => {
       process.exit(0);
     });
   });
+});
+
+// Netlify webhook endpoint для получения уведомлений о статусе деплоя
+app.post('/webhooks/netlify', async (req, res) => {
+  try {
+    const { site_id, deploy_id, state, deploy_url, error_message, name } = req.body;
+    
+    console.log(`🔔 Netlify webhook received:`, {
+      site_id,
+      deploy_id,
+      state,
+      deploy_url,
+      name
+    });
+
+    // Находим проект по netlify_site_id
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    
+    // Получаем проект по netlify_site_id
+    const { data: projects, error: fetchError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('netlify_site_id', site_id)
+      .limit(1);
+
+    if (fetchError) {
+      console.error('❌ Error fetching project by netlify_site_id:', fetchError);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!projects || projects.length === 0) {
+      console.log(`⚠️ No project found for netlify_site_id: ${site_id}`);
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const project = projects[0];
+    const projectId = project.id;
+
+    // Определяем новый статус на основе состояния Netlify
+    let newStatus: 'pending' | 'building' | 'ready' | 'failed' | 'cancelled';
+    
+    switch (state) {
+      case 'ready':        // успешный деплой (неизвестное событие или polling)
+        newStatus = 'ready';
+        break;
+      case 'failed':       // deploy_failed event
+      case 'error':        // legacy/fallback
+        newStatus = 'failed';
+        break;
+      case 'created':      // deploy_created event
+      case 'building':     // deploy_building event + polling
+      case 'started':      // legacy fallback
+      case 'enqueued':
+      case 'new':
+        newStatus = 'building';
+        break;
+      default:
+        console.log(`⚠️ Unknown Netlify state: ${state}, defaulting to building`);
+        newStatus = 'building';
+    }
+
+    console.log(`📊 Updating project ${projectId} deploy status: ${project.deploy_status} → ${newStatus}`);
+
+    // Обновляем проект в базе данных
+    const updateData: any = {
+      deploy_status: newStatus,
+      netlify_deploy_id: deploy_id
+    };
+
+    // Обновляем URL только если деплой успешен и URL предоставлен
+    if (newStatus === 'ready' && deploy_url) {
+      updateData.netlify_url = deploy_url;
+      console.log(`🌐 Updating netlify_url to: ${deploy_url}`);
+    }
+
+    await projectQueries.updateProject(projectId, updateData);
+
+    // Логируем изменение статуса деплоя
+    await projectLogger.logDeployStatusChange(
+      projectId,
+      project.deploy_status || 'building',
+      newStatus,
+      deploy_url,
+      'netlify_webhook'
+    );
+
+    // Отправляем уведомление через WebSocket всем подключенным клиентам проекта
+    io.to(projectId).emit('deploy_status_update', {
+      projectId,
+      status: newStatus,
+      url: deploy_url,
+      error: error_message,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`✅ Webhook processed successfully for project ${projectId}`);
+    console.log(`📡 Emitted deploy status update: ${newStatus} - ${deploy_url || 'no URL'}`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Webhook processed successfully',
+      projectId,
+      newStatus
+    });
+
+  } catch (error) {
+    console.error('❌ Error processing Netlify webhook:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }); 

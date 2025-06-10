@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "NODE_OPTIONS='--no-deprecation' tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "NODE_OPTIONS='--no-deprecation' node dist/index.js"
   },
   "dependencies": {
     "@shipvibes/database": "workspace:*",

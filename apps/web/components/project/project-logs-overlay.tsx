@@ -106,29 +106,31 @@ export function ProjectLogsOverlay({ projectId }: ProjectLogsOverlayProps) {
   useEffect(() => {
     if (isOpen) return;
 
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/projects/${projectId}/logs?limit=1`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.logs && data.logs.length > 0) {
-            const latestLog = data.logs[0];
-            const currentLatest = logs[0];
+    // ✅ УБИРАЕМ HTTP POLLING! Используем WebSocket для уведомлений о новых логах
+    // Можно добавить WebSocket подписку на новые логи
+    // const interval = setInterval(async () => {
+    //   try {
+    //     const response = await fetch(`/api/projects/${projectId}/logs?limit=1`);
+    //     if (response.ok) {
+    //       const data = await response.json();
+    //       if (data.logs && data.logs.length > 0) {
+    //         const latestLog = data.logs[0];
+    //         const currentLatest = logs[0];
 
-            if (
-              !currentLatest ||
-              new Date(latestLog.timestamp) > new Date(currentLatest.timestamp)
-            ) {
-              setNewLogCount((prev) => prev + 1);
-            }
-          }
-        }
-      } catch (error) {
-        // Ignore polling errors
-      }
-    }, 3000);
+    //         if (
+    //           !currentLatest ||
+    //           new Date(latestLog.timestamp) > new Date(currentLatest.timestamp)
+    //         ) {
+    //           setNewLogCount((prev) => prev + 1);
+    //         }
+    //       }
+    //     }
+    //   } catch (error) {
+    //     // Ignore polling errors
+    //   }
+    // }, 3000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [isOpen, logs, projectId]);
 
   const filteredLogs = logs.filter(

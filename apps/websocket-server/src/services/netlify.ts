@@ -88,13 +88,21 @@ export class NetlifyService {
       const projectQueries = new ProjectQueries(supabase);
       const project = await projectQueries.getProjectById(projectId);
       
-      if (!project || !project.netlify_site_id || !project.netlify_deploy_id) {
-        console.log(`⚠️ Cannot check status: project ${projectId} not found or missing Netlify IDs`);
+      if (!project || !project.netlify_site_id) {
+        console.log(`⚠️ Cannot check status: project ${projectId} not found or missing netlify_site_id`);
         return;
       }
       
-      // Получаем статус деплоя из Netlify
-      const deployInfo = await this.getDeployStatus(project.netlify_site_id, project.netlify_deploy_id);
+      // Если нет deploy_id, получаем последний деплой для сайта
+      let deployInfo: NetlifyDeployResponse;
+      
+      if (project.netlify_deploy_id) {
+        // Используем конкретный deploy_id если есть
+        deployInfo = await this.getDeployStatus(project.netlify_site_id, project.netlify_deploy_id);
+      } else {
+        // Получаем последний деплой для сайта
+        deployInfo = await this.getLatestDeploy(project.netlify_site_id);
+      }
       
       console.log(`📊 Netlify deploy status for ${projectId}: ${deployInfo.state}`);
       
@@ -106,10 +114,28 @@ export class NetlifyService {
         // Обновляем статус в базе данных
         const newStatus = deployInfo.state === 'ready' ? 'ready' : 'failed';
         
-        await projectQueries.updateProject(projectId, {
+        const updateData: any = {
           deploy_status: newStatus,
-          netlify_url: deployInfo.deploy_url || project.netlify_url || undefined
-        });
+          netlify_deploy_id: deployInfo.id
+        };
+
+        // Получаем правильный URL сайта
+        if (newStatus === 'ready') {
+          try {
+            const siteInfo = await this.getSite(project.netlify_site_id);
+            const finalUrl = siteInfo.ssl_url || siteInfo.url;
+            updateData.netlify_url = finalUrl;
+            console.log(`🌐 Final site URL: ${finalUrl}`);
+          } catch (siteError) {
+            console.error(`⚠️ Could not get site info for URL: ${siteError}`);
+            // Fallback to deploy URL if available
+            if (deployInfo.deploy_url) {
+              updateData.netlify_url = deployInfo.deploy_url;
+            }
+          }
+        }
+
+        await projectQueries.updateProject(projectId, updateData);
 
         // Логируем изменение статуса деплоя
         const oldStatus = project.deploy_status || 'building';
@@ -117,8 +143,8 @@ export class NetlifyService {
           projectId,
           oldStatus,
           newStatus,
-          deployInfo.deploy_url,
-          'netlify_webhook'
+          updateData.netlify_url,
+          'netlify_polling'
         );
         
         // Отправляем уведомление через WebSocket
@@ -126,11 +152,11 @@ export class NetlifyService {
           this.io.to(projectId).emit('deploy_status_update', {
             projectId,
             status: newStatus,
-            url: deployInfo.deploy_url,
+            url: updateData.netlify_url,
             timestamp: new Date().toISOString()
           });
           
-          console.log(`📡 Emitted deploy status update: ${newStatus} - ${deployInfo.deploy_url || 'no URL'}`);
+          console.log(`📡 Emitted deploy status update: ${newStatus} - ${updateData.netlify_url || 'no URL'}`);
         }
       }
       
@@ -151,6 +177,37 @@ export class NetlifyService {
           // Игнорируем ошибки внутри обработчика таймаута
         });
       }, 15000); // Увеличенный интервал при ошибке
+    }
+  }
+
+  /**
+   * Получить последний деплой для сайта
+   */
+  async getLatestDeploy(siteId: string): Promise<NetlifyDeployResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sites/${siteId}/deploys?per_page=1`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get latest deploy: ${response.status} ${errorText}`);
+      }
+
+      const deploys = await response.json() as NetlifyDeployResponse[];
+      
+      if (!deploys || deploys.length === 0) {
+        throw new Error(`No deploys found for site ${siteId}`);
+      }
+
+      return deploys[0];
+    } catch (error) {
+      console.error('❌ Error getting latest deploy:', error);
+      throw error;
     }
   }
 

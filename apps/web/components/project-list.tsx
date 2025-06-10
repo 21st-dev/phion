@@ -13,12 +13,13 @@ export function ProjectList() {
   useEffect(() => {
     fetchProjects();
 
-    // Автоматически обновляем статус каждые 30 секунд
-    const interval = setInterval(() => {
-      fetchProjects();
-    }, 30000);
+    // ✅ УБИРАЕМ АГРЕССИВНЫЙ POLLING!
+    // Обновляем статус только при необходимости, а не каждые 30 секунд
+    // const interval = setInterval(() => {
+    //   fetchProjects();
+    // }, 30000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, []);
 
   const fetchProjects = async () => {

@@ -206,7 +206,7 @@ export class GitHubAppService {
         name: repoName,
         description: description || `Shipvibes project ${projectId}`,
         private: true,
-        auto_init: false, // Мы сами создадим initial commit
+        auto_init: true, // Создаем с initial commit чтобы Git Tree API работал
       };
 
       const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}/repos`, {
@@ -537,6 +537,156 @@ export class GitHubAppService {
 
       console.error('❌ GitHub App health check failed', result);
       return result;
+    }
+  }
+
+  /**
+   * Создает множественные файлы одним коммитом через Git Tree API
+   * Избегает конфликтов при параллельной загрузке файлов
+   */
+  async createMultipleFiles(
+    repoName: string,
+    files: Record<string, string>,
+    message: string
+  ): Promise<{ commitSha: string; treeSha: string }> {
+    try {
+      console.log(`🌳 Creating ${Object.keys(files).length} files in one commit via Git Tree API`);
+
+      // 1. Получаем последний commit SHA для parent
+      const refsResponse = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/refs/heads/main`
+      );
+
+      if (!refsResponse.ok) {
+        const error = await refsResponse.text();
+        throw new Error(`Failed to get main branch ref: ${refsResponse.status} ${error}`);
+      }
+
+      const mainRef = await refsResponse.json() as { object: { sha: string } };
+      const parentCommitSha = mainRef.object.sha;
+      console.log(`📍 Parent commit SHA: ${parentCommitSha}`);
+
+      // 2. Создаем blobs для всех файлов с ограниченным concurrency
+      const fileEntries = Object.entries(files);
+      const CHUNK_SIZE = 5; // Обрабатываем по 5 файлов за раз
+      const treeItems: Array<{ path: string; mode: string; type: 'blob'; sha: string }> = [];
+
+      // Разбиваем на чанки для избежания перегрузки API
+      for (let i = 0; i < fileEntries.length; i += CHUNK_SIZE) {
+        const chunk = fileEntries.slice(i, i + CHUNK_SIZE);
+        console.log(`📦 Processing blob chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(fileEntries.length / CHUNK_SIZE)} (${chunk.length} files)`);
+        
+        const blobPromises = chunk.map(async ([filePath, content]) => {
+          const base64Content = Buffer.from(content, 'utf8').toString('base64');
+          
+          const response = await this.makeAuthenticatedRequest(
+            `/repos/${this.organization}/${repoName}/git/blobs`,
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                content: base64Content,
+                encoding: 'base64'
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to create blob for ${filePath}: ${response.status} ${error}`);
+          }
+
+          const blob = await response.json() as { sha: string };
+          return {
+            path: filePath,
+            mode: '100644', // Regular file
+            type: 'blob' as const,
+            sha: blob.sha
+          };
+        });
+
+        const chunkResults = await Promise.all(blobPromises);
+        treeItems.push(...chunkResults);
+        
+        // Небольшая задержка между чанками для снижения нагрузки
+        if (i + CHUNK_SIZE < fileEntries.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      console.log(`✅ Created ${treeItems.length} blobs`);
+
+      // 3. Создаем tree со всеми файлами
+      const treeResponse = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/trees`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            tree: treeItems
+          }),
+        }
+      );
+
+      if (!treeResponse.ok) {
+        const error = await treeResponse.text();
+        throw new Error(`Failed to create tree: ${treeResponse.status} ${error}`);
+      }
+
+      const tree = await treeResponse.json() as { sha: string };
+      console.log(`🌳 Created tree with SHA: ${tree.sha}`);
+
+      // 4. Создаем commit с этим tree и parent commit
+      const commitResponse = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/commits`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            message,
+            tree: tree.sha,
+            parents: [parentCommitSha], // Указываем parent commit
+            author: {
+              name: 'Shipvibes Bot',
+              email: 'bot@shipvibes.dev'
+            },
+            committer: {
+              name: 'Shipvibes Bot',
+              email: 'bot@shipvibes.dev'
+            }
+          }),
+        }
+      );
+
+      if (!commitResponse.ok) {
+        const error = await commitResponse.text();
+        throw new Error(`Failed to create commit: ${commitResponse.status} ${error}`);
+      }
+
+      const commit = await commitResponse.json() as { sha: string };
+      console.log(`📝 Created commit with SHA: ${commit.sha}`);
+
+      // 5. Обновляем main branch reference
+      const refResponse = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/refs/heads/main`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            sha: commit.sha
+          }),
+        }
+      );
+
+      if (!refResponse.ok) {
+        const error = await refResponse.text();
+        throw new Error(`Failed to update main branch: ${refResponse.status} ${error}`);
+      }
+
+      console.log(`🎉 Successfully created ${Object.keys(files).length} files in one commit`);
+
+      return {
+        commitSha: commit.sha,
+        treeSha: tree.sha
+      };
+    } catch (error) {
+      console.error('❌ Failed to create multiple files via Git Tree API', { repoName, error });
+      throw error;
     }
   }
 }

@@ -7,6 +7,17 @@ import { Button } from "@/components/geist/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { AlertTriangle, ExternalLink, Copy, Trash2 } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
 
@@ -38,6 +49,7 @@ export default function ProjectSettingsPage() {
   const [projectName, setProjectName] = useState(project.name);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -72,15 +84,7 @@ export default function ProjectSettingsPage() {
     console.log("Project ID copied to clipboard");
   };
 
-  const handleDeleteProject = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this project? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
+  const confirmDeleteProject = async () => {
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/projects/${project.id}`, {
@@ -102,6 +106,7 @@ export default function ProjectSettingsPage() {
       alert("Failed to delete project. Please try again.");
     } finally {
       setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -263,14 +268,42 @@ export default function ProjectSettingsPage() {
                 certain. This will permanently delete all files, deployments,
                 and history.
               </p>
-              <Button
-                type="error"
-                onClick={handleDeleteProject}
-                disabled={isDeleting}
-                prefix={<Trash2 className="w-4 h-4" />}
+              <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
               >
-                {isDeleting ? "Deleting..." : "Delete Project"}
-              </Button>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="error"
+                    disabled={isDeleting}
+                    prefix={<Trash2 className="w-4 h-4" />}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Project"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this project? This action
+                      cannot be undone. This will permanently delete all files,
+                      deployments, and history.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={confirmDeleteProject}
+                      variant="destructive"
+                      loading={isDeleting}
+                    >
+                      Delete Project
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>

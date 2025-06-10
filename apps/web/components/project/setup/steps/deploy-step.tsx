@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
 import { CheckCircle, Clock, Loader2, Globe } from "lucide-react";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 interface ProjectStatus {
   id: string;
@@ -56,6 +57,24 @@ export function DeployStep({
   // Состояние для онбординга
   const [deployLogs, setDeployLogs] = useState<string[]>([]);
   const [currentDeployMessage, setCurrentDeployMessage] = useState<string>("");
+
+  // 🔄 ЗАМЕНЯЕМ HTTP POLLING НА WEBSOCKET
+  const { isConnected } = useWebSocket({
+    projectId,
+    onDeployStatusUpdate: (data) => {
+      console.log("🚀 Deploy status update received:", data);
+      // Обновляем статус проекта через WebSocket
+      fetchProjectStatus();
+    },
+    onFileTracked: () => {
+      // Когда отслеживается новый файл, проверяем версии
+      fetchProjectVersions();
+    },
+    onSaveSuccess: () => {
+      // Когда файлы сохранены, проверяем версии
+      fetchProjectVersions();
+    },
+  });
 
   // Функция для получения статуса проекта
   const fetchProjectStatus = async () => {
@@ -124,17 +143,10 @@ export function DeployStep({
     onDeploy,
   ]);
 
-  // Polling каждые 3 секунды для более быстрого обновления
+  // ✅ УБИРАЕМ HTTP POLLING! Загружаем данные только при инициализации
   useEffect(() => {
     fetchProjectStatus();
     fetchProjectVersions();
-
-    const interval = setInterval(() => {
-      fetchProjectStatus();
-      fetchProjectVersions();
-    }, 3000);
-
-    return () => clearInterval(interval);
   }, [projectId]);
 
   useEffect(() => {

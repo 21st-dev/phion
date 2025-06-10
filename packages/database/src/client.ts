@@ -1,3 +1,5 @@
+import { config } from "dotenv";
+config({ path: ".env.local" });
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import { Database } from "./types";
