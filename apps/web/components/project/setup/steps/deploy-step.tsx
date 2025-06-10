@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
-import { useWebSocket } from "@/hooks/useWebSocket";
 import { CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
 
 interface ProjectStatus {
@@ -26,12 +25,14 @@ interface DeployStepProps {
   projectId: string;
   isDeploying: boolean;
   onDeploy: () => void;
+  agentConnected?: boolean; // Получаем статус агента извне
 }
 
 export function DeployStep({
   projectId,
   isDeploying,
   onDeploy,
+  agentConnected = false,
 }: DeployStepProps) {
   const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(
     null
@@ -41,47 +42,8 @@ export function DeployStep({
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Состояние для онбординга
-  const [agentConnected, setAgentConnected] = useState(false);
   const [deployLogs, setDeployLogs] = useState<string[]>([]);
   const [currentDeployMessage, setCurrentDeployMessage] = useState<string>("");
-
-  // WebSocket для real-time обновлений
-  const { connect } = useWebSocket({
-    onAgentConnected: (data) => {
-      if (data.projectId === projectId) {
-        console.log("🔗 Agent connected for project:", projectId);
-        setAgentConnected(true);
-
-        // Если агент подключился и нет деплоя - запускаем автоматический деплой
-        if (!projectStatus?.netlify_url) {
-          console.log("🚀 Triggering automatic first deploy...");
-          handleFirstDeploy();
-        }
-      }
-    },
-    onDeployStatusUpdate: (data) => {
-      if (data.projectId === projectId) {
-        console.log("🚀 Deploy status update:", data);
-
-        const logMessage = `${new Date().toLocaleTimeString()}: ${
-          data.message
-        }`;
-        setDeployLogs((prev) => [...prev, logMessage]);
-        setCurrentDeployMessage(data.message);
-      }
-    },
-  });
-
-  // Функция для автоматического первого деплоя
-  const handleFirstDeploy = async () => {
-    try {
-      setCurrentDeployMessage("Starting initial deployment...");
-      onDeploy(); // Вызываем существующую функцию деплоя
-    } catch (error) {
-      console.error("Error triggering first deploy:", error);
-      setCurrentDeployMessage("Failed to start deployment");
-    }
-  };
 
   // Функция для получения статуса проекта
   const fetchProjectStatus = async () => {
@@ -129,13 +91,10 @@ export function DeployStep({
     }
   };
 
-  // Polling каждые 5 секунд + WebSocket подключение
+  // Polling каждые 5 секунд (БЕЗ WebSocket подключения)
   useEffect(() => {
     fetchProjectStatus();
     fetchProjectVersions();
-
-    // Подключаемся к WebSocket для real-time обновлений
-    connect();
 
     const interval = setInterval(() => {
       fetchProjectStatus();
@@ -143,7 +102,7 @@ export function DeployStep({
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [projectId, connect]);
+  }, [projectId]); // Убрал connect из зависимостей
 
   // Обновить timestamp при первом рендере
   useEffect(() => {

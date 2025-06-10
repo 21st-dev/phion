@@ -15,9 +15,13 @@ import {
 
 interface ProjectSetupProps {
   project: ProjectRow;
+  agentConnected?: boolean; // Статус агента получаем извне
 }
 
-export function ProjectSetup({ project }: ProjectSetupProps) {
+export function ProjectSetup({
+  project,
+  agentConnected = false,
+}: ProjectSetupProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentComplete, setDeploymentComplete] = useState(false);
@@ -95,6 +99,8 @@ export function ProjectSetup({ project }: ProjectSetupProps) {
           step.id === "download" ? { ...step, status: "ERROR" } : step
         )
       );
+      // Показываем ошибку пользователю
+      alert("Failed to download project. Please try again.");
     }
   };
 
@@ -258,6 +264,7 @@ export function ProjectSetup({ project }: ProjectSetupProps) {
                 projectId={project.id}
                 isDeploying={isDeploying}
                 onDeploy={handleDeploy}
+                agentConnected={agentConnected}
               />
               {deployCompleted && (
                 <div className="mt-2 flex items-center gap-2 text-sm text-green-600">

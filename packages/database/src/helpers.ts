@@ -64,3 +64,10 @@ export const getFileHistoryById = (id: string): Promise<FileHistoryRow | null> =
 
 // Экспортируем классы для продвинутого использования
 export { ProjectQueries, FileHistoryQueries }; 
+// Import and initialize PendingChangesQueries
+import { PendingChangesQueries } from "./queries/pending-changes";
+const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient());
+
+// Export pending changes functions
+export const getPendingChanges = (projectId: string) => 
+  pendingChangesQueries.getPendingChanges(projectId);

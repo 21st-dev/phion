@@ -154,13 +154,29 @@ async function saveFullProjectSnapshot(
   // Получаем все pending changes (изменения пользователя)
   const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
   
-  if (pendingChanges.length === 0) {
-    console.log(`No pending changes for project ${projectId}`);
-    throw new Error('No changes to save');
-  }
-  
   // Получаем последние версии всех файлов из истории для полного снапшота
   const latestFiles = await historyQueries.getProjectFileHistory(projectId, 1000);
+  
+  // Если нет ни pending changes ни file history, создаем пустой снапшот для первого деплоя
+  if (pendingChanges.length === 0 && latestFiles.length === 0) {
+    console.log(`📄 No changes or history for project ${projectId}, creating initial empty snapshot`);
+    const commitId = crypto.randomUUID();
+    const finalCommitMessage = commitMessage || 'Initial empty deployment';
+    
+    // Создаем минимальную запись в file_history для отслеживания первого деплоя
+    await historyQueries.createFileHistory({
+      project_id: projectId,
+      file_path: '.shipvibes-initial',
+      r2_object_key: `projects/${projectId}/versions/${commitId}/.shipvibes-initial`,
+      content_hash: 'initial',
+      file_size: 0,
+      commit_id: commitId,
+      commit_message: finalCommitMessage
+    });
+    
+    console.log(`✅ Initial snapshot created for project ${projectId} as commit ${commitId}`);
+    return commitId;
+  }
   
   // Создаем карту последних файлов
   const latestFileMap = new Map();
@@ -193,7 +209,7 @@ async function saveFullProjectSnapshot(
     }
   }
   
-  // 2. Применяем pending changes
+  // 2. Применяем pending changes (если есть)
   const changedFiles: string[] = [];
   for (const change of pendingChanges) {
     changedFiles.push(`${change.action}: ${change.file_path}`);
@@ -210,43 +226,68 @@ async function saveFullProjectSnapshot(
     }
   }
   
-  const finalCommitMessage = commitMessage || `Updated ${pendingChanges.length} files: ${changedFiles.join(', ')}`;
+  // Определяем сообщение коммита
+  let finalCommitMessage = commitMessage;
+  if (!finalCommitMessage) {
+    if (pendingChanges.length > 0) {
+      finalCommitMessage = `Updated ${pendingChanges.length} files: ${changedFiles.join(', ')}`;
+    } else {
+      finalCommitMessage = `Snapshot of ${fullSnapshot.size} existing files`;
+    }
+  }
+  
   console.log(`📄 Saving commit: ${finalCommitMessage}`);
   console.log(`📄 Full snapshot contains ${fullSnapshot.size} files`);
   
   // 3. Сохраняем ВСЕ файлы как один коммит
   const commitId = crypto.randomUUID();
   
-  // Bulk upload всех файлов в R2
-  const uploadPromises = [];
-  for (const [filePath, fileData] of fullSnapshot) {
-    uploadPromises.push(
-      uploadFileVersion(projectId, commitId, filePath, fileData.content)
-    );
-  }
-  await Promise.all(uploadPromises);
-  
-  // Bulk создание записей в file_history
-  const historyRecords = [];
-  for (const [filePath, fileData] of fullSnapshot) {
-    historyRecords.push({
+  // Если есть файлы для сохранения
+  if (fullSnapshot.size > 0) {
+    // Bulk upload всех файлов в R2
+    const uploadPromises: Promise<any>[] = [];
+    for (const [filePath, fileData] of fullSnapshot) {
+      uploadPromises.push(
+        uploadFileVersion(projectId, commitId, filePath, fileData.content)
+      );
+    }
+    await Promise.all(uploadPromises);
+    
+    // Bulk создание записей в file_history
+    const historyRecords: any[] = [];
+    for (const [filePath, fileData] of fullSnapshot) {
+      historyRecords.push({
+        project_id: projectId,
+        file_path: filePath,
+        r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
+        content_hash: fileData.hash,
+        file_size: fileData.size,
+        commit_id: commitId,
+        commit_message: finalCommitMessage
+      });
+    }
+    
+    // Создаем все записи одним запросом
+    for (const record of historyRecords) {
+      await historyQueries.createFileHistory(record);
+    }
+  } else {
+    // Если нет файлов, создаем пустую запись
+    await historyQueries.createFileHistory({
       project_id: projectId,
-      file_path: filePath,
-      r2_object_key: `projects/${projectId}/versions/${commitId}/${filePath}`,
-      content_hash: fileData.hash,
-      file_size: fileData.size,
+      file_path: '.shipvibes-empty',
+      r2_object_key: `projects/${projectId}/versions/${commitId}/.shipvibes-empty`,
+      content_hash: 'empty',
+      file_size: 0,
       commit_id: commitId,
       commit_message: finalCommitMessage
     });
   }
   
-  // Создаем все записи одним запросом
-  for (const record of historyRecords) {
-    await historyQueries.createFileHistory(record);
+  // 4. Очищаем pending changes (если были)
+  if (pendingChanges.length > 0) {
+    await pendingQueries.clearAllPendingChanges(projectId);
   }
-  
-  // 4. Очищаем pending changes
-  await pendingQueries.clearAllPendingChanges(projectId);
   
   console.log(`✅ Full project snapshot saved as commit ${commitId}: ${finalCommitMessage}`);
   return commitId;
@@ -306,7 +347,7 @@ io.on('connection', (socket) => {
 
   // Обработка аутентификации проекта
   socket.on('authenticate', (data) => {
-    const { projectId, token } = data;
+    const { projectId, token, clientType } = data;
     
     if (!projectId) {
       socket.emit('error', { message: 'Project ID is required' });
@@ -316,18 +357,21 @@ io.on('connection', (socket) => {
     // Присоединяем к комнате проекта
     socket.join(`project:${projectId}`);
     socket.data.projectId = projectId;
+    socket.data.clientType = clientType || 'web'; // По умолчанию web-клиент
     
-    console.log(`🔐 Client ${socket.id} authenticated for project ${projectId}`);
+    console.log(`🔐 Client ${socket.id} authenticated for project ${projectId} (type: ${socket.data.clientType})`);
     socket.emit('authenticated', { projectId });
     
-    // Уведомляем всех клиентов о подключении агента (для онбординга)
-    io.emit('agent_connected', {
-      projectId,
-      clientId: socket.id,
-      timestamp: new Date().toISOString()
-    });
-    
-    console.log(`📡 Emitted agent_connected event for project ${projectId}`);
+    // Уведомляем всех клиентов о подключении агента (ТОЛЬКО если это локальный агент)
+    if (clientType === 'agent') {
+      io.emit('agent_connected', {
+        projectId,
+        clientId: socket.id,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Emitted agent_connected event for project ${projectId}`);
+    }
   });
 
   // Обработка изменений файлов (TRACKING ТОЛЬКО)
@@ -479,6 +523,17 @@ io.on('connection', (socket) => {
         clientId: socket.id,
         timestamp: Date.now()
       });
+    }
+
+    // Уведомляем об отключении агента (ТОЛЬКО если это был локальный агент)
+    if (socket.data.clientType === 'agent' && socket.data.projectId) {
+      io.emit('agent_disconnected', {
+        projectId: socket.data.projectId,
+        clientId: socket.id,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log(`📡 Emitted agent_disconnected event for project ${socket.data.projectId}`);
     }
   });
 

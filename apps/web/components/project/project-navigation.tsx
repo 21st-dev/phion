@@ -1,0 +1,46 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+interface ProjectNavigationProps {
+  projectId: string;
+}
+
+const tabs = [
+  { id: "overview", label: "Overview", href: "overview" },
+  { id: "onboarding", label: "Onboarding", href: "onboarding" },
+  { id: "file-history", label: "File History", href: "file-history" },
+  { id: "settings", label: "Settings", href: "settings" },
+];
+
+export function ProjectNavigation({ projectId }: ProjectNavigationProps) {
+  const pathname = usePathname();
+
+  // Extract current tab from pathname
+  const currentTab = pathname.split("/").pop() || "overview";
+
+  return (
+    <div className="flex space-x-6">
+      {tabs.map((tab) => {
+        const isActive = currentTab === tab.href;
+
+        return (
+          <Link
+            key={tab.id}
+            href={`/project/${projectId}/${tab.href}`}
+            className={cn(
+              "pb-4 px-1 border-b-2 font-medium text-sm transition-colors",
+              isActive
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

@@ -26,12 +26,22 @@ interface CommitFile {
   created_at: string;
 }
 
+interface FileHistoryItem {
+  id: string;
+  file_path: string;
+  file_size: number;
+  created_at: string;
+  commit_id?: string;
+  commit_message?: string;
+}
+
 interface FileHistoryProps {
   projectId: string;
 }
 
 export function FileHistory({ projectId }: FileHistoryProps) {
   const [commits, setCommits] = useState<CommitItem[]>([]);
+  const [fileHistory, setFileHistory] = useState<FileHistoryItem[]>([]);
   const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
     new Set()
   );
@@ -39,45 +49,148 @@ export function FileHistory({ projectId }: FileHistoryProps) {
     {}
   );
   const [loading, setLoading] = useState(true);
+  const [showFileHistory, setShowFileHistory] = useState(false);
 
   useEffect(() => {
+    console.log(
+      "🔍 FileHistory: useEffect triggered with projectId:",
+      projectId
+    );
     fetchCommits();
   }, [projectId]);
 
   const fetchCommits = async () => {
+    console.log(
+      "📡 FileHistory: Starting fetchCommits for project:",
+      projectId
+    );
     try {
-      const response = await fetch(`/api/projects/${projectId}/commits`);
+      const url = `/api/projects/${projectId}/commits`;
+      console.log("📡 FileHistory: Making request to:", url);
+
+      const response = await fetch(url);
+      console.log(
+        "📡 FileHistory: Response status:",
+        response.status,
+        response.statusText
+      );
+
       if (response.ok) {
         const data = await response.json();
+        console.log("✅ FileHistory: Received data:", data);
+        console.log(
+          "📊 FileHistory: Commits array length:",
+          data.commits?.length || 0
+        );
+        console.log("📋 FileHistory: Commits data:", data.commits);
+
         setCommits(data.commits || []);
+
+        // Если коммитов нет, пробуем загрузить историю файлов напрямую
+        if (!data.commits || data.commits.length === 0) {
+          console.log(
+            "🔄 FileHistory: No commits found, trying to fetch file history directly"
+          );
+          await fetchFileHistory();
+        }
+      } else {
+        console.error(
+          "❌ FileHistory: Response not ok:",
+          response.status,
+          response.statusText
+        );
+        const errorText = await response.text();
+        console.error("❌ FileHistory: Error response body:", errorText);
+
+        // Если API не работает, пробуем запасной вариант
+        console.log(
+          "🔄 FileHistory: API failed, trying file history as fallback"
+        );
+        await fetchFileHistory();
       }
     } catch (error) {
-      console.error("Error fetching commits:", error);
+      console.error("❌ FileHistory: Error fetching commits:", error);
+      console.log(
+        "🔄 FileHistory: Exception occurred, trying file history as fallback"
+      );
+      await fetchFileHistory();
     } finally {
+      console.log(
+        "🏁 FileHistory: fetchCommits completed, setting loading to false"
+      );
       setLoading(false);
     }
   };
 
-  const fetchCommitFiles = async (commitId: string) => {
-    if (commitFiles[commitId]) return; // Уже загружено
-
+  const fetchFileHistory = async () => {
+    console.log(
+      "📂 FileHistory: Fetching file history directly for project:",
+      projectId
+    );
     try {
-      const response = await fetch(
-        `/api/projects/${projectId}/commits?commit_id=${commitId}`
+      const url = `/api/projects/${projectId}/versions`;
+      console.log("📂 FileHistory: Making request to:", url);
+
+      const response = await fetch(url);
+      console.log(
+        "📂 FileHistory: File history response status:",
+        response.status
       );
+
       if (response.ok) {
         const data = await response.json();
+        console.log("📂 FileHistory: Received file history data:", data);
+        console.log("📂 FileHistory: File history length:", data?.length || 0);
+
+        setFileHistory(data || []);
+        setShowFileHistory(true);
+      } else {
+        console.error(
+          "❌ FileHistory: Error fetching file history:",
+          response.status
+        );
+      }
+    } catch (error) {
+      console.error("❌ FileHistory: Error fetching file history:", error);
+    }
+  };
+
+  const fetchCommitFiles = async (commitId: string) => {
+    if (commitFiles[commitId]) {
+      console.log("📁 FileHistory: Files already loaded for commit:", commitId);
+      return; // Уже загружено
+    }
+
+    console.log("📁 FileHistory: Fetching files for commit:", commitId);
+    try {
+      const url = `/api/projects/${projectId}/commits?commit_id=${commitId}`;
+      console.log("📁 FileHistory: Making request to:", url);
+
+      const response = await fetch(url);
+      console.log("📁 FileHistory: Files response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📁 FileHistory: Received files data:", data);
+        console.log("📁 FileHistory: Files count:", data.files?.length || 0);
+
         setCommitFiles((prev) => ({
           ...prev,
           [commitId]: data.files || [],
         }));
+      } else {
+        console.error(
+          "❌ FileHistory: Error fetching commit files:",
+          response.status
+        );
       }
     } catch (error) {
-      console.error("Error fetching commit files:", error);
+      console.error("❌ FileHistory: Error fetching commit files:", error);
     }
   };
 
   const toggleCommit = async (commitId: string) => {
+    console.log("🔄 FileHistory: Toggling commit:", commitId);
     if (expandedCommits.has(commitId)) {
       setExpandedCommits((prev) => {
         const newSet = new Set(prev);
@@ -104,6 +217,17 @@ export function FileHistory({ projectId }: FileHistoryProps) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  console.log(
+    "🎨 FileHistory: Rendering, loading:",
+    loading,
+    "commits.length:",
+    commits.length,
+    "showFileHistory:",
+    showFileHistory,
+    "fileHistory.length:",
+    fileHistory.length
+  );
+
   if (loading) {
     return (
       <Material type="base" className="p-6">
@@ -113,6 +237,47 @@ export function FileHistory({ projectId }: FileHistoryProps) {
           <div className="h-4 bg-gray-200 rounded w-1/2"></div>
         </div>
       </Material>
+    );
+  }
+
+  // Показываем историю файлов, если нет коммитов
+  if (commits.length === 0 && showFileHistory && fileHistory.length > 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-1000">File History</h2>
+          <div className="px-2 py-1 bg-yellow-100 text-yellow-700 text-sm rounded">
+            {fileHistory.length} file version
+            {fileHistory.length !== 1 ? "s" : ""} (no commits)
+          </div>
+        </div>
+
+        <Material type="base" className="p-4">
+          <div className="text-sm text-yellow-600 bg-yellow-50 p-3 rounded border border-yellow-200 mb-4">
+            ⚠️ Showing individual file versions. These haven't been organized
+            into commits yet.
+          </div>
+          <div className="space-y-2">
+            {fileHistory.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-3 py-2 px-3 hover:bg-gray-50 rounded"
+              >
+                <File className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-700 flex-grow">
+                  {file.file_path}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {formatFileSize(file.file_size)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {new Date(file.created_at).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Material>
+      </div>
     );
   }
 
@@ -128,6 +293,11 @@ export function FileHistory({ projectId }: FileHistoryProps) {
             Start editing your project files and save changes to see commits
             here.
           </p>
+          <div className="mt-4 text-xs text-gray-500 bg-gray-100 p-2 rounded">
+            Debug: projectId = {projectId}, commits.length = {commits.length},
+            fileHistory.length = {fileHistory.length}, showFileHistory ={" "}
+            {showFileHistory}
+          </div>
         </div>
       </Material>
     );

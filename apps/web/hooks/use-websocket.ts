@@ -4,17 +4,29 @@ import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface UseWebSocketOptions {
-  projectId: string;
+  projectId?: string;
   onFileTracked?: (data: any) => void;
   onSaveSuccess?: (data: any) => void;
   onError?: (error: any) => void;
+  onAgentConnected?: (data: { projectId: string; clientId: string; timestamp: string }) => void;
+  onAgentDisconnected?: (data: { projectId: string; clientId: string; timestamp: string }) => void;
+  onDeployStatusUpdate?: (data: { 
+    projectId: string; 
+    deployStatusId: string; 
+    status: string; 
+    message: string; 
+    timestamp: string 
+  }) => void;
 }
 
 export function useWebSocket({ 
   projectId, 
   onFileTracked, 
   onSaveSuccess, 
-  onError 
+  onError,
+  onAgentConnected,
+  onAgentDisconnected,
+  onDeployStatusUpdate
 }: UseWebSocketOptions) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -22,88 +34,104 @@ export function useWebSocket({
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
+  const disconnect = () => {
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
+    }
+  };
+
   useEffect(() => {
-    const connectSocket = () => {
-      const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080', {
-        transports: ['websocket'],
-        autoConnect: true,
-        timeout: 5000,
+    if (!projectId) return;
+
+    // Создаем новое подключение
+    const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080', {
+      transports: ['websocket'],
+      autoConnect: true,
+      timeout: 5000,
+      reconnection: true,
+      reconnectionAttempts: maxReconnectAttempts,
+      reconnectionDelay: 2000,
+    });
+
+    newSocket.on('connect', () => {
+      setIsConnected(true);
+      setConnectionError(null);
+      reconnectAttempts.current = 0;
+      
+      // Аутентификация при подключении
+      newSocket.emit('authenticate', { 
+        projectId,
+        clientType: 'web'
       });
+    });
 
-      newSocket.on('connect', () => {
-        console.log('🔗 WebSocket connected');
-        setIsConnected(true);
-        setConnectionError(null);
-        reconnectAttempts.current = 0;
-        
-        // Аутентификация при подключении
-        newSocket.emit('authenticate', { projectId });
-      });
+    newSocket.on('authenticated', (data) => {
+      // Молча обрабатываем аутентификацию
+    });
 
-      newSocket.on('authenticated', (data) => {
-        console.log('🔐 WebSocket authenticated for project:', data.projectId);
-      });
+    newSocket.on('disconnect', (reason) => {
+      setIsConnected(false);
+      
+      // Автоматическое переподключение
+      if (reason === 'io server disconnect') {
+        setTimeout(() => {
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            reconnectAttempts.current++;
+            newSocket.connect();
+          }
+        }, 1000 * reconnectAttempts.current);
+      }
+    });
 
-      newSocket.on('disconnect', (reason) => {
-        console.log('❌ WebSocket disconnected:', reason);
-        setIsConnected(false);
-        
-        // Автоматическое переподключение
-        if (reason === 'io server disconnect') {
-          // Сервер отключил соединение, переподключаемся
-          setTimeout(() => {
-            if (reconnectAttempts.current < maxReconnectAttempts) {
-              reconnectAttempts.current++;
-              newSocket.connect();
-            }
-          }, 1000 * reconnectAttempts.current);
-        }
-      });
+    newSocket.on('connect_error', () => {
+      setConnectionError('Failed to connect to server');
+      setIsConnected(false);
+    });
 
-      newSocket.on('connect_error', (error) => {
-        console.error('❌ WebSocket connection error:', error);
-        setConnectionError('Failed to connect to server');
-        setIsConnected(false);
-      });
+    // Обработчики событий файлов
+    if (onFileTracked) {
+      newSocket.on('file_tracked', onFileTracked);
+    }
 
-      // Обработчики событий файлов
-      newSocket.on('file_tracked', (data) => {
-        console.log('📝 File tracked:', data);
-        onFileTracked?.(data);
-      });
+    if (onSaveSuccess) {
+      newSocket.on('save_success', onSaveSuccess);
+    }
 
-      newSocket.on('save_success', (data) => {
-        console.log('💾 Save successful:', data);
-        onSaveSuccess?.(data);
-      });
+    if (onAgentConnected) {
+      newSocket.on('agent_connected', onAgentConnected);
+    }
 
-      newSocket.on('file_updated', (data) => {
-        console.log('🔄 File updated by another user:', data);
-        // Можно использовать для показа уведомлений о изменениях от других пользователей
-      });
+    if (onAgentDisconnected) {
+      newSocket.on('agent_disconnected', onAgentDisconnected);
+    }
 
-      newSocket.on('files_saved', (data) => {
-        console.log('💾 Files saved by another user:', data);
-        // Можно использовать для обновления UI когда другой пользователь сохранил файлы
-      });
+    if (onDeployStatusUpdate) {
+      newSocket.on('deploy_status_update', onDeployStatusUpdate);
+    }
 
-      newSocket.on('error', (error) => {
-        console.error('❌ WebSocket error:', error);
-        onError?.(error);
-      });
+    newSocket.on('file_updated', (data) => {
+      // Файл обновлен другим пользователем
+    });
 
-      setSocket(newSocket);
-    };
+    newSocket.on('files_saved', (data) => {
+      // Файлы сохранены другим пользователем
+    });
 
-    connectSocket();
+    newSocket.on('error', (error) => {
+      onError?.(error);
+    });
+
+    setSocket(newSocket);
 
     // Cleanup при размонтировании
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      newSocket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
-  }, [projectId]);
+  }, [projectId]); // Только projectId в зависимостях
 
   // Методы для отправки событий
   const saveAllChanges = (commitMessage?: string) => {
@@ -113,7 +141,6 @@ export function useWebSocket({
         commitMessage 
       });
     } else {
-      console.error('❌ Cannot save: WebSocket not connected');
       onError?.({ message: 'Not connected to server' });
     }
   };
@@ -123,5 +150,6 @@ export function useWebSocket({
     isConnected,
     connectionError,
     saveAllChanges,
+    disconnect,
   };
 } 

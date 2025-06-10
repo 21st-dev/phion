@@ -118,63 +118,120 @@ async function generateAndUploadTemplate(
   templateType: string,
   projectName: string
 ): Promise<void> {
-  // Путь к шаблону (поднимаемся на 2 уровня вверх из apps/web)
+  console.log(`🔄 [TEMPLATE] Starting template generation for ${projectId} (${templateType})`);
+  
+  // Путь к шаблону (в корне проекта)
   const templatePath = path.join(process.cwd(), "..", "..", "templates", templateType);
   
-  console.log(`Looking for template at: ${templatePath}`);
+  console.log(`📂 [TEMPLATE] Looking for template at: ${templatePath}`);
+  console.log(`📂 [TEMPLATE] Current working directory: ${process.cwd()}`);
   
+  // Проверим существование шаблона
   if (!fs.existsSync(templatePath)) {
-    throw new Error(`Template ${templateType} not found at ${templatePath}`);
+    // Попробуем относительный путь от корня монорепо
+    const alternativeTemplatePath = path.join(process.cwd(), "templates", templateType);
+    console.log(`📂 [TEMPLATE] Trying alternative path: ${alternativeTemplatePath}`);
+    
+    if (!fs.existsSync(alternativeTemplatePath)) {
+      console.error(`❌ [TEMPLATE] Template ${templateType} not found at either:
+        - ${templatePath}
+        - ${alternativeTemplatePath}`);
+      throw new Error(`Template ${templateType} not found`);
+    }
+    
+    console.log(`✅ [TEMPLATE] Template found at alternative path`);
+    await createTemplateFromPath(alternativeTemplatePath, projectName, projectId);
+  } else {
+    console.log(`✅ [TEMPLATE] Template found at original path`);
+    await createTemplateFromPath(templatePath, projectName, projectId);
   }
+}
 
-  console.log(`✅ Template found, creating ZIP archive...`);
+async function createTemplateFromPath(
+  templatePath: string,
+  projectName: string,
+  projectId: string
+): Promise<void> {
+  console.log(`🏗️ [TEMPLATE] Creating ZIP archive from ${templatePath}`);
   
   // Создаем ZIP архив шаблона
   const zipBuffer = await createTemplateZip(templatePath, projectName, projectId);
   
-  console.log(`✅ ZIP archive created, size: ${zipBuffer.length} bytes`);
+  console.log(`✅ [TEMPLATE] ZIP archive created, size: ${zipBuffer.length} bytes`);
   
   // Загружаем в R2
-  console.log(`📤 Uploading to R2 for project ${projectId}...`);
+  console.log(`📤 [TEMPLATE] Uploading to R2 for project ${projectId}...`);
   const uploadResult = await uploadProjectTemplate(projectId, zipBuffer);
   
-  console.log(`✅ Upload successful:`, uploadResult);
+  console.log(`✅ [TEMPLATE] Upload successful:`, uploadResult);
 }
 
 async function createTemplateZip(templatePath: string, projectName: string, projectId: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    console.log(`📦 [ZIP] Starting ZIP creation for ${templatePath}`);
+    
     const archive = archiver('zip', { zlib: { level: 9 } });
     const chunks: Uint8Array[] = [];
 
     archive.on('data', (chunk: Uint8Array) => chunks.push(chunk));
-    archive.on('end', () => resolve(Buffer.concat(chunks)));
-    archive.on('error', reject);
+    archive.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      console.log(`✅ [ZIP] Archive finalized, total size: ${buffer.length} bytes`);
+      resolve(buffer);
+    });
+    archive.on('error', (error) => {
+      console.error(`❌ [ZIP] Archive error:`, error);
+      reject(error);
+    });
+
+    console.log(`📂 [ZIP] Reading template directory: ${templatePath}`);
 
     // Читаем все файлы из шаблона
-    const files = fs.readdirSync(templatePath, { withFileTypes: true });
+    let files;
+    try {
+      files = fs.readdirSync(templatePath, { withFileTypes: true });
+      console.log(`📋 [ZIP] Found ${files.length} items in template:`, files.map(f => f.name));
+    } catch (error) {
+      console.error(`❌ [ZIP] Error reading template directory:`, error);
+      reject(error);
+      return;
+    }
+    
+    let processedFiles = 0;
     
     for (const file of files) {
       const filePath = path.join(templatePath, file.name);
+      console.log(`📄 [ZIP] Processing: ${file.name} (${file.isDirectory() ? 'directory' : 'file'})`);
       
-      if (file.isDirectory()) {
-        // Добавляем директорию рекурсивно
-        archive.directory(filePath, file.name);
-      } else if (file.name === 'package.json') {
-        // Обновляем package.json с именем проекта
-        const packageJson = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
-        archive.append(JSON.stringify(packageJson, null, 2), { name: 'package.json' });
-      } else if (file.name === 'shipvibes-dev.js') {
-        // Обновляем shipvibes-dev.js с PROJECT_ID
-        let agentContent = fs.readFileSync(filePath, 'utf-8');
-        agentContent = agentContent.replace(/__PROJECT_ID__/g, projectId);
-        archive.append(agentContent, { name: 'shipvibes-dev.js' });
-      } else {
-        // Добавляем файл как есть
-        archive.file(filePath, { name: file.name });
+      try {
+        if (file.isDirectory()) {
+          // Добавляем директорию рекурсивно
+          archive.directory(filePath, file.name);
+          console.log(`📁 [ZIP] Added directory: ${file.name}`);
+        } else if (file.name === 'package.json') {
+          // Обновляем package.json с именем проекта
+          const packageJson = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+          packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
+          archive.append(JSON.stringify(packageJson, null, 2), { name: 'package.json' });
+          console.log(`📝 [ZIP] Updated package.json with project name: ${packageJson.name}`);
+        } else if (file.name === 'shipvibes-dev.js') {
+          // Обновляем shipvibes-dev.js с PROJECT_ID
+          let agentContent = fs.readFileSync(filePath, 'utf-8');
+          agentContent = agentContent.replace(/__PROJECT_ID__/g, projectId);
+          archive.append(agentContent, { name: 'shipvibes-dev.js' });
+          console.log(`🔧 [ZIP] Updated shipvibes-dev.js with project ID: ${projectId}`);
+        } else {
+          // Добавляем файл как есть
+          archive.file(filePath, { name: file.name });
+          console.log(`📄 [ZIP] Added file: ${file.name}`);
+        }
+        processedFiles++;
+      } catch (fileError) {
+        console.error(`❌ [ZIP] Error processing file ${file.name}:`, fileError);
       }
     }
 
+    console.log(`✅ [ZIP] Processed ${processedFiles}/${files.length} items, finalizing archive...`);
     archive.finalize();
   });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { StatusDot } from "@/components/geist/status-dot";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
@@ -16,7 +17,10 @@ export function ProjectHeader({
   project,
   hideDownloadButton = false,
 }: ProjectHeaderProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const handleDownload = async () => {
+    setIsDownloading(true);
     try {
       const response = await fetch(`/api/projects/${project.id}/download`);
       if (!response.ok) {
@@ -35,6 +39,8 @@ export function ProjectHeader({
     } catch (error) {
       console.error("Error downloading project:", error);
       alert("Failed to download project. Please try again.");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -132,18 +138,21 @@ export function ProjectHeader({
                 type="secondary"
                 size="medium"
                 onClick={handleDownload}
+                loading={isDownloading}
                 prefix={
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
-                  </svg>
+                  !isDownloading ? (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
+                    </svg>
+                  ) : undefined
                 }
               >
-                Download
+                {isDownloading ? "Generating..." : "Download"}
               </Button>
             )}
             {project.netlify_url && (

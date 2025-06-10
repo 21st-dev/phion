@@ -56,6 +56,7 @@ class ShipvibesAgent {
         // Аутентификация
         this.socket.emit("authenticate", {
           projectId: PROJECT_ID,
+          clientType: "agent",
         });
       });
 

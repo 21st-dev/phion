@@ -34,6 +34,7 @@ export async function GET(
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    
     const { searchParams } = new URL(request.url);
     const commitId = searchParams.get('commit_id');
     

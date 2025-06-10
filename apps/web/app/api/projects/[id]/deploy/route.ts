@@ -34,7 +34,7 @@ export async function POST(
 
     // Отправляем запрос на деплой через WebSocket сервер
     try {
-      const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:3001';
+      const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:8080';
       const deployResponse = await fetch(`${websocketServerUrl}/api/deploy`, {
         method: 'POST',
         headers: {

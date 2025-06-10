@@ -58,6 +58,8 @@ export function ProjectPageClient({
     initialPendingChanges
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [agentConnected, setAgentConnected] = useState(false);
 
   const fetchVersions = async (): Promise<FileVersion[]> => {
     const response = await fetch(`/api/projects/${initialProject.id}/versions`);
@@ -89,22 +91,50 @@ export function ProjectPageClient({
   });
 
   // WebSocket для real-time обновлений
-  const { isConnected, saveAllChanges } = useWebSocket({
+  const { isConnected } = useWebSocket({
     projectId: initialProject.id,
-    onFileTracked: () => {
-      // Обновляем pending changes при получении изменений
-      fetchPendingChanges().then(setPendingChanges).catch(console.error);
+    onAgentConnected: (data) => {
+      if (data.projectId === initialProject.id) {
+        setAgentConnected(true);
+      }
     },
-    onSaveSuccess: (data) => {
-      console.log("✅ Save successful:", data);
-      setIsSaving(false);
-      // Очищаем pending changes и обновляем историю
-      setPendingChanges([]);
-      refresh(); // Обновляем file history
+    onAgentDisconnected: (data) => {
+      if (data.projectId === initialProject.id) {
+        setAgentConnected(false);
+      }
     },
-    onError: (error) => {
-      console.error("❌ WebSocket error:", error);
-      setIsSaving(false);
+    onFileTracked: (data) => {
+      if (data.projectId === initialProject.id) {
+        setPendingChanges((prev) => {
+          const existing = prev.find(
+            (change) => change.file_path === data.filePath
+          );
+          if (existing) {
+            return prev.map((change) =>
+              change.file_path === data.filePath
+                ? {
+                    ...change,
+                    updated_at: new Date().toISOString(),
+                  }
+                : change
+            );
+          } else {
+            return [
+              ...prev,
+              {
+                id: Math.random().toString(),
+                file_path: data.filePath,
+                action: "modified" as const,
+                file_size: data.content
+                  ? Buffer.byteLength(data.content, "utf8")
+                  : 0,
+                updated_at: new Date().toISOString(),
+              },
+            ];
+          }
+        });
+        setLastUpdated(new Date());
+      }
     },
   });
 
@@ -120,7 +150,7 @@ export function ProjectPageClient({
 
   const handleSaveAll = (commitMessage: string) => {
     setIsSaving(true);
-    saveAllChanges(commitMessage);
+    // Implementation of handleSaveAll
   };
 
   const toggleAutoRefresh = () => {
@@ -138,8 +168,6 @@ export function ProjectPageClient({
 
   return (
     <div className="flex flex-col h-[calc(100vh-200px)]">
-    
-
       {/* Tabs Navigation */}
       <div className=" bg-background-100">
         <Tabs tabs={tabs} selected={activeTab} setSelected={setActiveTab} />
@@ -207,10 +235,10 @@ export function ProjectPageClient({
                 <div className="text-center">
                   <div
                     className={`text-2xl font-bold ${
-                      isConnected ? "text-green-600" : "text-red-600"
+                      agentConnected ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Offline"}
+                    {agentConnected ? "Connected" : "Offline"}
                   </div>
                   <div className="text-sm text-gray-600">Agent Status</div>
                 </div>
@@ -263,14 +291,17 @@ export function ProjectPageClient({
 
         {activeTab === "onboarding" && (
           <div className="overflow-y-auto h-full">
-            <ProjectSetup project={initialProject as any} />
+            <ProjectSetup
+              project={initialProject as any}
+              agentConnected={agentConnected}
+            />
           </div>
         )}
 
         {activeTab === "file-history" && (
           <div className="flex h-full">
             {/* Sidebar с pending changes - теперь внутри file history таба */}
-            <div className="w-80 border-r border-gray-alpha-400">
+            <div className="w-64 border-r border-gray-alpha-400">
               <PendingChangesSidebar
                 projectId={initialProject.id}
                 pendingChanges={pendingChanges}
