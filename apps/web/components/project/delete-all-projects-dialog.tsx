@@ -119,7 +119,7 @@ export function DeleteAllProjectsDialog({
           <AlertDialogDescription>
             Are you sure you want to delete ALL your projects? This action
             cannot be undone. This will permanently delete all files,
-            deployments, and history for every project you own.
+            publications, and history for every project you own.
             <br />
             <br />
             <strong className="text-destructive">

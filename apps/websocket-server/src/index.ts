@@ -16,7 +16,7 @@ import {
 } from "@shipvibes/database";
 // R2 импорты удалены - теперь используем GitHub API
 import { NetlifyService } from "./services/netlify.js";
-import { projectLogger } from '@shipvibes/shared/dist/project-logger-server';
+
 
 const app = express();
 const httpServer = createServer(app);
@@ -270,25 +270,10 @@ async function saveFullProjectSnapshot(
   await pendingQueries.clearAllPendingChanges(projectId);
   
   // Логируем очистку pending changes
-  await projectLogger.log({
-    project_id: projectId,
-    event_type: 'pending_changes_cleared',
-    details: { 
-      clearedChangesCount: pendingChanges.length,
-      action: 'github_commit',
-      isFirstUserCommit: isFirstUserCommit
-    },
-    trigger: 'commit_save'
-  });
+  console.log(`🧹 Cleared ${pendingChanges.length} pending changes for project ${projectId}`);
   
   // Логируем создание коммита
-  await projectLogger.logCommitCreated(
-    projectId,
-    mainCommitSha,
-    finalCommitMessage,
-    pendingChanges.length,
-    'github_api'
-  );
+  console.log(`📝 Commit created: ${mainCommitSha} for project ${projectId} (${pendingChanges.length} files)`);
   
   // ДОБАВЛЯЕМ СИНХРОНИЗАЦИЮ С ЛОКАЛЬНЫМ АГЕНТОМ
   // Согласно sequenceDiagram.ini строки 313-328
@@ -328,13 +313,7 @@ async function triggerDeploy(projectId: string, commitSha: string): Promise<void
     const projectQueries = new ProjectQueries(supabase);
     
     // Логируем начало автоматического деплоя
-    await projectLogger.logDeployStatusChange(
-      projectId,
-      'pending',
-      'building',
-      undefined,
-      'github_commit'
-    );
+    console.log(`🚀 Deploy status changed: pending -> building for project ${projectId}`);
     
     // Обновляем статус - Netlify начнет деплой автоматически
     await projectQueries.updateProject(projectId, {
@@ -355,13 +334,7 @@ async function triggerDeploy(projectId: string, commitSha: string): Promise<void
     console.error(`❌ Error in deploy trigger for project ${projectId}:`, error);
     
     // Логируем ошибку
-    await projectLogger.logDeployStatusChange(
-      projectId,
-      'building',
-      'failed',
-      undefined,
-      'deploy_error'
-    );
+    console.log(`❌ Deploy status changed: building -> failed for project ${projectId}`);
     
     // Обновляем статус деплоя как failed
     try {
@@ -540,12 +513,7 @@ io.on('connection', (socket) => {
       console.log(`📡 Emitted agent_connected event for project ${projectId} to project room`);
       
       // Логируем подключение агента
-      projectLogger.logAgentConnection(
-        projectId,
-        true,
-        socket.id,
-        'websocket_connection'
-      ).catch(console.error);
+      console.log(`🔌 Agent connected: ${socket.id} to project ${projectId}`);
       
       // Проверяем нужен ли автоматический первый деплой
       checkAndTriggerInitialDeploy(projectId).catch(error => {
@@ -606,12 +574,7 @@ io.on('connection', (socket) => {
       });
 
       // Логируем изменение файла
-      await projectLogger.logFileChange(
-        projectId,
-        filePath,
-        action,
-        'file_watcher'
-      );
+      console.log(`📝 File ${action}: ${filePath} in project ${projectId}`);
 
       // Уведомляем ВСЕХ клиентов в проекте о staged изменении
       const eventData = {
@@ -842,16 +805,7 @@ io.on('connection', (socket) => {
       }
       
       // Логируем результат git команды
-      await projectLogger.log({
-        project_id: projectId,
-        event_type: success ? 'git_command_success' : 'git_command_error',
-        details: { 
-          command,
-          error: success ? undefined : error,
-          source: 'local_agent'
-        },
-        trigger: 'git_command'
-      });
+      console.log(`📊 Git command ${success ? 'SUCCESS' : 'FAILED'} for project ${projectId}: ${command}`);
       
       // Уведомляем веб-клиентов о результате
       io.to(`project:${projectId}`).emit('git_command_completed', {
@@ -894,12 +848,7 @@ io.on('connection', (socket) => {
         console.log(`📡 Emitted agent_disconnected event for project ${socket.data.projectId} to project room`);
         
         // Логируем отключение агента
-        projectLogger.logAgentConnection(
-          socket.data.projectId,
-          false,
-          socket.id,
-          'websocket_disconnection'
-        ).catch(console.error);
+        console.log(`🔌 Agent disconnected: ${socket.id} from project ${socket.data.projectId}`);
       }
       
       // Уведомляем других клиентов в комнате
@@ -1059,13 +1008,7 @@ app.post('/webhooks/netlify', async (req, res) => {
     await projectQueries.updateProject(projectId, updateData);
 
     // Логируем изменение статуса деплоя
-    await projectLogger.logDeployStatusChange(
-      projectId,
-      project.deploy_status || 'building',
-      newStatus,
-      deploy_url,
-      'netlify_webhook'
-    );
+    console.log(`🚀 Deploy status change for project ${projectId}: ${project.deploy_status || 'building'} -> ${newStatus}`);
 
     // Отправляем уведомление через WebSocket всем подключенным клиентам проекта
     io.to(`project:${projectId}`).emit('deploy_status_update', {

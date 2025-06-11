@@ -11,15 +11,15 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
     return React.createElement(Badge, {
       variant: "outline",
       className: "bg-muted/50 text-muted-foreground hover:bg-muted"
-    }, "No Deploy");
+    }, "Not Published");
   }
   
   switch (deployStatus) {
     case "ready":
       return React.createElement(Badge, {
         variant: "default",
-        className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-      }, "Ready");
+        className: "bg-green-100 text-ds-green-700 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:border-green-800"
+      }, "Live");
     case "failed":
       return React.createElement(Badge, {
         variant: "destructive"
@@ -28,11 +28,11 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
       return React.createElement(Badge, {
         variant: "default",
         className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-      }, "Building");
+      }, "Publishing");
     case "no_deploy":
       return React.createElement(Badge, {
         variant: "outline"
-      }, "No Deploy");
+      }, "Not Published");
     case "pending":
     default:
       return React.createElement(Badge, {

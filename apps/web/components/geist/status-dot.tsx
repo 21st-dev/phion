@@ -11,18 +11,18 @@ const states = {
 
 const titles = {
   QUEUED: "Project is initializing...",
-  BUILDING: "This deployment is building.",
-  ERROR: "This deployment had an error.",
-  READY: "This deployment is ready.",
+  BUILDING: "Your site is publishing.",
+  ERROR: "Publishing failed.",
+  READY: "Your site is live.",
   CURRENT: "This is the current step.",
-  CANCELED: "This deployment was canceled.",
+  CANCELED: "Publishing was canceled.",
 };
 
 const labels = {
   QUEUED: "initializing",
-  BUILDING: "building",
+  BUILDING: "publishing",
   ERROR: "error",
-  READY: "ready",
+  READY: "live",
   CURRENT: "current",
   CANCELED: "canceled",
 };

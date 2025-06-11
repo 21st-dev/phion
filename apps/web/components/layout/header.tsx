@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSupabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useProjectLimits } from "@/hooks/use-project-limits";
-import { PricingModal } from "@/components/pricing-modal";
+import { PricingModal } from "@/components/pricing-dialog";
 import type { DatabaseTypes } from "@shipvibes/database";
 
 interface HeaderProps {
@@ -55,7 +55,7 @@ export function Header({ user, project }: HeaderProps) {
 
   return (
     <header className="bg-background-100">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="px-4 ">
         <div className="flex h-16 items-center justify-between">
           {/* Logo и навигация */}
           <div className="flex items-center">

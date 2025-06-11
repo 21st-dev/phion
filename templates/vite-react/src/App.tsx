@@ -31,7 +31,7 @@ function App() {
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Start editing this file in your local editor and see changes
-              deployed instantly to the web.
+              published instantly to the web.
             </p>
           </div>
 
@@ -61,7 +61,7 @@ function App() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Changes are automatically synced to the cloud and deployed
+                  Changes are automatically synced to the cloud and published
                   without any manual steps.
                 </p>
               </CardContent>
@@ -135,7 +135,7 @@ function App() {
                     <div>
                       <h3 className="font-semibold">Save your changes</h3>
                       <p className="text-sm text-muted-foreground">
-                        Changes are automatically synced and deployed
+                        Changes are automatically synced and published
                       </p>
                     </div>
                   </div>

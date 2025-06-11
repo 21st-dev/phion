@@ -101,7 +101,7 @@ export function DeleteProjectDialog({
           <AlertDialogTitle>Delete Project</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete this project? This action cannot be
-            undone. This will permanently delete all files, deployments, and
+            undone. This will permanently delete all files, publications, and
             history.
           </AlertDialogDescription>
         </AlertDialogHeader>

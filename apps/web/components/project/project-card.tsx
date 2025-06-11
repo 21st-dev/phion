@@ -56,7 +56,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {/* Показываем статус только если проект готов (есть URL) или есть ошибка */}
             {project.deploy_status &&
               (project.url || project.deploy_status === "ERROR") && (
-                <StatusDot state={project.deploy_status} label />
+                <StatusDot state={project.deploy_status} />
               )}
           </div>
 

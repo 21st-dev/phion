@@ -108,7 +108,7 @@ export function PendingChangesSidebar({
         </div>
 
         <div className="text-sm" style={{ color: "var(--ds-gray-600)" }}>
-          Changes are automatically tracked. Click Save All to deploy.
+          Changes are automatically tracked. Click Save All to publish.
         </div>
       </div>
 
@@ -193,7 +193,7 @@ export function PendingChangesSidebar({
                 fullWidth
                 disabled={isLoading}
               >
-                Save & Deploy
+                Save & Publish
               </Button>
               <Button
                 type="secondary"

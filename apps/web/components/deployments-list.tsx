@@ -151,7 +151,7 @@ function PendingChangesCard({
               ) : (
                 <Save className="h-3 w-3 mr-1" />
               )}
-              {isLoading ? "Saving..." : "Save & Deploy"}
+              {isLoading ? "Saving..." : "Save & Publish"}
             </Button>
           </div>
         </div>
@@ -174,7 +174,7 @@ function PendingChangesCard({
                   <strong>Files changed:</strong> {pendingChanges.length}
                 </div>
                 <div className="text-muted-foreground">
-                  <strong>Action:</strong> Save to create deployment
+                  <strong>Action:</strong> Save to publish
                 </div>
               </div>
             </div>
@@ -269,7 +269,7 @@ function DeploymentItem({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <h3 className="font-semibold text-foreground truncate">
-                {commit?.commit_message || "Deploy"}
+                {commit?.commit_message || "Publish"}
               </h3>
               {getStatusBadge(deployment.status, !!deployment.deploy_url)}
               {isLatest && (
@@ -332,11 +332,11 @@ function DeploymentItem({
             <div>
               <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                 <Globe className="h-4 w-4" />
-                Deployment Details
+                Publication Details
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="text-muted-foreground">
-                  <strong>Deploy ID:</strong>{" "}
+                  <strong>Publication ID:</strong>{" "}
                   {deployment.id?.substring(0, 8) || "unknown"}...
                 </div>
                 <div className="text-muted-foreground">

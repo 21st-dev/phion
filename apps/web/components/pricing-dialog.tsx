@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/geist/button";
 import { Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface PricingModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ export function PricingModal({
 }: PricingModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isYearly, setIsYearly] = useState(true); // Default to yearly
+  const { success, error: showError, info } = useToast();
 
   const handleUpgrade = async () => {
     setIsLoading(true);
@@ -93,8 +95,9 @@ export function PricingModal({
         }
 
         // Show success message before redirect
-        alert(
-          `Redirecting to payment page for ${
+        info(
+          "Redirecting to payment",
+          `Taking you to the payment page for ${
             isYearly ? "yearly" : "monthly"
           } plan...`
         );
@@ -105,7 +108,7 @@ export function PricingModal({
           "✅ User already has active subscription:",
           paymentData.currentPlan
         );
-        alert("You already have an active subscription!");
+        info("Already subscribed", "You already have an active subscription!");
         onOpenChange(false);
       } else {
         // API returned success=false or no paymentUrl
@@ -130,27 +133,36 @@ export function PricingModal({
         error instanceof Error ? error.message : "Unknown error occurred";
 
       if (errorMessage.includes("API key")) {
-        alert(
-          "Configuration error: Please contact support. The payment system is temporarily unavailable."
+        showError(
+          "Configuration Error",
+          "The payment system is temporarily unavailable. Please contact support."
         );
       } else if (errorMessage.includes("User not found")) {
-        alert("Account setup required. Please try again or contact support.");
+        showError(
+          "Account Setup Required",
+          "Please try again or contact support if the issue persists."
+        );
       } else if (
         errorMessage.includes("No such price") ||
         errorMessage.includes("StripeInvalidRequestError")
       ) {
-        alert(
-          "Payment configuration issue detected. The pricing plans are being updated. Please try again in a few minutes or contact support."
+        showError(
+          "Payment Configuration Issue",
+          "The pricing plans are being updated. Please try again in a few minutes or contact support."
         );
         console.log(
           "💡 Stripe price ID issue - likely needs updating on the payment server"
         );
       } else if (errorMessage.includes("Internal server error")) {
-        alert(
-          "Payment service is temporarily unavailable. Please try again in a few minutes."
+        showError(
+          "Service Temporarily Unavailable",
+          "Payment service is down. Please try again in a few minutes."
         );
       } else {
-        alert(`Failed to create payment link: ${errorMessage}`);
+        showError(
+          "Payment Error",
+          `Failed to create payment link: ${errorMessage}`
+        );
       }
 
       // Fallback to pricing page

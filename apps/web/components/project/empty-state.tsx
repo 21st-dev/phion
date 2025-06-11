@@ -47,7 +47,7 @@ export function EmptyState() {
             No projects yet
           </h3>
           <p className="text-gray-700 mb-6">
-            Create your first project to start building and deploying your
+            Create your first project to start building and publishing your
             frontend applications.
           </p>
 

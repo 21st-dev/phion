@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Material } from "@/components/geist/material";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +9,7 @@ import { DeleteProjectDialog } from "@/components/project/delete-project-dialog"
 import { AlertTriangle, ExternalLink, Copy } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
 import { useToast } from "@/hooks/use-toast";
+import { getStatusBadge } from "@/lib/deployment-utils";
 
 // Client-side only date/time display component
 function DateTimeDisplay({ timestamp }: { timestamp: string }) {
@@ -81,15 +81,14 @@ export default function ProjectSettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
       {/* General Settings */}
-      <Material type="base" className="p-6">
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              General Settings
-            </h3>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between pb-3 border-b mb-4">
+          <div className="flex items-center space-x-2">
+            <h3 className="font-medium">General Settings</h3>
           </div>
-
-          <div className="space-y-4">
+        </div>
+        <div className="bg-background rounded-lg border overflow-hidden">
+          <div className="p-4 space-y-4">
             <div>
               <Label htmlFor="project-name">Project Name</Label>
               <Input
@@ -110,11 +109,7 @@ export default function ProjectSettingsPage() {
                   readOnly
                   className="flex-1 bg-muted"
                 />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCopyProjectId}
-                >
+                <Button size="sm" onClick={handleCopyProjectId} className="h-9">
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
@@ -141,8 +136,7 @@ export default function ProjectSettingsPage() {
               </p>
             </div>
           </div>
-
-          <div className="flex justify-end">
+          <div className="bg-muted p-3 rounded-b-lg flex justify-end gap-3 border-t">
             <Button
               onClick={handleSaveSettings}
               disabled={isSaving || projectName === project.name}
@@ -151,28 +145,21 @@ export default function ProjectSettingsPage() {
             </Button>
           </div>
         </div>
-      </Material>
+      </div>
 
-      {/* Deployment Settings */}
-      <Material type="base" className="p-6">
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Deployment Settings
-            </h3>
+      {/* Publication Settings */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between pb-3 border-b mb-4">
+          <div className="flex items-center space-x-2">
+            <h3 className="font-medium">Publication Settings</h3>
           </div>
-
+        </div>
+        <div className="overflow-hidden">
           <div className="space-y-4">
             <div>
-              <Label>Deploy Status</Label>
+              <Label>Publication Status</Label>
               <div className="mt-1">
-                <Badge
-                  variant={
-                    project.deploy_status === "ready" ? "default" : "outline"
-                  }
-                >
-                  {project.deploy_status || "Not deployed"}
-                </Badge>
+                {getStatusBadge(project.deploy_status, !!project.netlify_url)}
               </div>
             </div>
 
@@ -186,7 +173,7 @@ export default function ProjectSettingsPage() {
                     className="flex-1 bg-muted"
                   />
                   <Button
-                    variant="secondary"
+                    className="h-9"
                     size="sm"
                     onClick={() =>
                       project.netlify_url &&
@@ -211,36 +198,27 @@ export default function ProjectSettingsPage() {
             )}
           </div>
         </div>
-      </Material>
-
-      {/* Danger Zone */}
-      <Material
-        type="base"
-        className="p-6 border-destructive/20 bg-destructive/5"
-      >
-        <div className="space-y-6">
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between pb-3 border-b mb-4">
           <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-            <h3 className="text-lg font-semibold text-destructive">
-              Danger Zone
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium text-destructive mb-2">
-                Delete Project
-              </h4>
-              <p className="text-sm text-destructive/80 mb-4">
-                Once you delete a project, there is no going back. Please be
-                certain. This will permanently delete all files, deployments,
-                and history.
-              </p>
-              <DeleteProjectDialog projectId={project.id} variant="button" />
-            </div>
+            <h3 className="font-medium">Danger Zone</h3>
           </div>
         </div>
-      </Material>
+        <div className="bg-background rounded-lg border overflow-hidden">
+          <div className="p-4">
+            <h4 className="font-medium mb-2">Delete Project</h4>
+            <p className="text-sm">
+              Once you delete a project, there is no going back. Please be
+              certain. This will permanently delete all files, publications, and
+              history.
+            </p>
+          </div>
+          <div className="bg-muted p-3 rounded-b-lg flex justify-end gap-3 border-t">
+            <DeleteProjectDialog projectId={project.id} variant="button" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

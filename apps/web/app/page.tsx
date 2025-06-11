@@ -53,7 +53,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background-100">
-      <Header user={user} />
+      <div className="sticky top-0 z-50">
+        <Header user={user} />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1">
@@ -67,7 +69,7 @@ export default function HomePage() {
                 </h1>
                 <p className="text-gray-700">
                   Edit your frontend code locally in Cursor and see changes
-                  deployed instantly.
+                  published instantly.
                 </p>
               </div>
               <div className="flex items-center space-x-3">

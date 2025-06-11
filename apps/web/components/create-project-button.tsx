@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/geist/button";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
-import { PricingModal } from "@/components/pricing-modal";
+import { PricingModal } from "@/components/pricing-dialog";
 import { useProjectLimits } from "@/hooks/use-project-limits";
 
 interface CreateProjectButtonProps {

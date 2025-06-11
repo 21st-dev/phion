@@ -90,14 +90,20 @@ export default async function ProjectLayout({
       initialPendingChanges={pendingChanges}
     >
       <div className="min-h-screen bg-background-100">
-        {/* Используем единый Header как на главной */}
-        <Header user={user} project={project} />
+        {/* Fixed Header and Navigation */}
+        <div className="fixed top-0 left-0 right-0 z-50">
+          {/* Используем единый Header как на главной */}
+          <Header user={user} project={project} />
 
-        {/* Navigation Tabs */}
-        <div className="border-b border-border bg-card">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <ProjectNavigation projectId={project.id} project={project} />
+          {/* Navigation Tabs */}
+          <div className="border-b border-border bg-background-100">
+            <div className="px-4">
+              <ProjectNavigation projectId={project.id} project={project} />
+            </div>
           </div>
+        </div>
+        {/* Add padding to account for fixed header height */}
+        <div className="pt-[120px]">
         </div>
 
         {/* Page Content */}

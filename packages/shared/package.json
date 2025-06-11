@@ -17,18 +17,6 @@
     "./utils": {
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
-    },
-    "./utils/project-logger": {
-      "types": "./dist/utils/project-logger.d.ts",
-      "default": "./dist/utils/project-logger.js"
-    },
-    "./project-logger-server": {
-      "types": "./dist/project-logger-server.d.ts",
-      "default": "./dist/project-logger-server.js"
-    },
-    "./dist/project-logger-server": {
-      "types": "./dist/project-logger-server.d.ts",
-      "default": "./dist/project-logger-server.js"
     }
   },
   "scripts": {

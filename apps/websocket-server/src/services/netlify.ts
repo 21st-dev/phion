@@ -2,7 +2,7 @@ import { promisify } from 'util';
 import { exec } from 'child_process';
 import fetch from 'node-fetch';
 import { getSupabaseServerClient, ProjectQueries } from '@shipvibes/database';
-import { projectLogger } from '@shipvibes/shared/dist/project-logger-server';
+
 
 const execAsync = promisify(exec);
 
@@ -365,13 +365,7 @@ export class NetlifyService {
 
         // Логируем изменение статуса деплоя
         const oldStatus = project.deploy_status || 'building';
-        await projectLogger.logDeployStatusChange(
-          projectId,
-          oldStatus,
-          newStatus,
-          updateData.netlify_url,
-          'netlify_polling'
-        );
+        console.log(`🚀 Deploy status changed for project ${projectId}: ${oldStatus} -> ${newStatus}`);
         
         // Отправляем уведомление через WebSocket
         if (this.io) {

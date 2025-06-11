@@ -3,8 +3,7 @@ import { createProject, getUserProjects, updateProject } from "@shipvibes/databa
 import { createAuthServerClient } from "@shipvibes/database";
 import { cookies } from "next/headers";
 import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
-// Server-side import for the project logger
-import { projectLogger } from "@shipvibes/shared/project-logger-server";
+// Project logger removed - using console.log instead
 
 // Загружаем переменные окружения
 if (process.env.NODE_ENV === 'development') {
@@ -178,11 +177,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Логируем создание проекта
-    await projectLogger.logProjectCreated(
-      project.id,
-      project,
-      'api_request'
-    );
+    console.log(`🎉 Project created: ${project.id} by user ${user.id}`);
 
     try {
       console.log(`🚀 [PROJECT_CREATION] Starting GitHub-based project creation for ${project.id}`);
