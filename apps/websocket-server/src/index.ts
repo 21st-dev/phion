@@ -1267,7 +1267,7 @@ async function initializeProjectInBackground(
       io.to(`project:${projectId}`).emit('commit_created', {
         projectId,
         commit: {
-          commit_id: commitRecord.commit_id,
+          commit_id: commitRecord.id,
           commit_message: 'Initial commit from template',
           created_at: commitRecord.created_at,
           files_count: Object.keys(templateFiles).length,
