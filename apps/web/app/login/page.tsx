@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import React from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const Logo = () => {
   const { resolvedTheme } = useTheme();
@@ -133,7 +134,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative">
       <div className="w-full max-w-sm space-y-16">
         {/* Logo */}
         <div className="text-center">
@@ -142,11 +143,11 @@ export default function LoginPage() {
 
         {/* Main Message */}
         <div className="text-center space-y-8">
-          <h1 className="text-4xl font-extralight text-gray-900 tracking-tight leading-tight">
+          <h1 className="text-4xl font-extralight text-foreground tracking-tight leading-tight">
             Vybcel - Vibecode OS
           </h1>
 
-          <p className="text-lg font-light text-gray-600 leading-relaxed">
+          <p className="text-lg font-light text-muted-foreground leading-relaxed">
             Just craft in Cursor.
             <br />
             We handle everything else.
@@ -159,10 +160,15 @@ export default function LoginPage() {
             {isLoading ? "" : "Continue with Google"}
           </StyledButton>
 
-          <p className="text-xs font-light text-gray-400">
+          <p className="text-xs font-light text-muted-foreground">
             By continuing, you agree to our terms
           </p>
         </div>
+      </div>
+
+      {/* Theme Toggle */}
+      <div className="fixed bottom-6 right-6">
+        <ThemeToggle />
       </div>
     </div>
   );

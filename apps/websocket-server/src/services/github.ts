@@ -206,7 +206,7 @@ export class GitHubAppService {
         name: repoName,
         description: description || `Vybcel project ${projectId}`,
         private: true,
-        auto_init: false, // Мы сами создадим initial commit
+        auto_init: true, // GitHub автоматически создаст README и initial commit
       };
 
       const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}/repos`, {
@@ -458,6 +458,214 @@ export class GitHubAppService {
     // Возвращаем installation token, который действует 60 минут
     // Этого достаточно для локальных git операций
     return this.getInstallationToken();
+  }
+
+  /**
+   * Создает blob объект в GitHub
+   */
+  async createBlob(repoName: string, content: string): Promise<{ sha: string }> {
+    try {
+      const base64Content = Buffer.from(content, 'utf8').toString('base64');
+      
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/blobs`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            content: base64Content,
+            encoding: 'base64'
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to create blob: ${response.status} ${error}`);
+      }
+
+      const blob = await response.json() as { sha: string };
+      return blob;
+    } catch (error) {
+      console.error('❌ Failed to create blob', { repoName, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Создает tree объект в GitHub
+   */
+  async createTree(
+    repoName: string, 
+    blobs: { path: string; sha: string }[], 
+    baseTree?: string
+  ): Promise<{ sha: string }> {
+    try {
+      const tree = blobs.map(blob => ({
+        path: blob.path,
+        mode: '100644', // Regular file
+        type: 'blob',
+        sha: blob.sha
+      }));
+
+      const requestBody: any = { tree };
+      if (baseTree) {
+        requestBody.base_tree = baseTree;
+      }
+
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/trees`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to create tree: ${response.status} ${error}`);
+      }
+
+      const treeResult = await response.json() as { sha: string };
+      return treeResult;
+    } catch (error) {
+      console.error('❌ Failed to create tree', { repoName, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Создает commit в GitHub
+   */
+  async createCommit(
+    repoName: string,
+    message: string,
+    treeSha: string,
+    parents: string[] = []
+  ): Promise<{ sha: string }> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/commits`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            message,
+            tree: treeSha,
+            parents,
+            author: {
+              name: 'Vybcel Bot',
+              email: 'bot@vybcel.com'
+            },
+            committer: {
+              name: 'Vybcel Bot',
+              email: 'bot@vybcel.com'
+            }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to create commit: ${response.status} ${error}`);
+      }
+
+      const commit = await response.json() as { sha: string };
+      return commit;
+    } catch (error) {
+      console.error('❌ Failed to create commit', { repoName, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Обновляет ссылку (ref) в GitHub
+   */
+  async updateRef(repoName: string, ref: string, sha: string): Promise<void> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/refs/${ref}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ sha }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to update ref: ${response.status} ${error}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to update ref', { repoName, ref, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Создает новую ссылку (ref) в GitHub
+   */
+  async createRef(repoName: string, ref: string, sha: string): Promise<void> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/refs`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            ref: ref.startsWith('refs/') ? ref : `refs/${ref}`,
+            sha
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to create ref: ${response.status} ${error}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to create ref', { repoName, ref, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Получает последний commit из main ветки
+   */
+  async getLatestCommit(repoName: string, ref = 'main'): Promise<{ sha: string } | null> {
+    console.log(`🔍 [getLatestCommit] Checking for latest commit in ${repoName}/${ref}`);
+    
+    try {
+      const endpoint = `/repos/${this.organization}/${repoName}/git/refs/heads/${ref}`;
+      console.log(`🔍 [getLatestCommit] Making request to: ${endpoint}`);
+      
+      const response = await this.makeAuthenticatedRequest(endpoint);
+      
+      console.log(`🔍 [getLatestCommit] Response status: ${response.status}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Ветка не существует (пустой репозиторий)
+          console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (404), returning null`);
+          return null;
+        }
+        if (response.status === 409) {
+          // Конфликт - пустой репозиторий
+          console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (409), returning null`);
+          return null;
+        }
+        const error = await response.text();
+        console.log(`❌ [getLatestCommit] Error response: ${error}`);
+        throw new Error(`Failed to get latest commit: ${response.status} ${error}`);
+      }
+
+      const refData = await response.json() as { object: { sha: string } };
+      console.log(`✅ [getLatestCommit] Found commit: ${refData.object.sha}`);
+      return { sha: refData.object.sha };
+    } catch (error) {
+      console.error('❌ [getLatestCommit] Exception caught:', { repoName, ref, error });
+      if (error instanceof Error && error.message.includes('409')) {
+        console.log(`✅ [getLatestCommit] Caught 409 error, repository ${repoName} is empty, returning null`);
+        return null;
+      }
+      throw error;
+    }
   }
 
   /**

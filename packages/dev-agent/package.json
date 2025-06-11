@@ -1,6 +1,6 @@
 {
   "name": "vybcel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Vybcel Development Agent for file synchronization",
   "main": "dist/index.js",
   "bin": {
@@ -16,7 +16,9 @@
     "vybcel",
     "development",
     "sync",
-    "websocket"
+    "websocket",
+    "vibe coding",
+    "shadcn"
   ],
   "author": "Vybcel",
   "license": "MIT",

@@ -1093,4 +1093,364 @@ app.post('/webhooks/netlify', async (req, res) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+});
+
+// ✅ Добавляем новый endpoint для инициализации проекта из Next.js
+app.post('/api/projects/initialize', async (req, res) => {
+  try {
+    const { projectId, templateType, projectName, repositoryName } = req.body;
+    
+    if (!projectId || !templateType || !projectName || !repositoryName) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: projectId, templateType, projectName, repositoryName' 
+      });
+    }
+
+    console.log(`🚀 [INIT_PROJECT] Starting project initialization for ${projectId}...`);
+
+    // Запускаем инициализацию в фоне (здесь это безопасно - Railway не засыпает)
+    initializeProjectInBackground(projectId, templateType, projectName, repositoryName)
+      .catch(error => {
+        console.error(`❌ [INIT_PROJECT] Background initialization failed for ${projectId}:`, error);
+      });
+
+    // Немедленно отвечаем клиенту
+    res.status(200).json({
+      success: true,
+      message: 'Project initialization started',
+      projectId
+    });
+
+  } catch (error) {
+    console.error('❌ [INIT_PROJECT] Error starting project initialization:', error);
+    res.status(500).json({ 
+      error: 'Failed to start project initialization',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 🚀 Фоновая инициализация проекта - перенесено из Next.js
+ * Здесь безопасно работать в фоне - Railway не засыпает
+ */
+async function initializeProjectInBackground(
+  projectId: string,
+  templateType: string,
+  projectName: string,
+  repositoryName: string
+): Promise<void> {
+  console.log(`🔄 [INIT_BG] Starting template upload for ${projectId}...`);
+  
+  try {
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    const commitHistoryQueries = new CommitHistoryQueries(supabase);
+
+    // 1. Генерируем файлы шаблона 
+    console.log(`📡 [INIT_BG] Sending initialization_progress to project:${projectId}`);
+    io.to(`project:${projectId}`).emit('initialization_progress', {
+      projectId,
+      stage: 'generating_files',
+      progress: 10,
+      message: 'Setting up your project...'
+    });
+    
+    const templateFiles = await generateTemplateFiles(projectId, templateType, projectName);
+    console.log(`📋 [INIT_BG] Generated ${Object.keys(templateFiles).length} template files`);
+    
+    io.to(`project:${projectId}`).emit('initialization_progress', {
+      projectId,
+      stage: 'uploading_files',
+      progress: 20,
+      message: 'Preparing files...'
+    });
+
+    // 2. 🚀 Загружаем все файлы ОДНИМ КОММИТОМ с прогрессом
+    const { githubAppService } = await import('./services/github.js');
+    
+    const fileEntries = Object.entries(templateFiles);
+    const totalFiles = fileEntries.length;
+    const chunkSize = 5;
+    const totalChunks = Math.ceil(totalFiles / chunkSize);
+    
+    // Получаем parent commit для создания нового коммита (теперь всегда должен существовать, т.к. auto_init: true)
+    console.log(`🔍 [INIT_BG] About to call getLatestCommit for repository: ${repositoryName}`);
+    const parentCommit = await githubAppService.getLatestCommit(repositoryName);
+    console.log(`🔍 [INIT_BG] getLatestCommit returned:`, parentCommit);
+    
+    if (!parentCommit) {
+      throw new Error('Repository should be initialized with auto_init: true, but no parent commit found');
+    }
+    
+    console.log(`🔍 [INIT_BG] Parent commit: ${parentCommit.sha}`);
+    
+    io.to(`project:${projectId}`).emit('initialization_progress', {
+      projectId,
+      stage: 'creating_blobs',
+      progress: 30,
+      message: 'Processing files...'
+    });
+
+    // Создаем blobs по чанкам с прогрессом
+    const blobs: { path: string; sha: string }[] = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+      const startIdx = i * chunkSize;
+      const endIdx = Math.min(startIdx + chunkSize, totalFiles);
+      const chunk = fileEntries.slice(startIdx, endIdx);
+      
+      // Создаем blobs для текущего чанка
+      const chunkBlobs = await Promise.all(
+        chunk.map(async ([path, content]) => {
+          const blob = await githubAppService.createBlob(repositoryName, content);
+          return { path, sha: blob.sha };
+        })
+      );
+      
+      blobs.push(...chunkBlobs);
+      
+      // Отправляем прогресс
+      const progressPercent = 30 + (i + 1) / totalChunks * 40; // 30% - 70%
+      io.to(`project:${projectId}`).emit('initialization_progress', {
+        projectId,
+        stage: 'creating_blobs',
+        progress: Math.round(progressPercent),
+        message: 'Processing files...'
+      });
+      
+      // Небольшая задержка между чанками
+      if (i < totalChunks - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    io.to(`project:${projectId}`).emit('initialization_progress', {
+      projectId,
+      stage: 'creating_commit',
+      progress: 80,
+      message: 'Saving project...'
+    });
+
+    // Создаем tree и коммит (с базовым tree от parent commit)
+    console.log(`🌳 [INIT_BG] Creating tree with base tree from parent commit...`);
+    const tree = await githubAppService.createTree(repositoryName, blobs, parentCommit.sha);
+    
+    console.log(`📝 [INIT_BG] Creating commit with parent: ${parentCommit.sha}`);
+    const commit = await githubAppService.createCommit(
+      repositoryName,
+      'Initial commit from template',
+      tree.sha,
+      [parentCommit.sha]
+    );
+    
+    // Обновляем main ветку (теперь всегда существует благодаря auto_init: true)
+    console.log(`🔄 [INIT_BG] Updating main branch with new commit: ${commit.sha}`);
+    await githubAppService.updateRef(repositoryName, 'heads/main', commit.sha);
+    console.log(`✅ [INIT_BG] Successfully updated main branch`);
+    
+    console.log(`✅ [INIT_BG] Uploaded ${totalFiles} files in one commit`);
+    const mainCommitSha = commit.sha;
+
+    // 3. Создаем запись в commit_history
+    if (mainCommitSha) {
+      await commitHistoryQueries.createCommitHistory({
+        project_id: projectId,
+        commit_message: 'Initial commit from template',
+        github_commit_sha: mainCommitSha,
+        github_commit_url: `https://github.com/vybcel/${repositoryName}/commit/${mainCommitSha}`,
+        files_count: Object.keys(templateFiles).length
+      });
+    }
+
+    // 4. ✅ Обновляем статус проекта как готовый к скачиванию
+    io.to(`project:${projectId}`).emit('initialization_progress', {
+      projectId,
+      stage: 'finalizing',
+      progress: 90,
+      message: 'Almost ready...'
+    });
+    
+    await projectQueries.updateProject(projectId, {
+      deploy_status: "ready" // Проект готов к скачиванию и разработке
+    });
+
+    // 5. 🚀 Отправляем WebSocket событие о завершении инициализации
+    console.log(`📡 [INIT_BG] Sending final initialization_progress (100%) to project:${projectId}`);
+    io.to(`project:${projectId}`).emit('initialization_progress', {
+      projectId,
+      stage: 'completed',
+      progress: 100,
+      message: 'Ready!'
+    });
+    
+    console.log(`📡 [INIT_BG] Sending deploy_status_update to project:${projectId}`);
+    io.to(`project:${projectId}`).emit('deploy_status_update', {
+      status: 'ready',
+      message: 'Project initialization completed',
+      projectId
+    });
+
+    console.log(`🎉 [INIT_BG] Template upload completed for ${projectId}! Project ready for development.`);
+
+  } catch (error) {
+    console.error(`❌ [INIT_BG] Template upload failed for ${projectId}:`, error);
+    
+    // Обновляем статус на failed
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    await projectQueries.updateProject(projectId, {
+      deploy_status: "failed"
+    });
+
+    // Отправляем WebSocket событие об ошибке
+    io.to(`project:${projectId}`).emit('deploy_status_update', {
+      status: 'failed',
+      message: 'Project initialization failed',
+      projectId
+    });
+    
+    throw error;
+  }
+}
+
+/**
+ * Генерирует файлы шаблона с настройками проекта
+ * Перенесено из Next.js для работы в WebSocket сервере
+ */
+async function generateTemplateFiles(
+  projectId: string,
+  templateType: string,
+  projectName: string
+): Promise<Record<string, string>> {
+  console.log(`🔄 [TEMPLATE] Generating template files for ${projectId} (${templateType})`);
+  
+  // Импортируем необходимые модули
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  // Путь к шаблону (относительно корня workspace)
+  const templatePath = path.join(process.cwd(), "..", "..", "templates", templateType);
+  
+  if (!fs.existsSync(templatePath)) {
+    // Пробуем альтернативный путь
+    const alternativeTemplatePath = path.join(process.cwd(), "templates", templateType);
+    if (!fs.existsSync(alternativeTemplatePath)) {
+      throw new Error(`Template ${templateType} not found`);
+    }
+    return await collectTemplateFiles(alternativeTemplatePath, projectName, projectId);
+  }
+  
+  return await collectTemplateFiles(templatePath, projectName, projectId);
+}
+
+/**
+ * Собирает все файлы из шаблона и применяет необходимые трансформации
+ */
+async function collectTemplateFiles(
+  templatePath: string,
+  projectName: string,
+  projectId: string
+): Promise<Record<string, string>> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  const templateFiles: Record<string, string> = {};
+  
+  function collectFiles(dirPath: string, relativePath: string = ''): void {
+    const items = fs.readdirSync(dirPath, { withFileTypes: true });
+    
+    for (const item of items) {
+      // Пропускаем служебные папки
+      if (item.name === 'node_modules' || item.name === '.git' || item.name === 'dist' || item.name === '.next') {
+        continue;
+      }
+      
+      const fullPath = path.join(dirPath, item.name);
+      const relativeFilePath = relativePath ? path.join(relativePath, item.name) : item.name;
+      
+      if (item.isDirectory()) {
+        collectFiles(fullPath, relativeFilePath);
+      } else {
+        let content = fs.readFileSync(fullPath, 'utf-8');
+        
+        // Применяем трансформации для специальных файлов
+        if (item.name === 'package.json') {
+          const packageJson = JSON.parse(content);
+          packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
+          content = JSON.stringify(packageJson, null, 2);
+        } else if (item.name === 'vybcel.config.json') {
+          // Заменяем PROJECT_ID в конфигурационном файле
+          content = content.replace(/__PROJECT_ID__/g, projectId);
+          
+          // Заменяем WS_URL в зависимости от окружения
+          const wsUrl = process.env.NODE_ENV === 'production' 
+            ? 'wss://api.vybcel.com'
+            : 'ws://localhost:8080';
+          content = content.replace(/__WS_URL__/g, wsUrl);
+        }
+        
+        // Нормализуем пути (заменяем \ на /)
+        const normalizedPath = relativeFilePath.replace(/\\/g, '/');
+        templateFiles[normalizedPath] = content;
+      }
+    }
+  }
+  
+  collectFiles(templatePath);
+  
+  console.log(`📋 [TEMPLATE] Collected ${Object.keys(templateFiles).length} files from template`);
+  return templateFiles;
+}
+
+// ✅ Добавляем endpoint для создания GitHub репозитория из Next.js
+app.post('/api/projects/create-repository', async (req, res) => {
+  try {
+    const { projectId, projectName } = req.body;
+    
+    if (!projectId || !projectName) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: projectId, projectName' 
+      });
+    }
+
+    console.log(`🚀 [CREATE_REPO] Creating GitHub repository for project ${projectId}...`);
+
+    // Импортируем GitHub сервис
+    const { githubAppService } = await import('./services/github.js');
+    
+    // Создаем GitHub репозиторий
+    const repository = await githubAppService.createRepository(
+      projectId,
+      `Vybcel project: ${projectName}`
+    );
+    
+    console.log(`✅ [CREATE_REPO] GitHub repository created: ${repository.html_url}`);
+
+    // Обновляем проект с GitHub данными
+    const supabase = getSupabaseServerClient();
+    const projectQueries = new ProjectQueries(supabase);
+    
+    await projectQueries.updateGitHubInfo(projectId, {
+      github_repo_url: repository.html_url,
+      github_repo_name: repository.name,
+      github_owner: 'vybcel'
+    });
+
+    res.status(200).json({
+      success: true,
+      repository: {
+        html_url: repository.html_url,
+        name: repository.name,
+        owner: 'vybcel'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [CREATE_REPO] Error creating GitHub repository:', error);
+    res.status(500).json({ 
+      error: 'Failed to create GitHub repository',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }); 

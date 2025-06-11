@@ -23,6 +23,11 @@ export function DownloadStep({
   const [isInitializing, setIsInitializing] = useState(
     project.deploy_status === "pending"
   );
+  const [initializationProgress, setInitializationProgress] = useState({
+    progress: 0,
+    stage: "",
+    message: "Initializing...",
+  });
 
   // WebSocket для отслеживания статуса инициализации в реальном времени
   const { isConnected } = useWebSocket({
@@ -42,6 +47,25 @@ export function DownloadStep({
         else if (data.status === "pending" && !isInitializing) {
           console.log("⏳ [DownloadStep] Initialization started via WebSocket");
           setIsInitializing(true);
+        }
+      }
+    },
+    onInitializationProgress: (data) => {
+      console.log("📊 [DownloadStep] Initialization progress:", data);
+      if (data.projectId === project.id) {
+        setInitializationProgress({
+          progress: data.progress,
+          stage: data.stage,
+          message: data.message,
+        });
+
+        // Если прогресс завершен (100%) - инициализация закончена
+        if (data.progress >= 100) {
+          console.log(
+            "✅ [DownloadStep] Initialization completed via progress"
+          );
+          setIsInitializing(false);
+          onInitializationComplete?.();
         }
       }
     },
@@ -100,6 +124,7 @@ export function DownloadStep({
             onClick={handleDownload}
             loading={isDownloading || isInitializing}
             disabled={isInitializing}
+            className="pr-1"
             prefix={
               !isDownloading && !isInitializing ? (
                 <svg
@@ -117,20 +142,25 @@ export function DownloadStep({
               ) : undefined
             }
           >
-            {isInitializing
-              ? "Initializing..."
-              : isDownloading
-              ? "Generating..."
-              : "Download"}
+            <div className="flex items-center gap-2">
+              {isInitializing
+                ? "Preparing..."
+                : isDownloading
+                ? "Downloading..."
+                : "Download"}
+
+              {isInitializing && (
+                <div className="text-sm text-muted-foreground min-w-[50px]">
+                  {initializationProgress.progress}%
+                </div>
+              )}
+            </div>
           </Button>
 
+        
+
           <div className="flex-1">
-            {isInitializing && (
-              <div className="flex items-center gap-2 text-sm text-amber-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600"></div>
-                Project is being initialized. Please wait...
-              </div>
-            )}
+           
 
             {isCompleted && !isInitializing && (
               <div className="flex items-center gap-2 text-sm text-green-600">
@@ -156,13 +186,6 @@ export function DownloadStep({
             )}
           </div>
         </div>
-
-        {!isConnected && (
-          <div className="flex items-center gap-2 text-sm text-amber-600">
-            <div className="animate-pulse rounded-full h-2 w-2 bg-amber-600"></div>
-            Connecting to sync service...
-          </div>
-        )}
       </div>
     </Material>
   );

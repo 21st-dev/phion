@@ -17,6 +17,12 @@ interface UseWebSocketOptions {
     error?: string;
     timestamp: string 
   }) => void;
+  onInitializationProgress?: (data: {
+    projectId: string;
+    stage: string;
+    progress: number;
+    message: string;
+  }) => void;
   onCommitCreated?: (data: { projectId: string; commit: any; timestamp: number }) => void;
 }
 
@@ -28,6 +34,7 @@ export function useWebSocket({
   onAgentConnected,
   onAgentDisconnected,
   onDeployStatusUpdate,
+  onInitializationProgress,
   onCommitCreated
 }: UseWebSocketOptions) {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -45,6 +52,7 @@ export function useWebSocket({
     onAgentConnected,
     onAgentDisconnected,
     onDeployStatusUpdate,
+    onInitializationProgress,
     onCommitCreated
   });
 
@@ -57,9 +65,10 @@ export function useWebSocket({
       onAgentConnected,
       onAgentDisconnected,
       onDeployStatusUpdate,
+      onInitializationProgress,
       onCommitCreated
     };
-  }, [onFileTracked, onSaveSuccess, onError, onAgentConnected, onAgentDisconnected, onDeployStatusUpdate, onCommitCreated]);
+  }, [onFileTracked, onSaveSuccess, onError, onAgentConnected, onAgentDisconnected, onDeployStatusUpdate, onInitializationProgress, onCommitCreated]);
 
   const disconnect = useCallback(() => {
     if (socket) {
@@ -178,6 +187,11 @@ export function useWebSocket({
     newSocket.on('commit_created', (data) => {
       console.log('📝 [WebSocket] Commit created:', data);
       stableCallbacks.current.onCommitCreated?.(data);
+    });
+
+    newSocket.on('initialization_progress', (data) => {
+      console.log('📊 [WebSocket] Initialization progress:', data);
+      stableCallbacks.current.onInitializationProgress?.(data);
     });
 
     newSocket.on('file_updated', (data) => {

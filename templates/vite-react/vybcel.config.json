@@ -1,5 +1,5 @@
 {
   "projectId": "__PROJECT_ID__",
-  "wsUrl": "wss://api.vybcel.com",
+  "wsUrl": "__WS_URL__",
   "debug": false
 }

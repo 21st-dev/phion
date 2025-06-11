@@ -1,5 +1,6 @@
 import React from "react";
 import { Spinner } from "./spinner";
+import { cn } from "@/lib/utils";
 
 const sizes = [
   {
@@ -63,6 +64,7 @@ export interface ButtonProps {
   fullWidth?: boolean;
   onClick?: () => void;
   ref?: React.Ref<HTMLButtonElement>;
+  className?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -80,6 +82,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled = false,
       fullWidth = false,
       onClick,
+      className,
       ...rest
     },
     ref
@@ -94,19 +97,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled}
         onClick={onClick}
         tabIndex={0}
-        className={`flex justify-center items-center gap-2 duration-150 ${
-          sizes[+svgOnly][size]
-        } ${
+        className={cn(
+          "flex justify-center items-center gap-2 duration-150",
+          sizes[+svgOnly][size],
           disabled || loading
             ? "bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f] fill-[#8f8f8f] border border-[#ebebeb] dark:border-[#2e2e2e] cursor-not-allowed"
-            : types[type]
-        } ${shapes[shape][size]}${
-          shadow
-            ? " shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none"
-            : ""
-        }${
-          fullWidth ? " w-full" : ""
-        } focus:shadow-[0_0_0_2px_hsla(0,0%,100%,1),0_0_0_4px_oklch(57.61% 0.2508 258.23)]`}
+            : types[type],
+          shapes[shape][size],
+          shadow && "shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none",
+          fullWidth && "w-full",
+          "focus:shadow-[0_0_0_2px_hsla(0,0%,100%,1),0_0_0_4px_oklch(57.61% 0.2508 258.23)]",
+          className
+        )}
         {...rest}
       >
         {/* Prefix/Icon */}
@@ -118,7 +120,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? React.cloneElement(prefix as React.ReactElement, {
                   width: iconSize,
                   height: iconSize,
-                  className: `inline-block align-middle ${prefix.props?.className || ""}`,
+                  className: cn("inline-block align-middle", prefix.props?.className),
                 })
               : prefix}
           </span>
@@ -127,9 +129,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {/* Button label */}
         {children && (
           <span
-            className={`overflow-hidden whitespace-nowrap overflow-ellipsis font-sans${
-              size === "tiny" ? "" : " px-1.5"
-            }`}
+            className={cn(
+              "overflow-hidden whitespace-nowrap overflow-ellipsis font-sans",
+              size !== "tiny" && "px-1.5"
+            )}
           >
             {children}
           </span>
@@ -142,7 +145,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? React.cloneElement(suffix as React.ReactElement, {
                   width: iconSize,
                   height: iconSize,
-                  className: `inline-block align-middle ${suffix.props?.className || ""}`,
+                  className: cn("inline-block align-middle", suffix.props?.className),
                 })
               : suffix}
           </span>

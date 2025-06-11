@@ -1,0 +1,52 @@
+[
+  {
+    "project_id": "307a2670-8e94-4505-a4a7-a550ac809516",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "PzTUz0IYwff0WwyWAAAJ"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-11T14:54:00.250Z"
+  },
+  {
+    "project_id": "307a2670-8e94-4505-a4a7-a550ac809516",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "PzTUz0IYwff0WwyWAAAJ"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-11T14:54:45.106Z"
+  },
+  {
+    "project_id": "307a2670-8e94-4505-a4a7-a550ac809516",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "SrgGQqZbk9uhh2rEAAAB"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-11T14:54:47.506Z"
+  },
+  {
+    "project_id": "307a2670-8e94-4505-a4a7-a550ac809516",
+    "event_type": "agent_disconnected",
+    "details": {
+      "connected": false,
+      "clientId": "SrgGQqZbk9uhh2rEAAAB"
+    },
+    "trigger": "websocket_disconnection",
+    "timestamp": "2025-06-11T15:00:08.622Z"
+  },
+  {
+    "project_id": "307a2670-8e94-4505-a4a7-a550ac809516",
+    "event_type": "agent_connected",
+    "details": {
+      "connected": true,
+      "clientId": "nOUMsVSL-CDgldeuAAAH"
+    },
+    "trigger": "websocket_connection",
+    "timestamp": "2025-06-11T15:00:10.962Z"
+  }
+]
