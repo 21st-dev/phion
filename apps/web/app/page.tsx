@@ -1,34 +1,54 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProjectList } from "@/components/project-list";
-import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { DeleteAllProjectsDialog } from "@/components/project/delete-all-projects-dialog";
 import { Header } from "@/components/layout/header";
-import { createAuthServerClient } from "@shipvibes/database";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { createAuthBrowserClient } from "@shipvibes/database";
+import type { User } from "@supabase/supabase-js";
+import { CreateProjectButton } from "@/components/create-project-button";
 
-export default async function HomePage() {
-  const cookieStore = await cookies();
-  const supabase = createAuthServerClient({
-    getAll() {
-      return cookieStore.getAll();
-    },
-    setAll(cookiesToSet) {
-      try {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
-        );
-      } catch {
-        // Игнорируем ошибки установки cookies в Server Components
+export default function HomePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const router = useRouter();
+  const supabase = createAuthBrowserClient();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
       }
-    },
-  });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
 
-  // Если пользователь не авторизован, перенаправляем на страницу входа
+    checkAuth();
+  }, [router, supabase.auth]);
+
+  const handleDeleteAllSuccess = () => {
+    // Обновляем список проектов принудительно
+    setRefreshKey((prev) => prev + 1);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background-100 flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
   if (!user) {
-    redirect("/login");
+    return null;
   }
 
   return (
@@ -50,11 +70,20 @@ export default async function HomePage() {
                   deployed instantly.
                 </p>
               </div>
-              <CreateProjectDialog />
+              <div className="flex items-center space-x-3">
+                <CreateProjectButton />
+                {/* Dev-only: Delete All Projects */}
+                {process.env.NODE_ENV === "development" && (
+                  <DeleteAllProjectsDialog
+                    variant="button"
+                    onSuccess={handleDeleteAllSuccess}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Projects */}
-            <ProjectList />
+            <ProjectList key={refreshKey} />
           </div>
         </div>
       </main>

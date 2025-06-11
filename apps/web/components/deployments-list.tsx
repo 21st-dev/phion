@@ -462,6 +462,7 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
     console.log("🚀 [DeploymentsList] History updated:", {
       historyLength: history?.length || 0,
       history: history,
+      willShowWaitingCard: !history || history.length === 0,
     });
   }, [history]);
 
@@ -471,8 +472,9 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
       deployStatus: project.deploy_status,
       netlifyUrl: project.netlify_url,
       lastUpdated: lastUpdated.toISOString(),
+      agentConnected,
     });
-  }, [project.deploy_status, project.netlify_url, lastUpdated]);
+  }, [project.deploy_status, project.netlify_url, lastUpdated, agentConnected]);
 
   if (!history || history.length === 0) {
     return (
@@ -485,52 +487,66 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
           isLoading={isSaving}
         />
 
-        <div className="text-center py-8">
-          {!agentConnected ? (
-            // Агент не подключен - показываем инструкцию
-            <>
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Waiting for connection
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Start your local development environment to see your project
-                history.
-              </p>
-              <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md max-w-md mx-auto">
-                <strong>💡 Next steps:</strong>
-                <div className="mt-1 text-left">
-                  1. Open terminal in your project folder
-                  <br />
-                  2. Run:{" "}
-                  <code className="bg-background px-1 rounded">pnpm start</code>
-                  <br />
-                  3. Your changes will sync automatically
+        {/* Показываем карточку в зависимости от статуса */}
+        {project.deploy_status === "failed" ? (
+          // Карточка ошибки инициализации
+          <div className="border rounded-lg bg-card border-border border-destructive/20">
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <XCircle className="h-4 w-4 text-destructive mt-1" />
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-foreground">
+                      Project setup failed
+                    </h3>
+                    {getStatusBadge("failed")}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>Initialization error</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>Setup failed</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </>
-          ) : (
-            // Агент подключен, но истории нет - показываем загрузку initial коммита
-            <>
-              <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Initializing project history
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Setting up your initial deployment...
-              </p>
-              <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md max-w-md mx-auto">
-                <strong>⚡ What's happening:</strong>
-                <div className="mt-1 text-left">
-                  • Creating initial commit from template
-                  <br />
-                  • Setting up deployment pipeline
-                  <br />• This usually takes 30-60 seconds
+            </div>
+          </div>
+        ) : (
+          // Карточка инициализации проекта
+          <div className="border rounded-lg bg-card border-border">
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <Loader2 className="h-4 w-4 text-muted-foreground mt-1 animate-spin" />
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-foreground">
+                      Setting up project
+                    </h3>
+                    {getStatusBadge("pending")}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <GitCommit className="h-3 w-3" />
+                      <span>Preparing template files</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>In progress</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

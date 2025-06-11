@@ -1254,13 +1254,28 @@ async function initializeProjectInBackground(
 
     // 3. Создаем запись в commit_history
     if (mainCommitSha) {
-      await commitHistoryQueries.createCommitHistory({
+      const commitRecord = await commitHistoryQueries.createCommitHistory({
         project_id: projectId,
         commit_message: 'Initial commit from template',
         github_commit_sha: mainCommitSha,
         github_commit_url: `https://github.com/vybcel/${repositoryName}/commit/${mainCommitSha}`,
         files_count: Object.keys(templateFiles).length
       });
+
+      // Отправляем WebSocket событие о создании коммита
+      console.log(`📡 [INIT_BG] Sending commit_created event to project:${projectId}`);
+      io.to(`project:${projectId}`).emit('commit_created', {
+        projectId,
+        commit: {
+          commit_id: commitRecord.commit_id,
+          commit_message: 'Initial commit from template',
+          created_at: commitRecord.created_at,
+          files_count: Object.keys(templateFiles).length,
+          github_commit_sha: mainCommitSha,
+          github_commit_url: `https://github.com/vybcel/${repositoryName}/commit/${mainCommitSha}`
+        }
+      });
+      console.log(`✅ [INIT_BG] commit_created event sent for initial commit`);
     }
 
     // 4. ✅ Обновляем статус проекта как готовый к скачиванию
@@ -1296,19 +1311,30 @@ async function initializeProjectInBackground(
   } catch (error) {
     console.error(`❌ [INIT_BG] Template upload failed for ${projectId}:`, error);
     
-    // Обновляем статус на failed
-    const supabase = getSupabaseServerClient();
-    const projectQueries = new ProjectQueries(supabase);
-    await projectQueries.updateProject(projectId, {
-      deploy_status: "failed"
-    });
+    try {
+      console.log(`🔄 [INIT_BG] Updating project status to failed for ${projectId}...`);
+      
+      // Обновляем статус на failed
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      await projectQueries.updateProject(projectId, {
+        deploy_status: "failed"
+      });
+      console.log(`✅ [INIT_BG] Project status updated to failed for ${projectId}`);
 
-    // Отправляем WebSocket событие об ошибке
-    io.to(`project:${projectId}`).emit('deploy_status_update', {
-      status: 'failed',
-      message: 'Project initialization failed',
-      projectId
-    });
+      // Отправляем WebSocket событие об ошибке
+      console.log(`📡 [INIT_BG] Sending deploy_status_update (failed) to project:${projectId}`);
+      io.to(`project:${projectId}`).emit('deploy_status_update', {
+        status: 'failed',
+        message: 'Project initialization failed',
+        projectId,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`✅ [INIT_BG] WebSocket event sent for failed initialization`);
+      
+    } catch (updateError) {
+      console.error(`❌ [INIT_BG] Failed to update project status for ${projectId}:`, updateError);
+    }
     
     throw error;
   }

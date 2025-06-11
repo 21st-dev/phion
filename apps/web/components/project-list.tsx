@@ -59,16 +59,26 @@ export function ProjectList() {
   const mapDeployStatus = (
     status: string
   ): "QUEUED" | "BUILDING" | "ERROR" | "READY" | "CANCELED" => {
+    console.log("🔄 [ProjectList] Mapping deploy status:", status);
     switch (status) {
       case "ready":
         return "READY";
       case "building":
         return "BUILDING";
       case "failed":
+      case "error":
         return "ERROR";
       case "pending":
         return "QUEUED";
+      case "canceled":
+      case "cancelled":
+        return "CANCELED";
       default:
+        console.warn(
+          "⚠️ [ProjectList] Unknown deploy status:",
+          status,
+          "- mapping to QUEUED"
+        );
         return "QUEUED";
     }
   };

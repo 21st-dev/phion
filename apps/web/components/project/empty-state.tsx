@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
-import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { CreateProjectButton } from "@/components/create-project-button";
 
 export function EmptyState() {
   return (
@@ -52,7 +52,7 @@ export function EmptyState() {
           </p>
 
           {/* Action */}
-          <CreateProjectDialog
+          <CreateProjectButton
             trigger={
               <Button type="primary" size="medium">
                 Create Project

@@ -6,6 +6,11 @@ import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
 // Server-side import for the project logger
 import { projectLogger } from "@shipvibes/shared/project-logger-server";
 
+// Загружаем переменные окружения
+if (process.env.NODE_ENV === 'development') {
+  require('dotenv').config({ path: '.env.local' });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -79,6 +84,89 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Name and template_type are required" },
         { status: 400 }
+      );
+    }
+
+    // Проверяем лимиты проектов
+    const email = user.email;
+    if (!email) {
+      return NextResponse.json(
+        { error: "User email not found" },
+        { status: 400 }
+      );
+    }
+
+    // Проверяем текущее количество проектов пользователя
+    const { data: existingProjects, error: countError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (countError) {
+      console.error("Error counting projects:", countError);
+      return NextResponse.json(
+        { error: "Failed to check project limits" },
+        { status: 500 }
+      );
+    }
+
+    const projectCount = existingProjects?.length || 0;
+    const FREE_TIER_LIMIT = 1;
+
+    // Проверяем подписку через 21st.dev API
+    let hasActiveSubscription = false;
+    const subscriptionApiKey = process.env.SUBSCRIPTION_API_KEY;
+    
+    if (subscriptionApiKey) {
+      try {
+        // Add timeout and better error handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        const subscriptionResponse = await fetch('https://21st.dev/api/subscription/check', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify({
+            apiKey: subscriptionApiKey,
+            email: email
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (subscriptionResponse.ok) {
+          // Check if response is JSON before parsing
+          const contentType = subscriptionResponse.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const subscriptionData = await subscriptionResponse.json();
+            hasActiveSubscription = subscriptionData.hasActiveSubscription || false;
+          } else {
+            console.warn("Subscription API returned non-JSON response, defaulting to free tier");
+          }
+        }
+      } catch (subscriptionError) {
+        if (subscriptionError instanceof Error && subscriptionError.name === 'AbortError') {
+          console.warn("Subscription check timed out, defaulting to free tier");
+        } else {
+          console.warn("Error checking subscription, defaulting to free tier:", subscriptionError);
+        }
+        // Продолжаем работу, считая что подписки нет
+      }
+    }
+
+    // Проверяем лимиты
+    if (!hasActiveSubscription && projectCount >= FREE_TIER_LIMIT) {
+      return NextResponse.json(
+        { 
+          error: "Project limit exceeded",
+          message: `Free plan allows up to ${FREE_TIER_LIMIT} projects. Upgrade to Pro for unlimited projects.`,
+          currentCount: projectCount,
+          maxProjects: FREE_TIER_LIMIT
+        },
+        { status: 403 }
       );
     }
 

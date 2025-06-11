@@ -42,27 +42,22 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
         },
         body: JSON.stringify({
           name: projectName.trim(),
-          template_type: "vite-react", // Зафиксировано как React Vite
+          template_type: "vite-react",
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create project");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create project");
       }
 
       const data = await response.json();
-
-      // Показываем уведомление об успехе
       showSuccess(
         "Project created successfully",
         `"${projectName.trim()}" is ready for setup`
       );
-
-      // Закрываем диалог и перенаправляем на онбординг проекта
       setOpen(false);
       router.push(`/project/${data.project.id}/onboarding`);
-
-      // Сбрасываем форму
       setProjectName("");
     } catch (error) {
       console.error("Error creating project:", error);
@@ -123,7 +118,6 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
             />
           </div>
 
-          {/* Информация о шаблоне */}
           <div className="grid gap-2">
             <Label>Template</Label>
             <div className="p-3 bg-muted rounded-md">

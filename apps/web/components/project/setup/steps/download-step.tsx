@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import NumberFlow from "@number-flow/react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
 import { useWebSocket } from "@/hooks/use-websocket";
@@ -151,17 +152,19 @@ export function DownloadStep({
 
               {isInitializing && (
                 <div className="text-sm text-muted-foreground min-w-[50px]">
-                  {initializationProgress.progress}%
+                  <NumberFlow
+                    value={initializationProgress.progress / 100}
+                    format={{
+                      style: "percent",
+                      maximumFractionDigits: 0,
+                    }}
+                  />
                 </div>
               )}
             </div>
           </Button>
 
-        
-
           <div className="flex-1">
-           
-
             {isCompleted && !isInitializing && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <svg

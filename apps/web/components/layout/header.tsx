@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ThemeSwitcher } from "@/components/geist/theme-switcher";
 import { Avatar } from "@/components/geist/avatar";
 import { Button } from "@/components/geist/button";
+import { Badge } from "@/components/ui/badge";
 import { useSupabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useProjectLimits } from "@/hooks/use-project-limits";
+import { PricingModal } from "@/components/pricing-modal";
 import type { DatabaseTypes } from "@shipvibes/database";
 
 interface HeaderProps {
@@ -40,6 +44,9 @@ const SlashIcon = () => (
 export function Header({ user, project }: HeaderProps) {
   const supabase = useSupabase();
   const router = useRouter();
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const { hasActiveSubscription, projectCount, maxProjects, isLoading } =
+    useProjectLimits();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -76,6 +83,27 @@ export function Header({ user, project }: HeaderProps) {
           <div className="flex items-center space-x-4">
             <ThemeSwitcher />
 
+            {/* Subscription Status Badge */}
+            {user && !isLoading && (
+              <div className="hidden sm:block">
+                {hasActiveSubscription ? (
+                  <Badge
+                    className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-800 cursor-pointer hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                    onClick={() => setShowPricingModal(true)}
+                  >
+                    Pro
+                  </Badge>
+                ) : (
+                  <Badge
+                    className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs"
+                    onClick={() => setShowPricingModal(true)}
+                  >
+                    {projectCount}/{maxProjects} Free
+                  </Badge>
+                )}
+              </div>
+            )}
+
             {user ? (
               <div className="flex items-center space-x-3">
                 <Avatar src={user.user_metadata?.avatar_url} size={32} />
@@ -100,6 +128,14 @@ export function Header({ user, project }: HeaderProps) {
           </div>
         </div>
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal
+        open={showPricingModal}
+        onOpenChange={setShowPricingModal}
+        currentProjectCount={projectCount}
+        maxProjects={maxProjects}
+      />
     </header>
   );
 }

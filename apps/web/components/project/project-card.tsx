@@ -53,9 +53,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
             <span className="text-lg font-semibold text-gray-1000 truncate">
               {project.name}
             </span>
-            {project.deploy_status && (
-              <StatusDot state={project.deploy_status} label />
-            )}
+            {/* Показываем статус только если проект готов (есть URL) или есть ошибка */}
+            {project.deploy_status &&
+              (project.url || project.deploy_status === "ERROR") && (
+                <StatusDot state={project.deploy_status} label />
+              )}
           </div>
 
           {/* Project URL if available */}
