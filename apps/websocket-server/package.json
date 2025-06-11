@@ -2,7 +2,6 @@
   "name": "@shipvibes/websocket-server",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' tsx watch src/index.ts",
     "build": "tsc",
