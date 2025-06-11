@@ -1,5 +1,10 @@
 {
   "projectId": "__PROJECT_ID__",
   "wsUrl": "__WS_URL__",
-  "debug": false
+  "debug": true,
+  "toolbar": {
+    "enabled": true,
+    "position": "top",
+    "autoOpen": true
+  }
 }

@@ -6,7 +6,7 @@ import { Icons } from "@/components/icons";
 import { CheckCircle, Clock, Copy } from "lucide-react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SetupStepProps {
   onDeploy: () => void;
@@ -21,6 +21,7 @@ export function SetupStep({
 }: SetupStepProps) {
   const { success, error } = useToast();
   const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   // WebSocket для отслеживания подключения агента
   const { isConnected } = useWebSocket({
@@ -37,6 +38,36 @@ export function SetupStep({
       );
     },
   });
+
+  // Обратный отсчет после подключения агента
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (agentConnected && countdown === null) {
+      // Начинаем отсчет только если агент подключен и отсчет еще не начался
+      setCountdown(10);
+    }
+
+    if (countdown !== null && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            // Отсчет закончился - редиректим
+            onDeploy();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [agentConnected, countdown, onDeploy]);
 
   const handleOpenCursor = () => {
     try {
@@ -63,6 +94,24 @@ export function SetupStep({
     } catch (error) {
       console.error("Failed to copy:", error);
     }
+  };
+
+  const handleContinueClick = () => {
+    // Если пользователь нажал кнопку до окончания отсчета, сразу редиректим
+    if (countdown !== null) {
+      setCountdown(null);
+    }
+    onDeploy();
+  };
+
+  const getButtonText = () => {
+    if (!agentConnected) {
+      return "Waiting for Connection...";
+    }
+    if (countdown !== null && countdown > 0) {
+      return `Continue to Development (${countdown})`;
+    }
+    return "Continue to Development";
   };
 
   return (
@@ -223,13 +272,11 @@ export function SetupStep({
           <div className="pt-4">
             <Button
               size="lg"
-              onClick={onDeploy}
+              onClick={handleContinueClick}
               className="w-full"
               disabled={!agentConnected}
             >
-              {agentConnected
-                ? "Continue to Development"
-                : "Waiting for Connection..."}
+              {getButtonText()}
             </Button>
           </div>
         </div>

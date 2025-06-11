@@ -16,6 +16,11 @@ function loadConfig(): AgentConfig {
         projectId: config.projectId,
         wsUrl: config.wsUrl || process.env.VYBCEL_WS_URL || "ws://localhost:8080",
         debug: config.debug || false,
+        toolbar: config.toolbar || {
+          enabled: true,
+          position: 'top',
+          autoOpen: true
+        },
       };
     } catch (error) {
       console.error("❌ Error reading vybcel.config.json:", (error as Error).message);
@@ -36,6 +41,11 @@ function loadConfig(): AgentConfig {
     projectId,
     wsUrl,
     debug: false,
+    toolbar: {
+      enabled: true,
+      position: 'top',
+      autoOpen: true
+    },
   };
   }
 

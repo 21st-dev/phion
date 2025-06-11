@@ -5,6 +5,7 @@ import path from "path";
 import crypto from "crypto";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { openPreview, type VSCodeConfig } from "./vscode-utils.js";
 
 const execAsync = promisify(exec);
 
@@ -12,6 +13,11 @@ export interface AgentConfig {
   projectId: string;
   wsUrl: string;
   debug?: boolean;
+  toolbar?: {
+    enabled?: boolean;
+    position?: 'top' | 'bottom';
+    autoOpen?: boolean;
+  };
 }
 
 export interface FileChange {
@@ -164,6 +170,10 @@ export class VybcelAgent {
           console.log(`🔐 Authenticated for project: ${data.projectId}`);
         }
         this.isConnected = true;
+        
+        // Открываем превью в VS Code после успешного подключения
+        this.openPreviewIfEnabled();
+        
         resolve();
       });
 
@@ -462,6 +472,47 @@ export class VybcelAgent {
     };
 
     this.socket?.emit("file_delete", fileDelete);
+  }
+
+  private async openPreviewIfEnabled(): Promise<void> {
+    if (this.config.debug) {
+      console.log("🔍 Checking if preview should be opened...");
+      console.log("📋 Toolbar config:", JSON.stringify(this.config.toolbar, null, 2));
+    }
+
+    // Проверяем, включен ли toolbar и autoOpen
+    const toolbarConfig = this.config.toolbar;
+    if (!toolbarConfig?.enabled) {
+      if (this.config.debug) {
+        console.log("⏭️ Toolbar disabled, skipping preview");
+      }
+      return;
+    }
+
+    if (!toolbarConfig?.autoOpen) {
+      if (this.config.debug) {
+        console.log("⏭️ Auto-open disabled, skipping preview");
+      }
+      return;
+    }
+
+    if (this.config.debug) {
+      console.log("✅ Preview will be opened in 2 seconds...");
+    }
+
+    // Настройки для VS Code
+    const vsCodeConfig: VSCodeConfig = {
+      autoOpen: true,
+      port: 5173, // Vite default port
+    };
+
+    // Небольшая задержка чтобы дать время dev-серверу запуститься
+    setTimeout(async () => {
+      if (this.config.debug) {
+        console.log("🚀 Opening preview now...");
+      }
+      await openPreview(vsCodeConfig, this.config.debug);
+    }, 2000);
   }
 
   stop(): void {

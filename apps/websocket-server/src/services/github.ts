@@ -88,19 +88,19 @@ export class GitHubAppService {
   private readonly baseUrl = 'https://api.github.com';
   private readonly organization = 'vybcel';
 
-  // Кэш для installation токенов
+  // Кэш токена для избежания частых запросов
   private tokenCache: {
     token: string;
     expiresAt: Date;
   } | null = null;
 
   constructor() {
-    this.appId = process.env.GITHUB_APP_ID!;
-    this.installationId = process.env.GITHUB_APP_INSTALLATION_ID!;
-    this.privateKey = process.env.GITHUB_APP_PRIVATE_KEY!;
+    this.appId = process.env.GITHUB_APP_ID || '';
+    this.installationId = process.env.GITHUB_APP_INSTALLATION_ID || '';
+    this.privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n') || '';
 
     if (!this.appId || !this.installationId || !this.privateKey) {
-      throw new Error('GitHub App configuration is missing. Please check environment variables.');
+      throw new Error('Missing GitHub App configuration. Please set GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID, and GITHUB_APP_PRIVATE_KEY environment variables.');
     }
 
     console.log('✅ GitHubAppService initialized', {
@@ -108,6 +108,64 @@ export class GitHubAppService {
       installationId: this.installationId,
       organization: this.organization
     });
+  }
+
+  /**
+   * Повторяет запрос с экспоненциальной задержкой при ошибках
+   */
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    context: string,
+    maxAttempts = 3,
+    baseDelay = 1000
+  ): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        
+        // Определяем, стоит ли повторять
+        const shouldRetry = this.shouldRetryError(error);
+        
+        if (attempt === maxAttempts || !shouldRetry) {
+          console.error(`❌ [RETRY] Final failure for ${context} after ${attempt} attempts:`, error);
+          throw error;
+        }
+        
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.warn(`⚠️ [RETRY] Attempt ${attempt}/${maxAttempts} failed for ${context}, retrying in ${delay}ms:`, 
+          error instanceof Error ? error.message : error);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError!;
+  }
+
+  /**
+   * Определяет, стоит ли повторять запрос при данной ошибке
+   */
+  private shouldRetryError(error: any): boolean {
+    if (!error) return false;
+    
+    // Сетевые ошибки
+    if (error.code === 'ECONNRESET' || 
+        error.code === 'ENOTFOUND' || 
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNREFUSED') {
+      return true;
+    }
+    
+    // HTTP статусы, которые стоит повторить
+    if (error.status >= 500 || error.status === 429) {
+      return true;
+    }
+    
+    return false;
   }
 
   /**
@@ -464,31 +522,35 @@ export class GitHubAppService {
    * Создает blob объект в GitHub
    */
   async createBlob(repoName: string, content: string): Promise<{ sha: string }> {
-    try {
-      const base64Content = Buffer.from(content, 'utf8').toString('base64');
-      
-      const response = await this.makeAuthenticatedRequest(
-        `/repos/${this.organization}/${repoName}/git/blobs`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            content: base64Content,
-            encoding: 'base64'
-          }),
+    return this.withRetry(
+      async () => {
+        const base64Content = Buffer.from(content, 'utf8').toString('base64');
+        
+        const response = await this.makeAuthenticatedRequest(
+          `/repos/${this.organization}/${repoName}/git/blobs`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              content: base64Content,
+              encoding: 'base64'
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.text();
+          const errorObj = new Error(`Failed to create blob: ${response.status} ${error}`) as any;
+          errorObj.status = response.status;
+          throw errorObj;
         }
-      );
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to create blob: ${response.status} ${error}`);
-      }
-
-      const blob = await response.json() as { sha: string };
-      return blob;
-    } catch (error) {
-      console.error('❌ Failed to create blob', { repoName, error });
-      throw error;
-    }
+        const blob = await response.json() as { sha: string };
+        return blob;
+      },
+      `createBlob(${repoName})`,
+      3,
+      1000
+    );
   }
 
   /**
@@ -499,38 +561,42 @@ export class GitHubAppService {
     blobs: { path: string; sha: string }[], 
     baseTree?: string
   ): Promise<{ sha: string }> {
-    try {
-      const tree = blobs.map(blob => ({
-        path: blob.path,
-        mode: '100644', // Regular file
-        type: 'blob',
-        sha: blob.sha
-      }));
+    return this.withRetry(
+      async () => {
+        const tree = blobs.map(blob => ({
+          path: blob.path,
+          mode: '100644', // Regular file
+          type: 'blob',
+          sha: blob.sha
+        }));
 
-      const requestBody: any = { tree };
-      if (baseTree) {
-        requestBody.base_tree = baseTree;
-      }
-
-      const response = await this.makeAuthenticatedRequest(
-        `/repos/${this.organization}/${repoName}/git/trees`,
-        {
-          method: 'POST',
-          body: JSON.stringify(requestBody),
+        const requestBody: any = { tree };
+        if (baseTree) {
+          requestBody.base_tree = baseTree;
         }
-      );
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to create tree: ${response.status} ${error}`);
-      }
+        const response = await this.makeAuthenticatedRequest(
+          `/repos/${this.organization}/${repoName}/git/trees`,
+          {
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+          }
+        );
 
-      const treeResult = await response.json() as { sha: string };
-      return treeResult;
-    } catch (error) {
-      console.error('❌ Failed to create tree', { repoName, error });
-      throw error;
-    }
+        if (!response.ok) {
+          const error = await response.text();
+          const errorObj = new Error(`Failed to create tree: ${response.status} ${error}`) as any;
+          errorObj.status = response.status;
+          throw errorObj;
+        }
+
+        const treeResult = await response.json() as { sha: string };
+        return treeResult;
+      },
+      `createTree(${repoName})`,
+      3,
+      1000
+    );
   }
 
   /**
@@ -542,61 +608,69 @@ export class GitHubAppService {
     treeSha: string,
     parents: string[] = []
   ): Promise<{ sha: string }> {
-    try {
-      const response = await this.makeAuthenticatedRequest(
-        `/repos/${this.organization}/${repoName}/git/commits`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            message,
-            tree: treeSha,
-            parents,
-            author: {
-              name: 'Vybcel Bot',
-              email: 'bot@vybcel.com'
-            },
-            committer: {
-              name: 'Vybcel Bot',
-              email: 'bot@vybcel.com'
-            }
-          }),
+    return this.withRetry(
+      async () => {
+        const response = await this.makeAuthenticatedRequest(
+          `/repos/${this.organization}/${repoName}/git/commits`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              message,
+              tree: treeSha,
+              parents,
+              author: {
+                name: 'Vybcel Bot',
+                email: 'bot@vybcel.com'
+              },
+              committer: {
+                name: 'Vybcel Bot',
+                email: 'bot@vybcel.com'
+              }
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.text();
+          const errorObj = new Error(`Failed to create commit: ${response.status} ${error}`) as any;
+          errorObj.status = response.status;
+          throw errorObj;
         }
-      );
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to create commit: ${response.status} ${error}`);
-      }
-
-      const commit = await response.json() as { sha: string };
-      return commit;
-    } catch (error) {
-      console.error('❌ Failed to create commit', { repoName, error });
-      throw error;
-    }
+        const commit = await response.json() as { sha: string };
+        return commit;
+      },
+      `createCommit(${repoName})`,
+      3,
+      1000
+    );
   }
 
   /**
    * Обновляет ссылку (ref) в GitHub
    */
   async updateRef(repoName: string, ref: string, sha: string): Promise<void> {
-    try {
-      const response = await this.makeAuthenticatedRequest(
-        `/repos/${this.organization}/${repoName}/git/refs/${ref}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ sha }),
-        }
-      );
+    return this.withRetry(
+      async () => {
+        const response = await this.makeAuthenticatedRequest(
+          `/repos/${this.organization}/${repoName}/git/refs/${ref}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ sha }),
+          }
+        );
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to update ref: ${response.status} ${error}`);
-      }
-    } catch (error) {
-      console.error('❌ Failed to update ref', { repoName, ref, error });
-      throw error;
-    }
+        if (!response.ok) {
+          const error = await response.text();
+          const errorObj = new Error(`Failed to update ref: ${response.status} ${error}`) as any;
+          errorObj.status = response.status;
+          throw errorObj;
+        }
+      },
+      `updateRef(${repoName}, ${ref})`,
+      3,
+      1000
+    );
   }
 
   /**

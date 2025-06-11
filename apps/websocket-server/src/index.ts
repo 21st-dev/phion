@@ -494,7 +494,7 @@ io.on('connection', (socket) => {
     socket.data.clientType = clientType || 'web'; // По умолчанию web-клиент
     
     console.log(`🔐 Client ${socket.id} authenticated for project ${projectId} (type: ${socket.data.clientType})`);
-    socket.emit('authenticated', { projectId });
+    socket.emit('authenticated', { success: true, projectId });
     
     // Если это агент - добавляем в список подключенных агентов
     if (clientType === 'agent') {
@@ -665,7 +665,9 @@ io.on('connection', (socket) => {
   // НОВЫЙ HANDLER: Сохранение полного снапшота проекта
   socket.on('save_all_changes', async (data) => {
     try {
-      const { projectId, commitMessage } = data;
+      // Используем projectId из data или из socket.data
+      const projectId = data?.projectId || socket.data.projectId;
+      const commitMessage = data?.commitMessage;
       
       if (!projectId) {
         socket.emit('error', { message: 'Missing projectId' });
@@ -710,7 +712,8 @@ io.on('connection', (socket) => {
   // НОВЫЙ HANDLER: Откат локальных изменений
   socket.on('discard_all_changes', async (data) => {
     try {
-      const { projectId } = data;
+      // Используем projectId из data или из socket.data
+      const projectId = data?.projectId || socket.data.projectId;
       
       if (!projectId) {
         socket.emit('error', { message: 'Missing projectId' });
@@ -856,6 +859,150 @@ io.on('connection', (socket) => {
         clientId: socket.id,
         timestamp: Date.now()
       });
+    }
+  });
+
+  // ✅ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ TOOLBAR
+  
+  // Получить текущий статус проекта для toolbar
+  socket.on('toolbar_get_status', async (data) => {
+    const projectId = socket.data.projectId;
+    if (!projectId) {
+      socket.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      const pendingQueries = new PendingChangesQueries(supabase);
+      
+      // Получаем данные проекта
+      const project = await projectQueries.getProjectById(projectId);
+      if (!project) {
+        socket.emit('error', { message: 'Project not found' });
+        return;
+      }
+
+      // Получаем количество pending changes
+      const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
+      
+      // Проверяем подключенных агентов
+      const projectAgents = connectedAgents.get(projectId) || new Set();
+      const agentConnected = projectAgents.size > 0;
+
+      // Определяем реальный статус деплоя
+      let deployStatus = project.deploy_status || 'ready';
+      
+      // Если нет netlify_url, то деплой точно не готов
+      if (!project.netlify_url && deployStatus === 'ready') {
+        deployStatus = 'pending';
+      }
+      
+      // Если есть pending changes, то статус не может быть ready
+      if (pendingChanges.length > 0 && deployStatus === 'ready') {
+        deployStatus = 'pending';
+      }
+
+      // Отправляем статус
+      socket.emit('toolbar_status', {
+        pendingChanges: pendingChanges.length,
+        deployStatus,
+        agentConnected,
+        netlifyUrl: project.netlify_url
+      });
+
+      if (socket.data.clientType === 'toolbar') {
+        console.log(`📊 Toolbar status sent for project ${projectId}: ${pendingChanges.length} pending, ${deployStatus}, agent: ${agentConnected}, url: ${project.netlify_url || 'none'}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error getting toolbar status for project ${projectId}:`, error);
+      socket.emit('error', { message: 'Failed to get project status' });
+    }
+  });
+
+  // Алиас для save_all_changes (для toolbar)
+  socket.on('toolbar_save_all', async (data) => {
+    // Вызываем обработчик напрямую
+    const projectId = data?.projectId || socket.data.projectId;
+    const commitMessage = data?.commitMessage;
+    
+    if (!projectId) {
+      socket.emit('error', { message: 'Missing projectId' });
+      return;
+    }
+
+    try {
+      console.log(`💾 [TOOLBAR] Saving all changes for project ${projectId}`);
+      
+      const commitSha = await saveFullProjectSnapshot(projectId, commitMessage);
+
+      // Получаем данные коммита для уведомления
+      const supabase = getSupabaseServerClient();
+      const commitQueries = new CommitHistoryQueries(supabase);
+      const latestCommit = await commitQueries.getLatestCommit(projectId);
+
+      // Уведомляем ВСЕХ клиентов в проекте о successful save
+      io.to(`project:${projectId}`).emit('save_success', {
+        projectId,
+        commitId: commitSha,
+        timestamp: Date.now()
+      });
+
+      // Уведомляем всех клиентов о новом коммите
+      io.to(`project:${projectId}`).emit('commit_created', {
+        projectId,
+        commit: latestCommit,
+        timestamp: Date.now()
+      });
+
+      // Триггерим деплой ТОЛЬКО после сохранения
+      console.log(`🚀 [TOOLBAR] Triggering deploy after save for project ${projectId}`);
+      triggerDeploy(projectId, commitSha).catch(error => {
+        console.error(`❌ Deploy failed for project ${projectId}:`, error);
+      });
+
+    } catch (error) {
+      console.error('❌ [TOOLBAR] Error saving changes:', error);
+      socket.emit('error', { message: 'Failed to save changes' });
+    }
+  });
+
+  // Алиас для discard_all_changes (для toolbar)
+  socket.on('toolbar_discard_all', async (data) => {
+    // Вызываем обработчик напрямую
+    const projectId = data?.projectId || socket.data.projectId;
+    
+    if (!projectId) {
+      socket.emit('error', { message: 'Missing projectId' });
+      return;
+    }
+
+    try {
+      console.log(`🔄 [TOOLBAR] Discarding all changes for project ${projectId}`);
+      
+      const supabase = getSupabaseServerClient();
+      const pendingQueries = new PendingChangesQueries(supabase);
+      
+      // Очищаем pending changes в базе данных
+      await pendingQueries.clearAllPendingChanges(projectId);
+      
+      // Отправляем команду на откат локальному агенту
+      io.to(`project:${projectId}`).emit('discard_local_changes', {
+        projectId
+      });
+      
+      console.log(`✅ [TOOLBAR] Discard command sent for project ${projectId}`);
+      
+      // Уведомляем ВСЕХ клиентов в проекте об очистке pending changes
+      io.to(`project:${projectId}`).emit('discard_success', {
+        projectId,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ [TOOLBAR] Error discarding changes:', error);
+      socket.emit('error', { message: 'Failed to discard changes' });
     }
   });
 
@@ -1106,7 +1253,7 @@ async function initializeProjectInBackground(
       projectId,
       stage: 'uploading_files',
       progress: 20,
-      message: 'Preparing files...'
+      message: 'Uploading project files...'
     });
 
     // 2. 🚀 Загружаем все файлы ОДНИМ КОММИТОМ с прогрессом
@@ -1239,7 +1386,7 @@ async function initializeProjectInBackground(
       projectId,
       stage: 'completed',
       progress: 100,
-      message: 'Ready!'
+      message: 'Project ready for download!'
     });
     
     console.log(`📡 [INIT_BG] Sending deploy_status_update to project:${projectId}`);
