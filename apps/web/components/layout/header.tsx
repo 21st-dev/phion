@@ -54,7 +54,7 @@ export function Header({ user, project }: HeaderProps) {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-6 w-6 rounded-md bg-gray-1000 flex items-center justify-center">
-                <span className="text-background-100 font-bold text-sm">S</span>
+                <span className="text-background-100 font-bold text-sm">V</span>
               </div>
               <span className="text-gray-1000 font-semibold text-sm">
                 Vybcel
