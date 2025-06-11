@@ -15,4 +15,4 @@ cmds = [
 ]
 
 [start]
-cmd = "cd apps/websocket-server && echo '=== Current directory ===' && pwd && echo '=== Files in current directory ===' && ls -la && echo '=== Starting server ===' && $HOME/.local/share/pnpm/pnpm start" 
+cmd = "cd apps/websocket-server && echo '=== Current directory ===' && pwd && echo '=== Files in current directory ===' && ls -la && echo '=== Contents of dist folder ===' && ls -la dist/ && echo '=== Starting server ===' && $HOME/.local/share/pnpm/pnpm start" 
