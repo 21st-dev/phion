@@ -1,15 +1,19 @@
 export interface VybcelConfig {
   projectId: string
+  websocketUrl?: string
   toolbar?: {
     enabled?: boolean
     position?: 'top' | 'bottom'
-    autoOpen?: boolean
+    autoUpdate?: boolean
+    updateChannel?: 'stable' | 'beta' | 'dev'
   }
 }
 
 export interface VybcelPluginOptions {
   configPath?: string
   websocketUrl?: string
+  autoUpdate?: boolean
+  updateEndpoint?: string
 }
 
 export interface ToolbarState {
@@ -34,4 +38,21 @@ export interface WebSocketEvents {
   save_success: void
   discard_success: void
   toolbar_status: ToolbarState
+}
+
+export interface ToolbarVersion {
+  version: string
+  build: number
+  channel: 'stable' | 'beta' | 'dev'
+  url: string
+  checksum: string
+  releaseNotes?: string
+  timestamp: number
+}
+
+export interface UpdateCheckResponse {
+  hasUpdate: boolean
+  currentVersion: string
+  latestVersion?: ToolbarVersion
+  forceUpdate?: boolean
 } 

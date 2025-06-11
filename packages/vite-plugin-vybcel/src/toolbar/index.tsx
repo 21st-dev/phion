@@ -8,18 +8,160 @@ declare global {
       projectId: string;
       websocketUrl: string;
       position: "top" | "bottom";
+      version: string;
+      autoUpdate: boolean;
+      updateChannel: "stable" | "beta" | "dev";
+    };
+    VYBCEL_TOOLBAR_INSTANCE?: {
+      root: any;
+      version: string;
+      destroy: () => void;
     };
   }
 }
 
+// Auto-update functionality
+class ToolbarUpdater {
+  private checkInterval: NodeJS.Timeout | null = null;
+  private readonly CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+  start() {
+    if (!window.VYBCEL_CONFIG?.autoUpdate) return;
+
+    this.checkInterval = setInterval(() => {
+      this.checkForUpdates();
+    }, this.CHECK_INTERVAL);
+
+    // Check immediately
+    setTimeout(() => this.checkForUpdates(), 10000); // Wait 10s after load
+  }
+
+  stop() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+  }
+
+  private async checkForUpdates() {
+    try {
+      const response = await fetch("/vybcel/api/update-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.hasUpdate && result.latestVersion) {
+          console.log(
+            `[Vybcel Toolbar] Update available: ${result.latestVersion.version}`
+          );
+          this.performUpdate(result.latestVersion);
+        }
+      }
+    } catch (error) {
+      console.warn("[Vybcel Toolbar] Update check failed:", error);
+    }
+  }
+
+  private async performUpdate(version: any) {
+    try {
+      // Show update notification
+      this.showUpdateNotification(version);
+
+      // Hot reload the toolbar
+      await this.hotReloadToolbar();
+    } catch (error) {
+      console.error("[Vybcel Toolbar] Update failed:", error);
+    }
+  }
+
+  private showUpdateNotification(version: any) {
+    // Create temporary notification
+    const notification = document.createElement("div");
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1000000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: slideIn 0.3s ease-out;
+    `;
+    notification.innerHTML = `
+      🚀 Toolbar updated to v${version.version}
+    `;
+
+    // Add slide animation
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      notification.style.animation = "slideIn 0.3s ease-out reverse";
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+
+  private async hotReloadToolbar() {
+    const currentInstance = window.VYBCEL_TOOLBAR_INSTANCE;
+    if (currentInstance) {
+      // Preserve current state if possible
+      const currentState = this.preserveToolbarState();
+
+      // Destroy current instance
+      currentInstance.destroy();
+
+      // Wait a moment for cleanup
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Reinitialize with preserved state
+      initializeToolbar(currentState);
+    }
+  }
+
+  private preserveToolbarState(): any {
+    // Try to preserve important state
+    return {
+      timestamp: Date.now(),
+    };
+  }
+}
+
+const updater = new ToolbarUpdater();
+
 // Initialize toolbar when DOM is ready
-function initializeToolbar() {
+function initializeToolbar(preservedState?: any) {
   if (!window.VYBCEL_CONFIG) {
     console.error("[Vybcel Toolbar] Configuration not found");
     return;
   }
 
-  const { projectId, websocketUrl, position } = window.VYBCEL_CONFIG;
+  const { projectId, websocketUrl, position, version } = window.VYBCEL_CONFIG;
+
+  // Check if toolbar already exists
+  if (window.VYBCEL_TOOLBAR_INSTANCE?.version === version) {
+    return; // Same version, no need to reinitialize
+  }
+
+  // Cleanup existing instance
+  if (window.VYBCEL_TOOLBAR_INSTANCE) {
+    window.VYBCEL_TOOLBAR_INSTANCE.destroy();
+  }
 
   // Create main wrapper for the entire page
   const wrapper = document.createElement("div");
@@ -149,11 +291,33 @@ function initializeToolbar() {
       position={position}
     />
   );
+
+  // Store instance for updates and cleanup
+  window.VYBCEL_TOOLBAR_INSTANCE = {
+    root,
+    version,
+    destroy: () => {
+      root.unmount();
+      wrapper.remove();
+      style.remove();
+      updater.stop();
+      delete window.VYBCEL_TOOLBAR_INSTANCE;
+    },
+  };
+
+  // Start auto-updater
+  updater.start();
+
+  console.log(
+    `[Vybcel Toolbar] Initialized v${version} with auto-update ${
+      window.VYBCEL_CONFIG.autoUpdate ? "enabled" : "disabled"
+    }`
+  );
 }
 
 // Initialize when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeToolbar);
+  document.addEventListener("DOMContentLoaded", () => initializeToolbar());
 } else {
   initializeToolbar();
 }

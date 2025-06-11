@@ -24,7 +24,7 @@ const httpServer = createServer(app);
 // Настройка CORS для Express
 app.use(
   cors({
-    origin: "http://localhost:3004",
+    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004",
     credentials: true,
   })
 );
@@ -34,7 +34,7 @@ app.use(express.json());
 // Настройка Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3004",
+    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -127,6 +127,115 @@ app.post('/api/deploy', async (req, res) => {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'websocket-server' });
+});
+
+// ========= TOOLBAR UPDATE API ENDPOINTS =========
+
+// Push toolbar update to specific project
+app.post('/api/toolbar/push-update', async (req, res) => {
+  try {
+    const { projectId, version, forceUpdate, releaseNotes, channel } = req.body;
+    
+    if (!projectId || !version) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: projectId, version' 
+      });
+    }
+
+    console.log(`🚀 [PUSH_UPDATE] Pushing toolbar update to project ${projectId}: v${version} (force: ${forceUpdate})`);
+    
+    // Отправляем обновление в конкретную комнату проекта
+    io.to(`project:${projectId}`).emit('toolbar_update_available', {
+      version,
+      forceUpdate: forceUpdate || false,
+      releaseNotes: releaseNotes || `New version ${version} is available`,
+      channel: channel || 'stable'
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Update pushed to project ${projectId}`,
+      version,
+      forceUpdate 
+    });
+
+  } catch (error) {
+    console.error('❌ [PUSH_UPDATE] Error pushing toolbar update:', error);
+    res.status(500).json({ 
+      error: 'Failed to push update',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Broadcast toolbar update to all projects
+app.post('/api/toolbar/broadcast-update', async (req, res) => {
+  try {
+    const { version, forceUpdate, releaseNotes, channel } = req.body;
+    
+    if (!version) {
+      return res.status(400).json({ 
+        error: 'Missing required field: version' 
+      });
+    }
+
+    console.log(`📢 [BROADCAST_UPDATE] Broadcasting toolbar update to all projects: v${version} (force: ${forceUpdate})`);
+    
+    // Отправляем обновление всем подключенным клиентам
+    io.emit('toolbar_update_available', {
+      version,
+      forceUpdate: forceUpdate || false,
+      releaseNotes: releaseNotes || `New version ${version} is available`,
+      channel: channel || 'stable'
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Update broadcasted to all projects`,
+      version,
+      forceUpdate 
+    });
+
+  } catch (error) {
+    console.error('❌ [BROADCAST_UPDATE] Error broadcasting toolbar update:', error);
+    res.status(500).json({ 
+      error: 'Failed to broadcast update',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Force toolbar reload for specific project
+app.post('/api/toolbar/force-reload', async (req, res) => {
+  try {
+    const { projectId, reason } = req.body;
+    
+    if (!projectId) {
+      return res.status(400).json({ 
+        error: 'Missing required field: projectId' 
+      });
+    }
+
+    console.log(`🔄 [FORCE_RELOAD] Forcing toolbar reload for project ${projectId}: ${reason || 'no reason'}`);
+    
+    // Отправляем команду перезагрузки
+    io.to(`project:${projectId}`).emit('toolbar_reload', {
+      reason: reason || 'Admin requested reload'
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Reload command sent to project ${projectId}`,
+      reason 
+    });
+
+  } catch (error) {
+    console.error('❌ [FORCE_RELOAD] Error forcing toolbar reload:', error);
+    res.status(500).json({ 
+      error: 'Failed to force reload',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // API endpoint для получения последней версии агента
@@ -1004,6 +1113,98 @@ io.on('connection', (socket) => {
       console.error('❌ [TOOLBAR] Error discarding changes:', error);
       socket.emit('error', { message: 'Failed to discard changes' });
     }
+  });
+
+  // ========= TOOLBAR AUTO-UPDATE HANDLERS =========
+  
+  // Проверка обновлений toolbar
+  socket.on('toolbar_check_updates', async (data) => {
+    const projectId = socket.data.projectId;
+    if (!projectId) {
+      socket.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+
+    try {
+      console.log(`🔄 [TOOLBAR_UPDATE] Update check requested for project ${projectId}`);
+      
+      // Делаем запрос к нашему API endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/api/toolbar/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentVersion: data?.currentVersion || '0.1.0',
+          channel: data?.channel || 'stable',
+          projectId
+        })
+      });
+
+      if (response.ok) {
+        const updateInfo = await response.json() as {
+          hasUpdate: boolean;
+          latestVersion?: {
+            version: string;
+            releaseNotes?: string;
+          };
+          forceUpdate?: boolean;
+        };
+        
+        if (updateInfo.hasUpdate && updateInfo.latestVersion) {
+          console.log(`🚀 [TOOLBAR_UPDATE] Update available for project ${projectId}: ${updateInfo.latestVersion.version}`);
+          
+          // Отправляем уведомление об обновлении
+          socket.emit('toolbar_update_available', {
+            version: updateInfo.latestVersion.version,
+            forceUpdate: updateInfo.forceUpdate || false,
+            releaseNotes: updateInfo.latestVersion.releaseNotes
+          });
+        } else {
+          console.log(`✅ [TOOLBAR_UPDATE] No updates available for project ${projectId}`);
+        }
+      } else {
+        console.log(`❌ [TOOLBAR_UPDATE] Failed to check updates: ${response.status}`);
+      }
+
+    } catch (error) {
+      console.error(`❌ [TOOLBAR_UPDATE] Error checking updates for project ${projectId}:`, error);
+    }
+  });
+
+  // Подтверждение получения обновления
+  socket.on('toolbar_update_acknowledged', async (data) => {
+    const projectId = socket.data.projectId;
+    const version = data?.version;
+    
+    if (!projectId || !version) {
+      return;
+    }
+
+    console.log(`📝 [TOOLBAR_UPDATE] Update acknowledged for project ${projectId}, version ${version}`);
+  });
+
+  // Уведомление об успешном обновлении
+  socket.on('toolbar_update_success', async (data) => {
+    const projectId = socket.data.projectId;
+    const version = data?.version;
+    
+    if (!projectId || !version) {
+      return;
+    }
+
+    console.log(`✅ [TOOLBAR_UPDATE] Update successful for project ${projectId}, version ${version}`);
+  });
+
+  // Уведомление об ошибке обновления
+  socket.on('toolbar_update_error', async (data) => {
+    const projectId = socket.data.projectId;
+    const version = data?.version;
+    const error = data?.error;
+    
+    if (!projectId || !version) {
+      return;
+    }
+
+    console.log(`❌ [TOOLBAR_UPDATE] Update error for project ${projectId}, version ${version}: ${error}`);
   });
 
   // Обработка ошибок

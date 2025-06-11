@@ -112,6 +112,38 @@ export class ToolbarWebSocketClient {
       this.state.agentConnected = false
       this.emit('stateChange', this.state)
     })
+
+    // Auto-update events
+    this.socket.on('toolbar_update_available', (data: { 
+      version: string; 
+      forceUpdate?: boolean; 
+      releaseNotes?: string 
+    }) => {
+      console.log(`[Vybcel Toolbar] Update available: ${data.version}`)
+      this.emit('updateAvailable', data)
+    })
+
+    this.socket.on('toolbar_force_update', (data: { 
+      version: string; 
+      reason?: string 
+    }) => {
+      console.log(`[Vybcel Toolbar] Force update required: ${data.version}`)
+      this.emit('forceUpdate', data)
+    })
+
+    this.socket.on('toolbar_reload', (data: { reason?: string }) => {
+      console.log('[Vybcel Toolbar] Reload requested from server')
+      this.emit('reloadRequested', data)
+    })
+
+    // Server maintenance events
+    this.socket.on('server_maintenance', (data: {
+      message: string;
+      estimatedDuration?: number;
+      maintenanceStart?: string;
+    }) => {
+      this.emit('serverMaintenance', data)
+    })
   }
 
   private requestStatus() {
@@ -120,6 +152,7 @@ export class ToolbarWebSocketClient {
     }
   }
 
+  // Toolbar actions
   saveAll() {
     if (this.socket) {
       this.socket.emit('save_all_changes')
@@ -138,6 +171,32 @@ export class ToolbarWebSocketClient {
     }
   }
 
+  // Update-related methods
+  checkForUpdates() {
+    if (this.socket) {
+      this.socket.emit('toolbar_check_updates')
+    }
+  }
+
+  acknowledgeUpdate(version: string) {
+    if (this.socket) {
+      this.socket.emit('toolbar_update_acknowledged', { version })
+    }
+  }
+
+  reportUpdateSuccess(version: string) {
+    if (this.socket) {
+      this.socket.emit('toolbar_update_success', { version })
+    }
+  }
+
+  reportUpdateError(version: string, error: string) {
+    if (this.socket) {
+      this.socket.emit('toolbar_update_error', { version, error })
+    }
+  }
+
+  // State management
   getState(): ToolbarState {
     return { ...this.state }
   }

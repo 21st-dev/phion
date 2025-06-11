@@ -1,0 +1,35 @@
+{
+  "name": "@shipvibes/storage",
+  "version": "0.1.0",
+  "description": "Storage utilities for Shipvibes platform",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.450.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./r2-toolbar": {
+      "import": "./dist/r2-toolbar.mjs",
+      "require": "./dist/r2-toolbar.js",
+      "types": "./dist/r2-toolbar.d.ts"
+    }
+  }
+}
