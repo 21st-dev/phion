@@ -323,21 +323,6 @@ export function ProjectSetup({
                 projectId={project.id}
                 agentConnected={agentConnected}
               />
-              {setupCompleted && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <polyline points="20,6 9,17 4,12" />
-                  </svg>
-                  Setup completed successfully!
-                </div>
-              )}
             </div>
           </div>
         </div>

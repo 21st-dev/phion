@@ -207,8 +207,8 @@ export function SetupStep({
                 <div>
                   <div className="text-xs text-foreground">
                     {agentConnected
-                      ? "✅ Connected! Your project is now syncing automatically."
-                      : "⏳ Waiting for your local development agent to connect..."}
+                      ? "Connected! Your project is now syncing automatically."
+                      : "Waiting for your local development agent to connect..."}
                   </div>
                   {!agentConnected && (
                     <div className="text-xs text-muted-foreground mt-1">

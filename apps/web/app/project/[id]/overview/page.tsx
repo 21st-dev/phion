@@ -18,21 +18,9 @@ export default function ProjectOverviewPage() {
   const { project } = useProject();
 
   return (
-    <div className="flex gap-6">
-      {/* Main Content */}
-      <div className="flex-1 space-y-8">
-        {/* Complete Save History */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Recent Saves</h2>
-          </div>
-
-          <DeploymentsList />
-        </div>
-      </div>
-
-      {/* Right Sidebar */}
-      <div className="w-80 flex-shrink-0 space-y-6">
+    <div className="flex flex-col md:flex-row gap-6">
+      {/* Preview Section - Shows first on mobile */}
+      <div className="w-full md:w-80 md:flex-shrink-0 space-y-6 order-1 md:order-2">
         {/* Live Preview Header */}
         <div className="flex items-center justify-end">
           <DropdownMenu>
@@ -59,6 +47,18 @@ export default function ProjectOverviewPage() {
         </div>
 
         <DeploymentPreviewCard />
+      </div>
+
+      {/* Main Content - Shows second on mobile */}
+      <div className="flex-1 space-y-8 order-2 md:order-1">
+        {/* Complete Save History */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Recent Saves</h2>
+          </div>
+
+          <DeploymentsList />
+        </div>
       </div>
     </div>
   );

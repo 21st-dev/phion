@@ -73,10 +73,6 @@ function PendingChangesCard({
 }: PendingChangesCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (pendingChanges.length === 0) {
-    return null;
-  }
-
   const getChangeIcon = (action: string) => {
     switch (action) {
       case "create":
@@ -90,139 +86,152 @@ function PendingChangesCard({
   };
 
   return (
-    <div className="border rounded-lg bg-card border-border bg-muted/50">
-      <div
-        className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-start gap-3">
-          <motion.div
-            animate={{ rotate: isExpanded ? 90 : 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-          >
-            <ChevronRight className="h-4 w-4 text-muted-foreground mt-1" />
-          </motion.div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-semibold text-foreground truncate">
-                Draft Changes
-              </h3>
-              <Badge variant="outline">Draft</Badge>
-            </div>
-
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                <span>{pendingChanges.length} files changed</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>Unsaved</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDiscardAll();
-              }}
-              disabled={isLoading}
+    <AnimatePresence>
+      {pendingChanges.length > 0 && (
+        <motion.div
+          initial={{ height: 0, opacity: 0, y: -20 }}
+          animate={{ height: "auto", opacity: 1, y: 0 }}
+          exit={{ height: 0, opacity: 0, y: -20 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          <div className="border rounded-lg bg-card border-border bg-muted/50">
+            <div
+              className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setIsExpanded(!isExpanded)}
             >
-              <X className="h-3 w-3 mr-1" />
-              Discard
-            </Button>
-            <Button
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSaveAll();
-              }}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              ) : (
-                <Save className="h-3 w-3 mr-1" />
-              )}
-              {isLoading ? "Saving..." : "Save & Publish"}
-            </Button>
-          </div>
-        </div>
-      </div>
+              <div className="flex items-start gap-3">
+                <motion.div
+                  animate={{ rotate: isExpanded ? 90 : 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                >
+                  <ChevronRight className="h-4 w-4 text-muted-foreground mt-1" />
+                </motion.div>
 
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="border-t bg-muted/25 overflow-hidden"
-          >
-            <div className="p-4 space-y-4">
-              {/* Draft Details */}
-              <motion.div
-                initial={{ y: -10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Draft Details
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="text-muted-foreground">
-                    <strong>Status:</strong> Unsaved changes
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-foreground truncate">
+                      Draft Changes
+                    </h3>
+                    <Badge variant="outline">Draft</Badge>
                   </div>
-                  <div className="text-muted-foreground">
-                    <strong>Files changed:</strong> {pendingChanges.length}
-                  </div>
-                  <div className="text-muted-foreground">
-                    <strong>Action:</strong> Save to publish
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      <span>{pendingChanges.length} files changed</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>Unsaved</span>
+                    </div>
                   </div>
                 </div>
-              </motion.div>
 
-              {/* Changed Files */}
-              <motion.div
-                initial={{ y: -10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
-                  <FileText className="h-3 w-3" />
-                  Changed Files
-                </h5>
-                <div className="space-y-1">
-                  {pendingChanges.map((change) => (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDiscardAll();
+                    }}
+                    disabled={isLoading}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Discard
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSaveAll();
+                    }}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-3 w-3 mr-1" />
+                    )}
+                    {isLoading ? "Saving..." : "Save & Publish"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="border-t bg-muted/25 overflow-hidden"
+                >
+                  <div className="p-4 space-y-4">
+                    {/* Draft Details */}
                     <motion.div
-                      key={change.id}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
+                      initial={{ y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.2 }}
-                      className="flex items-center gap-2 text-sm p-2 rounded bg-background"
                     >
-                      {getChangeIcon(change.action)}
-                      <span className="font-mono text-sm flex-1">
-                        {change.file_path}
-                      </span>
-                      <Badge variant="outline" className="text-xs">
-                        {change.action}
-                      </Badge>
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        Draft Details
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="text-muted-foreground">
+                          <strong>Status:</strong> Unsaved changes
+                        </div>
+                        <div className="text-muted-foreground">
+                          <strong>Files changed:</strong>{" "}
+                          {pendingChanges.length}
+                        </div>
+                        <div className="text-muted-foreground">
+                          <strong>Action:</strong> Save to publish
+                        </div>
+                      </div>
                     </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+
+                    {/* Changed Files */}
+                    <motion.div
+                      initial={{ y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <FileText className="h-3 w-3" />
+                        Changed Files
+                      </h5>
+                      <div className="space-y-1">
+                        {pendingChanges.map((change) => (
+                          <motion.div
+                            key={change.id}
+                            initial={{ x: -10, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex items-center gap-2 text-sm p-2 rounded bg-background"
+                          >
+                            {getChangeIcon(change.action)}
+                            <span className="font-mono text-sm flex-1">
+                              {change.file_path}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {change.action}
+                            </Badge>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -530,65 +539,72 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
         />
 
         {/* Показываем карточку в зависимости от статуса */}
-        {project.deploy_status === "failed" ? (
-          // Карточка ошибки инициализации
-          <div className="border rounded-lg bg-card border-border border-destructive/20">
-            <div className="p-4">
-              <div className="flex items-start gap-3">
-                <XCircle className="h-4 w-4 text-destructive mt-1" />
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          {project.deploy_status === "failed" ? (
+            // Карточка ошибки инициализации
+            <div className="border rounded-lg bg-card border-border border-destructive/20">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <XCircle className="h-4 w-4 text-destructive mt-1" />
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-foreground">
-                      Project setup failed
-                    </h3>
-                    {getStatusBadge("failed")}
-                  </div>
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>Initialization error</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-foreground">
+                        Project setup failed
+                      </h3>
+                      {getStatusBadge("failed")}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>Setup failed</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Карточка инициализации проекта
-          <div className="border rounded-lg bg-card border-border">
-            <div className="p-4">
-              <div className="flex items-start gap-3">
-                <Loader2 className="h-4 w-4 text-muted-foreground mt-1 animate-spin" />
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-foreground">
-                      Setting up project
-                    </h3>
-                    {getStatusBadge("pending")}
-                  </div>
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <GitCommit className="h-3 w-3" />
-                      <span>Preparing template files</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>In progress</span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>Initialization error</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Setup failed</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            // Карточка инициализации проекта
+            <div className="border rounded-lg bg-card border-border">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <Loader2 className="h-4 w-4 text-muted-foreground mt-1 animate-spin" />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-foreground">
+                        Setting up project
+                      </h3>
+                      {getStatusBadge("pending")}
+                    </div>
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <GitCommit className="h-3 w-3" />
+                        <span>Preparing template files</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>In progress</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
       </div>
     );
   }
@@ -604,30 +620,39 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
       />
 
       {/* Deployments List */}
-      {history.map((commit: Commit, index) => {
-        const isLatest = index === 0;
+      <motion.div layout className="space-y-4">
+        {history.map((commit: Commit, index) => {
+          const isLatest = index === 0;
 
-        // Создаем объект деплоймента на основе коммита
-        const deployment: Deployment = {
-          id: `deploy_${commit.commit_id?.substring(0, 8) || "unknown"}`,
-          commit_id: commit.commit_id || "",
-          status: isLatest
-            ? getValidDeployStatus(project.deploy_status)
-            : "no_deploy", // Старые коммиты не имеют активного деплоя
-          deploy_url: isLatest ? project.netlify_url || undefined : undefined,
-          created_at: commit.created_at,
-        };
+          // Создаем объект деплоймента на основе коммита
+          const deployment: Deployment = {
+            id: `deploy_${commit.commit_id?.substring(0, 8) || "unknown"}`,
+            commit_id: commit.commit_id || "",
+            status: isLatest
+              ? getValidDeployStatus(project.deploy_status)
+              : "no_deploy", // Старые коммиты не имеют активного деплоя
+            deploy_url: isLatest ? project.netlify_url || undefined : undefined,
+            created_at: commit.created_at,
+          };
 
-        return (
-          <DeploymentItem
-            key={deployment.id}
-            deployment={deployment}
-            commit={commit}
-            onRevert={onRevert}
-            isLatest={isLatest}
-          />
-        );
-      })}
+          return (
+            <motion.div
+              key={deployment.id}
+              layout
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <DeploymentItem
+                deployment={deployment}
+                commit={commit}
+                onRevert={onRevert}
+                isLatest={isLatest}
+              />
+            </motion.div>
+          );
+        })}
+      </motion.div>
     </div>
   );
 }
