@@ -81,28 +81,26 @@ export function Header({ user, project }: HeaderProps) {
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
-            <ThemeSwitcher />
-
-            {/* Subscription Status Badge */}
             {user && !isLoading && (
               <div className="hidden sm:block">
                 {hasActiveSubscription ? (
-                  <Badge
-                    className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-800 cursor-pointer hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                  <span
+                    className="cursor-pointer hover:opacity-80 transition-opacity text-sm "
                     onClick={() => setShowPricingModal(true)}
                   >
                     Pro
-                  </Badge>
+                  </span>
                 ) : (
-                  <Badge
-                    className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs"
+                  <span
+                    className="cursor-pointer hover:opacity-80 transition-opacity text-sm "
                     onClick={() => setShowPricingModal(true)}
                   >
                     {projectCount}/{maxProjects} Free
-                  </Badge>
+                  </span>
                 )}
               </div>
             )}
+            <ThemeSwitcher />
 
             {user ? (
               <div className="flex items-center space-x-3">
