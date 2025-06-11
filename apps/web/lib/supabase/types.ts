@@ -203,6 +203,7 @@ export type Database = {
           netlify_deploy_id: string | null
           netlify_site_id: string | null
           netlify_url: string | null
+          project_status: string | null
           template_type: string
           updated_at: string | null
           user_id: string | null
@@ -218,6 +219,7 @@ export type Database = {
           netlify_deploy_id?: string | null
           netlify_site_id?: string | null
           netlify_url?: string | null
+          project_status?: string | null
           template_type?: string
           updated_at?: string | null
           user_id?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           netlify_deploy_id?: string | null
           netlify_site_id?: string | null
           netlify_url?: string | null
+          project_status?: string | null
           template_type?: string
           updated_at?: string | null
           user_id?: string | null
@@ -241,10 +244,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_status_analytics: {
+        Row: {
+          count: number | null
+          percentage: number | null
+          project_status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      update_project_status: {
+        Args: { project_id_param: string; new_status: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
@@ -365,6 +378,8 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+
 
 // Type aliases for convenience
 export type ProjectRow = Tables<"projects">

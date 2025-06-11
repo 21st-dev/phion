@@ -57,7 +57,7 @@ export function Header({ user, project }: HeaderProps) {
                 <span className="text-background-100 font-bold text-sm">S</span>
               </div>
               <span className="text-gray-1000 font-semibold text-sm">
-                Shipvibes
+                Vybcel
               </span>
             </Link>
 

@@ -1,25 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Material } from "@/components/geist/material";
-import { Button } from "@/components/geist/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { AlertTriangle, ExternalLink, Copy, Trash2 } from "lucide-react";
+import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
+import { AlertTriangle, ExternalLink, Copy } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
+import { useToast } from "@/hooks/use-toast";
 
 // Client-side only date/time display component
 function DateTimeDisplay({ timestamp }: { timestamp: string }) {
@@ -44,12 +34,10 @@ function DateTimeDisplay({ timestamp }: { timestamp: string }) {
 }
 
 export default function ProjectSettingsPage() {
-  const router = useRouter();
   const { project } = useProject();
   const [projectName, setProjectName] = useState(project.name);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { error: showError, success: showSuccess } = useToast();
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -68,11 +56,14 @@ export default function ProjectSettingsPage() {
         throw new Error("Failed to save settings");
       }
 
-      // TODO: Add toast notification for success
+      showSuccess(
+        "Settings saved",
+        "Project settings have been updated successfully"
+      );
       console.log("Settings saved successfully");
     } catch (error) {
       console.error("Error saving settings:", error);
-      // TODO: Add toast notification for error
+      showError("Failed to save settings", "Please try again");
     } finally {
       setIsSaving(false);
     }
@@ -80,34 +71,11 @@ export default function ProjectSettingsPage() {
 
   const handleCopyProjectId = () => {
     navigator.clipboard.writeText(project.id);
-    // TODO: Add toast notification
+    showSuccess(
+      "Project ID copied",
+      "The project ID has been copied to your clipboard"
+    );
     console.log("Project ID copied to clipboard");
-  };
-
-  const confirmDeleteProject = async () => {
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`/api/projects/${project.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete project");
-      }
-
-      // TODO: Add toast notification for success
-      console.log("Project deleted successfully");
-
-      // Redirect to home page
-      router.push("/");
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      // TODO: Add toast notification for error
-      alert("Failed to delete project. Please try again.");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
   };
 
   return (
@@ -143,8 +111,8 @@ export default function ProjectSettingsPage() {
                   className="flex-1 bg-muted"
                 />
                 <Button
-                  type="secondary"
-                  size="small"
+                  variant="secondary"
+                  size="sm"
                   onClick={handleCopyProjectId}
                 >
                   <Copy className="w-4 h-4" />
@@ -218,8 +186,8 @@ export default function ProjectSettingsPage() {
                     className="flex-1 bg-muted"
                   />
                   <Button
-                    type="secondary"
-                    size="small"
+                    variant="secondary"
+                    size="sm"
                     onClick={() =>
                       project.netlify_url &&
                       window.open(project.netlify_url, "_blank")
@@ -268,42 +236,7 @@ export default function ProjectSettingsPage() {
                 certain. This will permanently delete all files, deployments,
                 and history.
               </p>
-              <AlertDialog
-                open={showDeleteDialog}
-                onOpenChange={setShowDeleteDialog}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="error"
-                    disabled={isDeleting}
-                    prefix={<Trash2 className="w-4 h-4" />}
-                  >
-                    {isDeleting ? "Deleting..." : "Delete Project"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this project? This action
-                      cannot be undone. This will permanently delete all files,
-                      deployments, and history.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={confirmDeleteProject}
-                      variant="destructive"
-                      loading={isDeleting}
-                    >
-                      Delete Project
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <DeleteProjectDialog projectId={project.id} variant="button" />
             </div>
           </div>
         </div>

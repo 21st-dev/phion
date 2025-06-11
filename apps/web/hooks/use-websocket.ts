@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface UseWebSocketOptions {
@@ -12,9 +12,9 @@ interface UseWebSocketOptions {
   onAgentDisconnected?: (data: { projectId: string; clientId: string; timestamp: string }) => void;
   onDeployStatusUpdate?: (data: { 
     projectId: string; 
-    deployStatusId: string; 
     status: string; 
-    message: string; 
+    url?: string; 
+    error?: string;
     timestamp: string 
   }) => void;
   onCommitCreated?: (data: { projectId: string; commit: any; timestamp: number }) => void;
@@ -35,19 +35,49 @@ export function useWebSocket({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const isConnecting = useRef(false);
 
-  const disconnect = () => {
+  // Стабильные ссылки на callback функции
+  const stableCallbacks = useRef({
+    onFileTracked,
+    onSaveSuccess,
+    onError,
+    onAgentConnected,
+    onAgentDisconnected,
+    onDeployStatusUpdate,
+    onCommitCreated
+  });
+
+  // Обновляем ссылки на callbacks при изменении
+  useEffect(() => {
+    stableCallbacks.current = {
+      onFileTracked,
+      onSaveSuccess,
+      onError,
+      onAgentConnected,
+      onAgentDisconnected,
+      onDeployStatusUpdate,
+      onCommitCreated
+    };
+  }, [onFileTracked, onSaveSuccess, onError, onAgentConnected, onAgentDisconnected, onDeployStatusUpdate, onCommitCreated]);
+
+  const disconnect = useCallback(() => {
     if (socket) {
+      console.log('🛑 [WebSocket] Manually disconnecting...');
       socket.disconnect();
       setSocket(null);
       setIsConnected(false);
+      isConnecting.current = false;
     }
-  };
+  }, [socket]);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || isConnecting.current) {
+      return;
+    }
 
     console.log('🔌 [WebSocket] Initializing connection for project:', projectId);
+    isConnecting.current = true;
 
     // Создаем новое подключение
     const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080', {
@@ -57,6 +87,7 @@ export function useWebSocket({
       reconnection: true,
       reconnectionAttempts: maxReconnectAttempts,
       reconnectionDelay: 2000,
+      forceNew: true, // Принудительно создаем новое подключение
     });
 
     newSocket.on('connect', () => {
@@ -64,6 +95,7 @@ export function useWebSocket({
       setIsConnected(true);
       setConnectionError(null);
       reconnectAttempts.current = 0;
+      isConnecting.current = false;
       
       // Аутентификация при подключении
       console.log('🔐 [WebSocket] Authenticating for project:', projectId);
@@ -80,14 +112,14 @@ export function useWebSocket({
     newSocket.on('disconnect', (reason) => {
       console.log('❌ [WebSocket] Disconnected:', reason);
       setIsConnected(false);
+      isConnecting.current = false;
       
-      // Автоматическое переподключение
-      if (reason === 'io server disconnect') {
+      // Автоматическое переподключение только при неожиданном отключении
+      if (reason === 'io server disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
         setTimeout(() => {
-          if (reconnectAttempts.current < maxReconnectAttempts) {
-            reconnectAttempts.current++;
-            newSocket.connect();
-          }
+          reconnectAttempts.current++;
+          console.log(`🔄 [WebSocket] Reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
+          newSocket.connect();
         }, 1000 * reconnectAttempts.current);
       }
     });
@@ -96,68 +128,57 @@ export function useWebSocket({
       console.error('❌ [WebSocket] Connection error:', error);
       setConnectionError('Failed to connect to server');
       setIsConnected(false);
+      isConnecting.current = false;
     });
 
     // Обработчики событий файлов
-    if (onFileTracked) {
-      newSocket.on('file_tracked', (data) => {
-        console.log('📝 [WebSocket] File tracked:', data);
-        onFileTracked(data);
-      });
+    newSocket.on('file_tracked', (data) => {
+      console.log('📝 [WebSocket] File tracked:', data);
+      stableCallbacks.current.onFileTracked?.(data);
+    });
 
-      // Новое событие для staged изменений
-      newSocket.on('file_change_staged', (data) => {
-        console.log('📝 [WebSocket] File change staged received:', {
-          projectId: data.projectId,
-          filePath: data.filePath,
-          action: data.action,
-          status: data.status,
-          contentLength: data.content?.length || 0
-        });
-        onFileTracked(data);
+    // Новое событие для staged изменений
+    newSocket.on('file_change_staged', (data) => {
+      console.log('📝 [WebSocket] File change staged received:', {
+        projectId: data.projectId,
+        filePath: data.filePath,
+        action: data.action,
+        status: data.status,
+        contentLength: data.content?.length || 0
       });
-    }
+      stableCallbacks.current.onFileTracked?.(data);
+    });
 
-    if (onSaveSuccess) {
-      newSocket.on('save_success', (data) => {
-        console.log('💾 [WebSocket] Save success:', data);
-        onSaveSuccess(data);
-      });
+    newSocket.on('save_success', (data) => {
+      console.log('💾 [WebSocket] Save success:', data);
+      stableCallbacks.current.onSaveSuccess?.(data);
+    });
 
-      // Обработчик для discard_success (очистка pending changes при откате)
-      newSocket.on('discard_success', (data) => {
-        console.log('🔄 [WebSocket] Discard success:', data);
-        onSaveSuccess(data); // Используем тот же callback для очистки pending changes
-      });
-    }
+    // Обработчик для discard_success (очистка pending changes при откате)
+    newSocket.on('discard_success', (data) => {
+      console.log('🔄 [WebSocket] Discard success:', data);
+      stableCallbacks.current.onSaveSuccess?.(data); // Используем тот же callback для очистки pending changes
+    });
 
-    if (onAgentConnected) {
-      newSocket.on('agent_connected', (data) => {
-        console.log('🟢 [WebSocket] Agent connected:', data);
-        onAgentConnected(data);
-      });
-    }
+    newSocket.on('agent_connected', (data) => {
+      console.log('🟢 [WebSocket] Agent connected:', data);
+      stableCallbacks.current.onAgentConnected?.(data);
+    });
 
-    if (onAgentDisconnected) {
-      newSocket.on('agent_disconnected', (data) => {
-        console.log('🔴 [WebSocket] Agent disconnected:', data);
-        onAgentDisconnected(data);
-      });
-    }
+    newSocket.on('agent_disconnected', (data) => {
+      console.log('🔴 [WebSocket] Agent disconnected:', data);
+      stableCallbacks.current.onAgentDisconnected?.(data);
+    });
 
-    if (onDeployStatusUpdate) {
-      newSocket.on('deploy_status_update', (data) => {
-        console.log('🚀 [WebSocket] Deploy status update:', data);
-        onDeployStatusUpdate(data);
-      });
-    }
+    newSocket.on('deploy_status_update', (data) => {
+      console.log('🚀 [WebSocket] Deploy status update:', data);
+      stableCallbacks.current.onDeployStatusUpdate?.(data);
+    });
 
-    if (onCommitCreated) {
-      newSocket.on('commit_created', (data) => {
-        console.log('📝 [WebSocket] Commit created:', data);
-        onCommitCreated(data);
-      });
-    }
+    newSocket.on('commit_created', (data) => {
+      console.log('📝 [WebSocket] Commit created:', data);
+      stableCallbacks.current.onCommitCreated?.(data);
+    });
 
     newSocket.on('file_updated', (data) => {
       console.log('📄 [WebSocket] File updated:', data);
@@ -171,7 +192,7 @@ export function useWebSocket({
 
     newSocket.on('error', (error) => {
       console.error('❌ [WebSocket] Error:', error);
-      onError?.(error);
+      stableCallbacks.current.onError?.(error);
     });
 
     setSocket(newSocket);
@@ -179,6 +200,7 @@ export function useWebSocket({
     // Cleanup при размонтировании
     return () => {
       console.log('🛑 [WebSocket] Disconnecting...');
+      isConnecting.current = false;
       newSocket.disconnect();
       setSocket(null);
       setIsConnected(false);
@@ -186,26 +208,26 @@ export function useWebSocket({
   }, [projectId]); // Только projectId в зависимостях
 
   // Методы для отправки событий
-  const saveAllChanges = (commitMessage?: string) => {
+  const saveAllChanges = useCallback((commitMessage?: string) => {
     if (socket && isConnected) {
       socket.emit('save_all_changes', { 
         projectId, 
         commitMessage 
       });
     } else {
-      onError?.({ message: 'Not connected to server' });
+      stableCallbacks.current.onError?.({ message: 'Not connected to server' });
     }
-  };
+  }, [socket, isConnected, projectId]);
 
-  const discardAllChanges = () => {
+  const discardAllChanges = useCallback(() => {
     if (socket && isConnected) {
       socket.emit('discard_all_changes', { 
         projectId 
       });
     } else {
-      onError?.({ message: 'Not connected to server' });
+      stableCallbacks.current.onError?.({ message: 'Not connected to server' });
     }
-  };
+  }, [socket, isConnected, projectId]);
 
   return {
     socket,

@@ -15,7 +15,7 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Rocket className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">Shipvibes Project</h1>
+              <h1 className="text-xl font-bold">Vybcel Project</h1>
             </div>
             <Badge variant="secondary">Live Preview</Badge>
           </div>
@@ -170,10 +170,10 @@ function App() {
             <p className="mt-2">
               Powered by{" "}
               <a
-                href="https://shipvibes.dev"
+                href="https://vybcel.com"
                 className="text-primary hover:underline"
               >
-                Shipvibes
+                Vybcel
               </a>
             </p>
           </div>

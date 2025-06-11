@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Project Context
 
-This is a Shipvibes project template with:
+This is a vybcel project template with:
 
 - **Live Sync**: Changes are automatically synced to the cloud
 - **Auto Deploy**: Every save triggers a deployment to your live preview
@@ -22,12 +22,12 @@ This is a Shipvibes project template with:
    - This runs `pnpm dev` (local development) and `pnpm sync` (cloud sync) simultaneously
 3. Edit files and see changes in both:
    - Local preview: `http://localhost:5173`
-   - Live preview: Available in your Shipvibes dashboard
+   - Live preview: Available in your Vybcel dashboard
 
 ### File Watching
 
-- The `shipvibes-dev.js` script watches for file changes
-- Changes are automatically sent to the Shipvibes cloud platform
+- The `vybcel` npm package watches for file changes
+- Changes are automatically sent to the Vybcel cloud platform
 - Your live site updates automatically within 20-30 seconds
 
 ## Project Structure
@@ -43,7 +43,7 @@ src/
 └── index.css         # Global styles with Tailwind
 ```
 
-## Best Practices for Shipvibes
+## Best Practices for Vybcel
 
 ### Performance
 
@@ -59,11 +59,11 @@ src/
 - Group related components together
 - Follow the established folder structure
 
-### Shipvibes Integration
+### Vybcel Integration
 
-- Don't modify `shipvibes-dev.js` unless necessary
-- The sync service is automatically configured
-- Live preview URL is managed by the Shipvibes platform
+- The `vybcel` package is automatically configured
+- The sync service reads from `vybcel.config.json`
+- Live preview URL is managed by the Vybcel platform
 - Check the dashboard for deployment status
 
 ## Available Scripts
@@ -86,7 +86,7 @@ src/
 
 ## Support
 
-- Check the Shipvibes dashboard for deployment logs
-- Use the project settings in Shipvibes web interface
-- Restart sync service if connection issues occur
-- Contact Shipvibes support for platform-specific issues
+- Check the Vybcel dashboard for deployment logs
+- Use the project settings in Vybcel web interface
+- Restart sync service if connection issues occur: `pnpm sync`
+- Contact Vybcel support for platform-specific issues

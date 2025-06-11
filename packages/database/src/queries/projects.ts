@@ -236,7 +236,7 @@ export class ProjectQueries {
     const updateData: ProjectUpdate = {
       github_repo_url: githubInfo.github_repo_url,
       github_repo_name: githubInfo.github_repo_name,
-      github_owner: githubInfo.github_owner || "shipvibes",
+      github_owner: githubInfo.github_owner || "vybcel",
     };
 
     const { data, error } = await this.client

@@ -3,12 +3,59 @@
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
 import { Snippet } from "@/components/geist/snippet";
+import { Icons } from "@/components/icons";
+import { CheckCircle, Clock } from "lucide-react";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useToast } from "@/hooks/use-toast";
 
 interface SetupStepProps {
   onDeploy: () => void;
+  projectId: string;
+  agentConnected?: boolean;
 }
 
-export function SetupStep({ onDeploy }: SetupStepProps) {
+export function SetupStep({
+  onDeploy,
+  projectId,
+  agentConnected = false,
+}: SetupStepProps) {
+  const { success: showSuccess, info: showInfo } = useToast();
+
+  // WebSocket для отслеживания подключения агента
+  const { isConnected } = useWebSocket({
+    projectId,
+    onAgentConnected: () => {
+      console.log("🟢 [SetupStep] Agent connected");
+      showSuccess(
+        "Agent connected",
+        "Your project is now syncing automatically"
+      );
+    },
+    onAgentDisconnected: () => {
+      console.log("🔴 [SetupStep] Agent disconnected");
+      showInfo(
+        "Agent disconnected",
+        "Make sure your development server is running"
+      );
+    },
+  });
+
+  const handleOpenCursor = () => {
+    try {
+      window.open("cursor://", "_self");
+      showSuccess(
+        "Opening Cursor",
+        "If Cursor doesn't open automatically, launch it manually"
+      );
+    } catch (error) {
+      console.log("Could not open Cursor automatically");
+      showInfo(
+        "Open Cursor manually",
+        "Launch Cursor from your Applications folder"
+      );
+    }
+  };
+
   return (
     <Material type="base" className="p-6">
       <h3 className="text-lg font-semibold text-foreground mb-4 font-sans">
@@ -39,26 +86,9 @@ export function SetupStep({ onDeploy }: SetupStepProps) {
           </div>
           <div className="bg-accents-1 rounded-md p-4 border border-border space-y-3">
             <Button
-              size="small"
-              onClick={() => {
-                try {
-                  window.open("cursor://", "_self");
-                } catch (error) {
-                  console.log("Could not open Cursor automatically");
-                }
-              }}
-              prefix={
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-                </svg>
-              }
+              size="medium"
+              onClick={handleOpenCursor}
+              prefix={<Icons.cursor className="w-3.5 h-3.5" />}
             >
               Open Cursor
             </Button>
@@ -125,9 +155,50 @@ export function SetupStep({ onDeploy }: SetupStepProps) {
           </div>
         </div>
 
+        {/* Step 7: Wait for connection */}
+        <div>
+          <div className="text-sm font-medium text-foreground mb-2 font-sans">
+            7. Waiting for connection
+          </div>
+          <div
+            className={`bg-accents-1 rounded-md p-4 border border-border ${
+              agentConnected ? "border-green-500/20 bg-green-50/50" : ""
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                {agentConnected ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <Clock className="h-5 w-5 text-muted-foreground animate-pulse" />
+                )}
+              </div>
+              <div>
+                <div className="font-sans text-xs text-muted-foreground">
+                  {agentConnected
+                    ? "✅ Connected! Your project is now syncing automatically."
+                    : "⏳ Waiting for your local development agent to connect..."}
+                </div>
+                {!agentConnected && (
+                  <div className="font-sans text-xs text-muted-foreground/70 mt-1">
+                    Make sure you ran "pnpm start" in your terminal
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="pt-4">
-          <Button size="large" onClick={onDeploy} fullWidth>
-            I'm Ready to Go Live
+          <Button
+            size="large"
+            onClick={onDeploy}
+            fullWidth
+            disabled={!agentConnected}
+          >
+            {agentConnected
+              ? "Continue to Development"
+              : "Waiting for Connection..."}
           </Button>
         </div>
       </div>

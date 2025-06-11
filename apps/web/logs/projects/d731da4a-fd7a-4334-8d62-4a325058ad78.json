@@ -1,0 +1,46 @@
+[
+  {
+    "project_id": "d731da4a-fd7a-4334-8d62-4a325058ad78",
+    "event_type": "project_created",
+    "details": {
+      "projectData": {
+        "id": "d731da4a-fd7a-4334-8d62-4a325058ad78",
+        "name": "fuuuck",
+        "template_type": "vite-react",
+        "netlify_site_id": null,
+        "netlify_url": null,
+        "deploy_status": "pending",
+        "created_at": "2025-06-11T02:54:12.247465+00:00",
+        "updated_at": "2025-06-11T02:54:12.247465+00:00",
+        "netlify_deploy_id": null,
+        "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0",
+        "github_repo_url": null,
+        "github_repo_name": null,
+        "github_owner": "shipvibes",
+        "project_status": "created"
+      }
+    },
+    "trigger": "api_request",
+    "database_state": {
+      "after": {
+        "project": {
+          "id": "d731da4a-fd7a-4334-8d62-4a325058ad78",
+          "name": "fuuuck",
+          "template_type": "vite-react",
+          "netlify_site_id": null,
+          "netlify_url": null,
+          "deploy_status": "pending",
+          "created_at": "2025-06-11T02:54:12.247465+00:00",
+          "updated_at": "2025-06-11T02:54:12.247465+00:00",
+          "netlify_deploy_id": null,
+          "user_id": "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0",
+          "github_repo_url": null,
+          "github_repo_name": null,
+          "github_owner": "shipvibes",
+          "project_status": "created"
+        }
+      }
+    },
+    "timestamp": "2025-06-11T02:54:12.055Z"
+  }
+]

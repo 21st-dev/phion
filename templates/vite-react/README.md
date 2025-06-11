@@ -1,6 +1,6 @@
-# 🚀 Shipvibes React Project
+# 🚀 Vybcel React Project
 
-Welcome to your new Shipvibes project! This template includes everything you need to build modern React applications with automatic cloud sync and deployment.
+Welcome to your new Vybcel project! This template includes everything you need to build modern React applications with automatic cloud sync and deployment.
 
 ## ✨ What's Included
 
@@ -10,7 +10,7 @@ Welcome to your new Shipvibes project! This template includes everything you nee
 - **Tailwind CSS** - Utility-first CSS framework for rapid styling
 - **shadcn/ui** - Beautiful, accessible components built on Radix UI
 - **Lucide Icons** - Beautiful SVG icon library
-- **Live Sync** - Automatic synchronization with Shipvibes cloud
+- **Live Sync** - Automatic synchronization with Vybcel cloud
 - **Auto Deploy** - Every save triggers a deployment to your live preview
 
 ## 🚀 Quick Start
@@ -30,7 +30,7 @@ pnpm start
 This command starts both:
 
 - **Local dev server** at `http://localhost:5173` for instant preview
-- **Sync service** that sends your changes to Shipvibes cloud
+- **Sync service** that sends your changes to Vybcel cloud
 
 ### 3. Start Coding!
 
@@ -203,9 +203,9 @@ const Counter = () => {
 - Group related components in folders
 - Keep files focused and cohesive
 
-## 🔗 Shipvibes Platform
+## 🔗 Vybcel Platform
 
-This project automatically syncs with your Shipvibes dashboard:
+This project automatically syncs with your Vybcel dashboard:
 
 - **Live Preview**: See your changes at your project's live URL
 - **Version History**: Track all changes and deployments
@@ -217,7 +217,7 @@ This project automatically syncs with your Shipvibes dashboard:
 - Check the [shadcn/ui documentation](https://ui.shadcn.com) for component usage
 - Visit [Tailwind CSS docs](https://tailwindcss.com/docs) for styling help
 - See [React documentation](https://react.dev) for React patterns
-- Contact Shipvibes support for platform-specific issues
+- Contact Vybcel support for platform-specific issues
 
 ## 🚀 Ready to Ship?
 
@@ -225,9 +225,9 @@ Your project is configured with modern best practices and ready for development.
 
 Happy coding! 🎉
 
-## ⚠️ SPA Routing for Netlify/Shipvibes
+## ⚠️ SPA Routing for Netlify/Vybcel
 
-If you deploy to Netlify or Shipvibes, make sure to include a `public/_redirects` file with the following content:
+If you deploy to Netlify or Vybcel, make sure to include a `public/_redirects` file with the following content:
 
 ```
 /*    /index.html   200

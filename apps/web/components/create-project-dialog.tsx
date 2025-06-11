@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/geist/button";
-import { Select } from "@/components/geist/select";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PROJECT_TEMPLATES } from "@shipvibes/shared";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateProjectDialogProps {
   trigger?: React.ReactNode;
@@ -24,17 +23,9 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
   const [open, setOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
-  const [templateType, setTemplateType] = useState("vite-react");
   const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
-
-  const templates = Object.entries(PROJECT_TEMPLATES).map(
-    ([key, template]) => ({
-      value: key,
-      label: template.name,
-      description: template.description,
-    })
-  );
+  const { error: showError, success: showSuccess } = useToast();
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {
@@ -51,7 +42,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
         },
         body: JSON.stringify({
           name: projectName.trim(),
-          template_type: templateType,
+          template_type: "vite-react", // Зафиксировано как React Vite
         }),
       });
 
@@ -61,16 +52,21 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
 
       const data = await response.json();
 
+      // Показываем уведомление об успехе
+      showSuccess(
+        "Project created successfully",
+        `"${projectName.trim()}" is ready for setup`
+      );
+
       // Закрываем диалог и перенаправляем на онбординг проекта
       setOpen(false);
       router.push(`/project/${data.project.id}/onboarding`);
 
       // Сбрасываем форму
       setProjectName("");
-      setTemplateType("vite-react");
     } catch (error) {
       console.error("Error creating project:", error);
-      alert("Failed to create project. Please try again.");
+      showError("Failed to create project", "Please try again");
     } finally {
       setIsCreating(false);
     }
@@ -108,7 +104,8 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Give your project a name and choose a template to get started.
+            Create a new React project with Vite. Give your project a name to
+            get started.
           </DialogDescription>
         </DialogHeader>
 
@@ -126,14 +123,19 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
             />
           </div>
 
+          {/* Информация о шаблоне */}
           <div className="grid gap-2">
-            <Label htmlFor="template">Template</Label>
-            <Select
-              value={templateType}
-              onChange={(e) => setTemplateType(e.target.value)}
-              options={templates}
-              size="medium"
-            />
+            <Label>Template</Label>
+            <div className="p-3 bg-muted rounded-md">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
+                <span className="font-medium">Vite + React</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Modern React project with TypeScript, Tailwind CSS, and
+                shadcn/ui
+              </p>
+            </div>
           </div>
         </div>
 

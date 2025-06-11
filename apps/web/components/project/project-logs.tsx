@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Loader,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectLogEntry {
   timestamp: string;
@@ -39,6 +40,7 @@ export function ProjectLogs({ projectId }: ProjectLogsProps) {
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedEventType, setSelectedEventType] = useState<string>("all");
+  const { error: showError } = useToast();
 
   useEffect(() => {
     fetchLogs();
@@ -60,6 +62,10 @@ export function ProjectLogs({ projectId }: ProjectLogsProps) {
       }
     } catch (error) {
       console.error("Error fetching logs:", error);
+      showError(
+        "Failed to load project logs",
+        "Please try refreshing the page"
+      );
     } finally {
       setLoading(false);
     }

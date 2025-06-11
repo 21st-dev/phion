@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { StatusDot } from "@/components/geist/status-dot";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
@@ -18,27 +19,40 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const router = useRouter();
+
   const handleOpenPreview = () => {
     if (project.url) {
       window.open(project.url, "_blank");
     }
   };
 
+  const handleOpenProject = () => {
+    router.push(`/project/${project.id}`);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Проверяем, что клик был не по кнопке
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) {
+      return; // Не переходим если кликнули по кнопке
+    }
+    router.push(`/project/${project.id}`);
+  };
+
   return (
     <Material
       type="base"
-      className="p-6 hover:shadow-border-medium transition-shadow"
+      className="p-6 hover:shadow-border-medium transition-shadow cursor-pointer"
+      onClick={handleCardClick}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           {/* Project name and status */}
           <div className="flex items-center space-x-3 mb-2">
-            <Link
-              href={`/project/${project.id}`}
-              className="text-lg font-semibold text-gray-1000 hover:text-gray-900 transition-colors truncate"
-            >
+            <span className="text-lg font-semibold text-gray-1000 truncate">
               {project.name}
-            </Link>
+            </span>
             {project.deploy_status && (
               <StatusDot state={project.deploy_status} label />
             )}
@@ -74,11 +88,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
               Preview
             </Button>
           )}
-          <Link href={`/project/${project.id}`}>
-            <Button type="primary" size="small">
-              Open
-            </Button>
-          </Link>
+          <Button type="primary" size="small" onClick={handleOpenProject}>
+            Open
+          </Button>
         </div>
       </div>
     </Material>

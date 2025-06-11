@@ -65,7 +65,7 @@ export class NetlifyService {
     githubOwner: string
   ): Promise<NetlifyCreateSiteResponse> {
     try {
-      // GitHub App Installation ID для организации shipvibes
+              // GitHub App Installation ID для организации vybcel
       const installationId = parseInt(process.env.NETLIFY_GITHUB_INSTALLATION_ID!);
       
       if (!installationId || isNaN(installationId)) {
@@ -73,7 +73,7 @@ export class NetlifyService {
       }
 
       const requestBody: NetlifyCreateSiteRequest = {
-        name: `shipvibes-${projectId.slice(0, 8)}`,
+        name: `vybcel-${projectId.slice(0, 8)}`,
         repo: {
           provider: "github",
           repo: `${githubOwner}/${githubRepoName}`,

@@ -129,7 +129,25 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'websocket-server' });
 });
 
-console.log('🚀 Starting Shipvibes WebSocket Server...');
+// API endpoint для получения последней версии агента
+app.get('/api/version', (req, res) => {
+  try {
+    // Здесь можно реализовать проверку последней версии
+    // Пока возвращаем статическую версию
+    res.json({ 
+      latestAgentVersion: '1.0.0',
+      serverVersion: '1.0.0',
+      updateAvailable: false
+    });
+  } catch (error) {
+    console.error('❌ Error in /api/version:', error);
+    res.status(500).json({ 
+      error: 'Failed to get version info' 
+    });
+  }
+});
+
+console.log('🚀 Starting Vybcel WebSocket Server...');
 console.log(`📡 Port: ${PORT}`);
 
 // УДАЛЕНО: extractAndSaveTemplateFiles больше не нужна
@@ -187,7 +205,7 @@ async function saveFullProjectSnapshot(
         projectId,
         project.name,
         project.github_repo_name,
-        'shipvibes'
+        'vybcel'
       );
 
       // Сохраняем netlify_site_id в базу данных
@@ -272,6 +290,28 @@ async function saveFullProjectSnapshot(
     'github_api'
   );
   
+  // ДОБАВЛЯЕМ СИНХРОНИЗАЦИЮ С ЛОКАЛЬНЫМ АГЕНТОМ
+  // Согласно sequenceDiagram.ini строки 313-328
+  try {
+    console.log(`🔄 Syncing local agent with new commit ${mainCommitSha} for project ${projectId}`);
+    
+    // Создаем временный токен для git pull
+    const temporaryToken = await githubAppService.createTemporaryToken();
+    
+    // Отправляем команду git pull с токеном локальному агенту
+    io.to(`project:${projectId}`).emit('git_pull_with_token', {
+      projectId,
+      token: temporaryToken,
+      repoUrl: project.github_repo_url
+    });
+    
+    console.log(`✅ Git pull command sent to local agent for project ${projectId}`);
+    
+  } catch (syncError) {
+    console.error(`❌ Error syncing local agent for project ${projectId}:`, syncError);
+    // Не прерываем выполнение - коммит уже создан, синхронизация не критична
+  }
+  
   console.log(`✅ GitHub commit created: ${mainCommitSha} with ${pendingChanges.length} files${isFirstUserCommit ? ' (first user commit + Netlify site created)' : ''}`);
   return mainCommitSha;
 }
@@ -301,7 +341,15 @@ async function triggerDeploy(projectId: string, commitSha: string): Promise<void
       deploy_status: 'building'
     });
     
+    // ВАЖНО: Отправляем WebSocket событие о начале деплоя
+    io.to(`project:${projectId}`).emit('deploy_status_update', {
+      projectId,
+      status: 'building',
+      timestamp: new Date().toISOString()
+    });
+    
     console.log(`✅ GitHub commit created, Netlify auto-deploy initiated for project ${projectId}`);
+    console.log(`📡 Emitted deploy_status_update: building`);
     
   } catch (error) {
     console.error(`❌ Error in deploy trigger for project ${projectId}:`, error);
@@ -322,6 +370,15 @@ async function triggerDeploy(projectId: string, commitSha: string): Promise<void
       await projectQueries.updateProject(projectId, {
         deploy_status: 'failed'
       });
+      
+      // Отправляем WebSocket событие об ошибке деплоя
+      io.to(`project:${projectId}`).emit('deploy_status_update', {
+        projectId,
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Deploy failed',
+        timestamp: new Date().toISOString()
+      });
+      
     } catch (updateError) {
       console.error('❌ Error updating deploy status:', updateError);
     }
@@ -886,7 +943,46 @@ process.on('SIGTERM', () => {
   });
 });
 
-// Netlify webhook endpoint для получения уведомлений о статусе деплоя
+// API endpoint для уведомления о смене статуса проекта
+app.post('/api/notify-status-change', async (req, res) => {
+  try {
+    const { projectId, status, message } = req.body;
+    
+    if (!projectId || !status) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: projectId, status' 
+      });
+    }
+
+    console.log(`📡 [STATUS_NOTIFY] Sending status update for project ${projectId}: ${status}`);
+
+    // Отправляем WebSocket событие всем клиентам проекта
+    io.to(`project:${projectId}`).emit('deploy_status_update', {
+      projectId,
+      status,
+      message,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`✅ [STATUS_NOTIFY] WebSocket event sent to project:${projectId} room`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Status notification sent successfully',
+      projectId,
+      status
+    });
+
+  } catch (error) {
+    console.error('❌ [STATUS_NOTIFY] Error sending status notification:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Netlify webhook endpoint
 app.post('/webhooks/netlify', async (req, res) => {
   try {
     const { site_id, deploy_id, state, deploy_url, error_message, name } = req.body;
@@ -972,7 +1068,7 @@ app.post('/webhooks/netlify', async (req, res) => {
     );
 
     // Отправляем уведомление через WebSocket всем подключенным клиентам проекта
-    io.to(projectId).emit('deploy_status_update', {
+    io.to(`project:${projectId}`).emit('deploy_status_update', {
       projectId,
       status: newStatus,
       url: deploy_url,

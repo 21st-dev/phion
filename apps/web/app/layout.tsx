@@ -4,11 +4,12 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { QueryProvider } from "@/lib/query-client";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Shipvibes.dev - Frontend Code Editor with Auto-Deploy",
+  title: "Vybcel - Vibecode OS",
   description:
-    "Edit frontend code locally with automatic synchronization, versioning, and deployment",
+    "Just craft in Cursor. We handle versioning, publishing, architecture rules, and everything else. Focus on creating, not configuring.",
 };
 
 export default function RootLayout({
@@ -31,6 +32,7 @@ export default function RootLayout({
         >
           <QueryProvider>
             <div className="min-h-screen bg-background">{children}</div>
+            <Toaster />
           </QueryProvider>
         </ThemeProvider>
       </body>

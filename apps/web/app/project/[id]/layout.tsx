@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Header } from "@/components/layout/header";
 import { ProjectNavigation } from "@/components/project/project-navigation";
-import { ProjectWebSocketProvider } from "@/components/project/project-websocket-provider";
 import { ProjectLayoutClient } from "@/components/project/project-layout-client";
 import {
   getProjectById,
@@ -90,26 +89,22 @@ export default async function ProjectLayout({
       initialHistory={history}
       initialPendingChanges={pendingChanges}
     >
-      <ProjectWebSocketProvider
-        project={project}
-        initialHistory={history}
-        initialPendingChanges={pendingChanges}
-      >
-        <div className="min-h-screen bg-background-100">
-          {/* Используем единый Header как на главной */}
-          <Header user={user} project={project} />
+      <div className="min-h-screen bg-background-100">
+        {/* Используем единый Header как на главной */}
+        <Header user={user} project={project} />
 
-          {/* Navigation Tabs */}
-          <div className="border-b border-border bg-card">
-            <div className="container mx-auto px-6">
-              <ProjectNavigation projectId={project.id} project={project} />
-            </div>
+        {/* Navigation Tabs */}
+        <div className="border-b border-border bg-card">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <ProjectNavigation projectId={project.id} project={project} />
           </div>
-
-          {/* Page Content */}
-          <div className="container mx-auto px-6 py-8">{children}</div>
         </div>
-      </ProjectWebSocketProvider>
+
+        {/* Page Content */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </div>
+      </div>
     </ProjectLayoutClient>
   );
 }

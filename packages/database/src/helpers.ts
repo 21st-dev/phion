@@ -14,7 +14,7 @@ const commitHistoryQueries = new CommitHistoryQueries(getSupabaseServerClient())
 export const getAllProjects = (): Promise<ProjectRow[]> => 
   projectQueries.getAllProjects();
 
-export const getUserProjects = (userId?: string): Promise<ProjectRow[]> => 
+export const getUserProjects = (userId: string): Promise<ProjectRow[]> => 
   projectQueries.getUserProjects(userId);
 
 export const getProjectById = (projectId: string): Promise<ProjectRow | null> => 
@@ -31,22 +31,14 @@ export const deleteProject = (projectId: string): Promise<void> =>
 
 export const updateDeployStatus = (
   projectId: string,
-  status: "pending" | "building" | "ready" | "failed" | "cancelled",
-  netlifyUrl?: string,
-  netlifyId?: string
+  status: "pending" | "building" | "ready" | "failed" | "cancelled"
 ): Promise<ProjectRow> => 
-  projectQueries.updateDeployStatus(projectId, status, netlifyUrl, netlifyId);
+  projectQueries.updateDeployStatus(projectId, status);
 
 export const getProjectsByDeployStatus = (
   status: "pending" | "building" | "ready" | "failed" | "cancelled"
 ): Promise<ProjectRow[]> => 
   projectQueries.getProjectsByDeployStatus(status);
-
-export const searchProjects = (searchTerm: string): Promise<ProjectRow[]> => 
-  projectQueries.searchProjects(searchTerm);
-
-export const searchUserProjects = (searchTerm: string, userId?: string): Promise<ProjectRow[]> => 
-  projectQueries.searchUserProjects(searchTerm, userId);
 
 // Экспортируем удобные функции для истории файлов
 export const getProjectFileHistory = (projectId: string, limit?: number, offset?: number): Promise<FileHistoryRow[]> => 
@@ -79,21 +71,19 @@ export const getPendingChanges = (projectId: string) =>
   pendingChangesQueries.getPendingChanges(projectId);
 
 // GitHub функции для проектов
-export const updateGitHubInfo = (
+export const updateGitHubData = (
   projectId: string,
-  githubInfo: {
-    github_repo_url: string;
-    github_repo_name: string;
+  githubData: {
+    github_repo_url?: string;
+    github_repo_name?: string;
     github_owner?: string;
   }
 ): Promise<ProjectRow> =>
-  projectQueries.updateGitHubInfo(projectId, githubInfo);
-
-export const getProjectByGitHubRepo = (
-  repoName: string,
-  owner?: string
-): Promise<ProjectRow | null> =>
-  projectQueries.getProjectByGitHubRepo(repoName, owner);
+  projectQueries.updateGitHubInfo(projectId, githubData as {
+    github_repo_url: string;
+    github_repo_name: string;
+    github_owner?: string;
+  });
 
 export const getProjectsWithGitHub = (): Promise<ProjectRow[]> =>
   projectQueries.getProjectsWithGitHub();

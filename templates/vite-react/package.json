@@ -1,5 +1,5 @@
 {
-  "name": "shipvibes-project",
+  "name": "vybcel-project",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "sync": "node shipvibes-dev.js",
+    "sync": "vybcel",
     "start": "pnpm install && (pnpm dev & pnpm sync)",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit"
@@ -15,8 +15,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "chokidar": "^3.6.0",
-    "socket.io-client": "^4.7.5",
+    "vybcel": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",

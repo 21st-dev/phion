@@ -1,0 +1,109 @@
+"use client";
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Globe, ExternalLink } from "lucide-react";
+import { useProject } from "@/components/project/project-layout-client";
+import { Spinner } from "@/components/geist/spinner";
+import { getStatusBadge } from "@/lib/deployment-utils";
+import { useEffect } from "react";
+
+interface DeploymentPreviewCardProps {
+  className?: string;
+}
+
+export function DeploymentPreviewCard({
+  className,
+}: DeploymentPreviewCardProps) {
+  const { project, lastUpdated } = useProject();
+
+  // Отладочная информация для проверки обновлений
+  useEffect(() => {
+    console.log("🔄 [DeploymentPreviewCard] Project status updated:", {
+      deployStatus: project.deploy_status,
+      netlifyUrl: project.netlify_url,
+      lastUpdated: lastUpdated.toISOString(),
+    });
+  }, [project.deploy_status, project.netlify_url, lastUpdated]);
+
+  const hasDeployUrl = project.netlify_url && project.netlify_url.trim() !== "";
+  const isBuilding = project.deploy_status === "building";
+
+  return (
+    <Card className={className}>
+      <CardContent className="p-0">
+        {/* Preview iframe or placeholder - более компактный */}
+        <div className="relative aspect-[4/3] bg-muted rounded-t-lg overflow-hidden">
+          {hasDeployUrl && !isBuilding ? (
+            <div className="w-full h-full relative">
+              <iframe
+                src={project.netlify_url!}
+                className="w-full h-full border-0 origin-top-left"
+                title="Live Preview"
+                sandbox="allow-scripts allow-same-origin"
+                style={{
+                  transform: "scale(0.4)",
+                  width: "250%",
+                  height: "250%",
+                }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              {isBuilding ? (
+                <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                  <Spinner size={24} />
+                  <span className="text-xs">Building</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                  <Globe className="h-6 w-6" />
+                  <span className="text-xs">Preview</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer with status and actions - более компактный */}
+        <div className="p-3 border-t">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1">
+              <Globe className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-medium">Live Preview</span>
+            </div>
+
+            {hasDeployUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => window.open(project.netlify_url!, "_blank")}
+              >
+                <ExternalLink className="h-2 w-2 mr-1" />
+                Open
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            {getStatusBadge(project.deploy_status, !!hasDeployUrl)}
+          </div>
+
+          {hasDeployUrl && (
+            <div className="mt-2">
+              <a
+                href={project.netlify_url!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-primary truncate block"
+              >
+                {project.netlify_url}
+              </a>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

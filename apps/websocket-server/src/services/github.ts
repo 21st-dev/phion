@@ -86,7 +86,7 @@ export class GitHubAppService {
   private readonly installationId: string;
   private readonly privateKey: string;
   private readonly baseUrl = 'https://api.github.com';
-  private readonly organization = 'shipvibes';
+  private readonly organization = 'vybcel';
 
   // Кэш для installation токенов
   private tokenCache: {
@@ -143,7 +143,7 @@ export class GitHubAppService {
         headers: {
           'Authorization': `Bearer ${jwtToken}`,
           'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Shipvibes-Bot/1.0',
+          'User-Agent': 'Vybcel-Bot/1.0',
         },
       });
 
@@ -186,7 +186,7 @@ export class GitHubAppService {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'Shipvibes-Bot/1.0',
+        'User-Agent': 'Vybcel-Bot/1.0',
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -199,12 +199,12 @@ export class GitHubAppService {
    * Создает новый приватный репозиторий в организации shipvibes
    */
   async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
-    const repoName = `shipvibes-project-${projectId}`;
+    const repoName = `vybcel-project-${projectId}`;
     
     try {
       const requestBody: CreateRepositoryRequest = {
         name: repoName,
-        description: description || `Shipvibes project ${projectId}`,
+        description: description || `Vybcel project ${projectId}`,
         private: true,
         auto_init: false, // Мы сами создадим initial commit
       };
@@ -267,12 +267,12 @@ export class GitHubAppService {
         content: base64Content,
         branch: 'main',
         committer: {
-          name: 'Shipvibes Bot',
-          email: 'bot@shipvibes.dev'
+          name: 'Vybcel Bot',
+          email: 'bot@vybcel.com'
         },
         author: {
-          name: 'Shipvibes Bot',
-          email: 'bot@shipvibes.dev'
+          name: 'Vybcel Bot',
+          email: 'bot@vybcel.com'
         },
         ...(fileSha ? { sha: fileSha } : {})
       };
@@ -356,12 +356,12 @@ export class GitHubAppService {
         sha,
         branch: 'main',
         committer: {
-          name: 'Shipvibes Bot',
-          email: 'bot@shipvibes.dev'
+          name: 'Vybcel Bot',
+          email: 'bot@vybcel.com'
         },
         author: {
-          name: 'Shipvibes Bot',
-          email: 'bot@shipvibes.dev'
+          name: 'Vybcel Bot',
+          email: 'bot@vybcel.com'
         }
       };
 

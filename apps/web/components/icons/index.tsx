@@ -12,6 +12,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { CursorDark } from "./cursor-dark";
+import { CursorLight } from "./cursor-light";
 
 export type Icon = LucideIcon;
 
@@ -19,6 +21,18 @@ export const Icons = {
   sun: SunMedium,
   moon: Moon,
   menu: Menu,
+  cursor: (props: LucideProps) => (
+    <>
+      <CursorLight
+        {...props}
+        className={`${props.className || ""} hidden dark:block`}
+      />
+      <CursorDark
+        {...props}
+        className={`${props.className || ""} dark:hidden`}
+      />
+    </>
+  ),
   cursorAnimatedLogo: (props: LucideProps) => (
     <div className="pointer-events-none relative -ml-0.5 size-6 mix-blend-multiply dark:mix-blend-lighten lg:-ml-1 lg:mr-px lg:size-8">
       <img

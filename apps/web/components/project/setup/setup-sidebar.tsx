@@ -30,11 +30,10 @@ export function ProjectSetupSidebar({
 }: ProjectSetupSidebarProps) {
   // Функция для определения правильного статуса шага
   const getStepStatus = (stepIndex: number, step: SetupStep) => {
-    // Проверяем выполненность по индексу шага
+    // Проверяем выполненность по индексу шага (только 2 шага)
     const isCompleted =
       (stepIndex === 0 && downloadCompleted) ||
-      (stepIndex === 1 && setupCompleted) ||
-      (stepIndex === 2 && deployCompleted);
+      (stepIndex === 1 && setupCompleted);
 
     if (isCompleted) {
       return "READY"; // Выполненные шаги - зеленые
@@ -55,7 +54,6 @@ export function ProjectSetupSidebar({
     return (
       (stepIndex === 0 && downloadCompleted) ||
       (stepIndex === 1 && setupCompleted) ||
-      (stepIndex === 2 && deployCompleted) ||
       stepIndex === currentStep
     );
   };
@@ -67,8 +65,7 @@ export function ProjectSetupSidebar({
           const statusForDot = getStepStatus(index, step);
           const isCompleted =
             (index === 0 && downloadCompleted) ||
-            (index === 1 && setupCompleted) ||
-            (index === 2 && deployCompleted);
+            (index === 1 && setupCompleted);
           const clickable = isStepClickable(index);
 
           return (

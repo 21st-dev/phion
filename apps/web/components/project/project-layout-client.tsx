@@ -36,20 +36,21 @@ interface ProjectLayoutClientProps {
 }
 
 export function ProjectLayoutClient({
-  project,
+  project: initialProject,
   initialHistory,
   initialPendingChanges,
   children,
 }: ProjectLayoutClientProps) {
   // Логируем что приходит от сервера
   console.log("🎯 ProjectLayoutClient: Initializing with:", {
-    projectId: project.id,
+    projectId: initialProject.id,
     initialHistoryLength: initialHistory?.length || 0,
     initialHistory: initialHistory,
     initialPendingChangesLength: initialPendingChanges?.length || 0,
     initialPendingChanges: initialPendingChanges,
   });
 
+  const [project, setProject] = useState(initialProject);
   const [history, setHistory] = useState(initialHistory);
   const [pendingChanges, setPendingChanges] = useState(initialPendingChanges);
   const [agentConnected, setAgentConnected] = useState(false);
@@ -183,8 +184,19 @@ export function ProjectLayoutClient({
     onDeployStatusUpdate: (data) => {
       console.log("🚀 [ProjectLayout] Deploy status update:", data);
       if (data.projectId === project.id) {
-        // Обновляем lastUpdated чтобы UI знал что данные изменились
+        // Обновляем статус проекта в реальном времени
+        setProject((prev) => ({
+          ...prev,
+          deploy_status: data.status,
+          netlify_url: data.url || prev.netlify_url,
+          updated_at: data.timestamp || new Date().toISOString(),
+        }));
         setLastUpdated(new Date());
+
+        console.log("✅ [ProjectLayout] Project status updated:", {
+          newStatus: data.status,
+          url: data.url,
+        });
       }
     },
     onError: (error) => {

@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/project/project-card";
+import { ProjectCardSkeleton } from "@/components/project/project-card-skeleton";
 import { EmptyState } from "@/components/project/empty-state";
-import { Skeleton } from "@/components/geist/skeleton";
 import type { DatabaseTypes } from "@shipvibes/database";
+import { useToast } from "@/hooks/use-toast";
 
 export function ProjectList() {
   const [projects, setProjects] = useState<DatabaseTypes.ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { error: showError } = useToast();
 
   useEffect(() => {
     fetchProjects();
@@ -32,6 +34,10 @@ export function ProjectList() {
       setProjects(data);
     } catch (error) {
       console.error("Error fetching projects:", error);
+      showError(
+        "Failed to load projects",
+        "Please refresh the page to try again"
+      );
     } finally {
       setLoading(false);
     }
@@ -71,7 +77,7 @@ export function ProjectList() {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} width="100%" height={120} animated={true} />
+          <ProjectCardSkeleton key={i} />
         ))}
       </div>
     );

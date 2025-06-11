@@ -87,8 +87,8 @@ export class NetlifyService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: `shipvibes-${projectId.slice(0, 8)}`,
-          created_via: 'shipvibes-dev',
+                name: `vybcel-${projectId.slice(0, 8)}`,
+      created_via: 'vybcel',
           session_id: projectId,
         }),
       });
@@ -118,7 +118,7 @@ export class NetlifyService {
     githubOwner: string
   ): Promise<NetlifyCreateSiteResponse> {
     try {
-      // GitHub App Installation ID для организации shipvibes
+              // GitHub App Installation ID для организации vybcel
       const installationId = parseInt(process.env.NETLIFY_GITHUB_INSTALLATION_ID!);
       
       if (!installationId || isNaN(installationId)) {
@@ -126,7 +126,7 @@ export class NetlifyService {
       }
 
       const requestBody: NetlifyCreateSiteRequest = {
-        name: `shipvibes-${projectId.slice(0, 8)}`,
+        name: `vybcel-${projectId.slice(0, 8)}`,
         repo: {
           provider: "github",
           repo: `${githubOwner}/${githubRepoName}`,
@@ -375,7 +375,7 @@ export class NetlifyService {
         
         // Отправляем уведомление через WebSocket
         if (this.io) {
-          this.io.to(projectId).emit('deploy_status_update', {
+          this.io.to(`project:${projectId}`).emit('deploy_status_update', {
             projectId,
             status: newStatus,
             url: updateData.netlify_url,
@@ -445,7 +445,7 @@ export class NetlifyService {
     siteId: string, 
     projectId: string, 
     commitId: string,
-    title: string = 'Update from Shipvibes'
+    title: string = 'Update from Vybcel'
   ): Promise<NetlifyDeployResponse> {
     console.log(`🚀 GitHub архитектура: Netlify автоматически деплоит commit ${commitId} для сайта ${siteId}`);
     
@@ -576,7 +576,7 @@ export class NetlifyService {
    */
   private emitDeployStatus(projectId: string, deployStatusId: string, status: string, message: string) {
     if (this.io) {
-      this.io.emit('deploy_status_update', {
+      this.io.to(`project:${projectId}`).emit('deploy_status_update', {
         projectId,
         deployStatusId,
         status,

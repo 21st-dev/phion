@@ -11,20 +11,20 @@ const types = {
   fullscreen: "rounded-2xl shadow-fullscreen",
 };
 
-interface MaterialProps {
+interface MaterialProps extends React.HTMLAttributes<HTMLDivElement> {
   type: keyof typeof types;
   children: React.ReactNode;
-  className?: string;
 }
 
 export const Material = forwardRef<HTMLDivElement, MaterialProps>(
-  ({ type, children, className }, ref) => {
+  ({ type, children, className, ...props }, ref) => {
     return (
       <div
         className={`bg-background-100 ${types[type]}${
           className ? ` ${className}` : ""
         }`}
         ref={ref}
+        {...props}
       >
         {children}
       </div>

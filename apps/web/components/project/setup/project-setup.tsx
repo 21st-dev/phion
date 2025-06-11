@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { DatabaseTypes } from "@shipvibes/database";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { Spinner } from "@/components/geist/spinner";
+import { useToast } from "@/hooks/use-toast";
 // Material удален - не используется
 import {
   ProjectSetupLayout,
@@ -9,7 +13,6 @@ import {
   CongratulationsView,
   DownloadStep,
   SetupStep,
-  DeployStep,
   type SetupStep as ISetupStep,
 } from "./index";
 
@@ -22,27 +25,71 @@ export function ProjectSetup({
   project,
   agentConnected = false,
 }: ProjectSetupProps) {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentComplete, setDeploymentComplete] = useState(false);
   const [projectUrl, setProjectUrl] = useState<string | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const { error: showError, success: showSuccess } = useToast();
 
   // Состояния выполнения для каждого шага
   const [downloadCompleted, setDownloadCompleted] = useState(false);
   const [setupCompleted, setSetupCompleted] = useState(false);
-  const [deployCompleted, setDeployCompleted] = useState(false);
 
   // Рефы для плавного скролла
   const downloadStepRef = useRef<HTMLDivElement>(null);
   const setupStepRef = useRef<HTMLDivElement>(null);
-  const deployStepRef = useRef<HTMLDivElement>(null);
 
   const [steps, setSteps] = useState<ISetupStep[]>([
     { id: "download", title: "Get Files", status: "READY" },
     { id: "setup", title: "Open in Cursor", status: "QUEUED" },
-    { id: "deploy", title: "Go Live", status: "QUEUED" },
   ]);
+
+  // WebSocket для отслеживания статуса проекта в реальном времени
+  const { isConnected } = useWebSocket({
+    projectId: project.id,
+    onDeployStatusUpdate: (data) => {
+      console.log("🚀 [ProjectSetup] Deploy status update:", data);
+      if (data.projectId === project.id) {
+        // Обновляем статус шагов на основе WebSocket событий
+        if (data.status === "pending") {
+          // Проект инициализируется
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === "download" ? { ...step, status: "BUILDING" } : step
+            )
+          );
+        } else if (data.status === "ready" && !data.url) {
+          // Инициализация завершена, проект готов к скачиванию
+          setSteps((prev) =>
+            prev.map((step) =>
+              step.id === "download" ? { ...step, status: "READY" } : step
+            )
+          );
+        } else if (data.status === "building") {
+          // Деплой в процессе - фоновая обработка
+          setIsDeploying(true);
+        } else if (data.status === "ready" && data.url) {
+          // Деплой завершен успешно
+          setIsDeploying(false);
+          setDeploymentComplete(true);
+          setProjectUrl(data.url);
+        } else if (data.status === "failed") {
+          // Деплой провалился
+          setIsDeploying(false);
+        }
+      }
+    },
+    onFileTracked: () => {
+      // Когда отслеживается новый файл
+      console.log("📝 [ProjectSetup] File tracked");
+    },
+    onSaveSuccess: () => {
+      // Когда файлы сохранены
+      console.log("💾 [ProjectSetup] Save success");
+    },
+  });
 
   // Проверяем статус проекта при загрузке компонента
   useEffect(() => {
@@ -52,35 +99,27 @@ export function ProjectSetup({
         if (response.ok) {
           const statusData = await response.json();
 
-          // ИСПРАВЛЕНО: Проверяем только статус деплоя, не делаем предположений о других шагах
+          // ИСПРАВЛЕНО: Проверяем статус деплоя и наличие Netlify URL
           if (statusData.deploy_status === "ready" && statusData.netlify_url) {
-            // Только последний шаг - деплой - отмечаем как готовый
+            // Проект полностью задеплоен - фоновая обработка
             setDeploymentComplete(true);
             setProjectUrl(statusData.netlify_url);
-            setDeployCompleted(true);
-
-            // НЕ устанавливаем downloadCompleted и setupCompleted автоматически
-            // Пользователь должен пройти эти шаги самостоятельно
-
+          }
+          // Если статус ready но нет netlify_url - проект готов к скачиванию
+          else if (
+            statusData.deploy_status === "ready" &&
+            !statusData.netlify_url
+          ) {
+            // Проект готов к скачиванию - разблокируем первый шаг
             setSteps((prev) =>
               prev.map((step) =>
-                step.id === "deploy" ? { ...step, status: "READY" } : step
+                step.id === "download" ? { ...step, status: "READY" } : step
               )
             );
           }
           // Если проект в процессе деплоя
           else if (statusData.deploy_status === "building") {
             setIsDeploying(true);
-
-            // НЕ отмечаем предыдущие шаги как выполненные автоматически
-            setSteps((prev) =>
-              prev.map((step) =>
-                step.id === "deploy" ? { ...step, status: "BUILDING" } : step
-              )
-            );
-
-            // Начинаем мониторинг деплоя
-            startDeployStatusMonitoring();
           }
           // Если проект инициализируется (загружаются файлы шаблона)
           else if (statusData.deploy_status === "pending") {
@@ -90,21 +129,13 @@ export function ProjectSetup({
                 step.id === "download" ? { ...step, status: "BUILDING" } : step
               )
             );
-
-            // Запускаем проверку завершения инициализации
-            startInitializationMonitoring();
           }
 
-          // НОВАЯ ЛОГИКА: Определяем текущий шаг на основе реального состояния
           // Определяем какой шаг должен быть активным
           if (!downloadCompleted) {
             setCurrentStep(0); // Первый шаг - скачивание
           } else if (!setupCompleted) {
             setCurrentStep(1); // Второй шаг - настройка
-          } else if (!deployCompleted && statusData.deploy_status !== "ready") {
-            setCurrentStep(2); // Третий шаг - деплой (только если еще не готов)
-          } else if (deployCompleted || statusData.deploy_status === "ready") {
-            setCurrentStep(2); // Остаемся на последнем шаге если всё готово
           }
         }
       } catch (error) {
@@ -117,94 +148,19 @@ export function ProjectSetup({
     checkProjectStatus();
   }, [project.id]);
 
-  // Функция для мониторинга инициализации проекта
-  const startInitializationMonitoring = () => {
-    const checkInitializationStatus = async () => {
-      try {
-        const statusResponse = await fetch(
-          `/api/projects/${project.id}/status`
-        );
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-
-          // Если инициализация завершена (статус больше не "pending")
-          if (statusData.deploy_status !== "pending") {
-            setSteps((prev) =>
-              prev.map((step) =>
-                step.id === "download" ? { ...step, status: "READY" } : step
-              )
-            );
-            console.log("✅ Project initialization completed!");
-          }
-          // Если инициализация еще в процессе, проверяем снова через 2 секунды
-          else if (statusData.deploy_status === "pending") {
-            setTimeout(checkInitializationStatus, 2000);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking initialization status:", error);
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === "download" ? { ...step, status: "ERROR" } : step
-          )
-        );
-      }
-    };
-
-    // Начинаем проверку статуса через 2 секунды
-    setTimeout(checkInitializationStatus, 2000);
-  };
-
-  // Функция для мониторинга статуса деплоя
-  const startDeployStatusMonitoring = () => {
-    const checkDeployStatus = async () => {
-      try {
-        const statusResponse = await fetch(
-          `/api/projects/${project.id}/status`
-        );
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-
-          // Если деплой завершен успешно
-          if (statusData.deploy_status === "ready" && statusData.netlify_url) {
-            setSteps((prev) =>
-              prev.map((step) =>
-                step.id === "deploy" ? { ...step, status: "READY" } : step
-              )
-            );
-            setIsDeploying(false);
-            setDeploymentComplete(true);
-            setDeployCompleted(true);
-            setProjectUrl(statusData.netlify_url);
-            setCurrentStep(2);
-          }
-          // Если деплой еще в процессе, проверяем снова через 2 секунды
-          else if (statusData.deploy_status === "building") {
-            setTimeout(checkDeployStatus, 2000);
-          }
-          // Если деплой провалился
-          else if (statusData.deploy_status === "failed") {
-            throw new Error("Deployment failed");
-          }
-        }
-      } catch (error) {
-        console.error("Error checking deploy status:", error);
-        setSteps((prev) =>
-          prev.map((step) =>
-            step.id === "deploy" ? { ...step, status: "ERROR" } : step
-          )
-        );
-        setIsDeploying(false);
-      }
-    };
-
-    // Начинаем проверку статуса через 3 секунды
-    setTimeout(checkDeployStatus, 3000);
+  // Обработчик завершения инициализации
+  const handleInitializationComplete = () => {
+    console.log("✅ [ProjectSetup] Initialization completed");
+    setSteps((prev) =>
+      prev.map((step) =>
+        step.id === "download" ? { ...step, status: "READY" } : step
+      )
+    );
   };
 
   // Функция плавного скролла к следующему шагу
   const scrollToStep = (stepIndex: number) => {
-    const refs = [downloadStepRef, setupStepRef, deployStepRef];
+    const refs = [downloadStepRef, setupStepRef];
     const targetRef = refs[stepIndex];
 
     if (targetRef.current) {
@@ -218,22 +174,6 @@ export function ProjectSetup({
   };
 
   const handleDownload = async () => {
-    // Проверяем актуальный статус проекта перед скачиванием
-    try {
-      const statusResponse = await fetch(`/api/projects/${project.id}/status`);
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        if (statusData.deploy_status === "pending") {
-          alert(
-            "Project is still initializing. Please wait for initialization to complete."
-          );
-          return;
-        }
-      }
-    } catch (error) {
-      console.error("Error checking project status:", error);
-    }
-
     try {
       const response = await fetch(`/api/projects/${project.id}/download`);
       if (!response.ok) {
@@ -252,6 +192,10 @@ export function ProjectSetup({
 
       // Отмечаем первый шаг как выполненный
       setDownloadCompleted(true);
+      showSuccess(
+        "Project downloaded",
+        "Open the downloaded file in Cursor to continue"
+      );
 
       // Update steps
       setSteps((prev) =>
@@ -275,7 +219,7 @@ export function ProjectSetup({
         )
       );
       // Показываем ошибку пользователю
-      alert("Failed to download project. Please try again.");
+      showError("Failed to download project", "Please try again");
     }
   };
 
@@ -283,61 +227,15 @@ export function ProjectSetup({
     setSetupCompleted(true);
     setSteps((prev) =>
       prev.map((step) =>
-        step.id === "setup"
-          ? { ...step, status: "READY" }
-          : step.id === "deploy"
-          ? { ...step, status: "READY" }
-          : step
-      )
-    );
-    setCurrentStep(2);
-
-    // Скроллим к следующему шагу
-    scrollToStep(2);
-  };
-
-  const handleDeploy = async () => {
-    // Проверяем что проект еще не задеплоен
-    const statusResponse = await fetch(`/api/projects/${project.id}/status`);
-    if (statusResponse.ok) {
-      const statusData = await statusResponse.json();
-      if (statusData.deploy_status === "ready") {
-        // Проект уже задеплоен, не нужно деплоить снова
-        setDeploymentComplete(true);
-        setProjectUrl(statusData.netlify_url);
-        return;
-      }
-    }
-
-    setIsDeploying(true);
-    setSteps((prev) =>
-      prev.map((step) =>
-        step.id === "deploy" ? { ...step, status: "BUILDING" } : step
+        step.id === "setup" ? { ...step, status: "READY" } : step
       )
     );
 
-    try {
-      const response = await fetch(`/api/projects/${project.id}/deploy`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Publishing failed");
-      }
-
-      const data = await response.json();
-
-      // Начинаем мониторинг деплоя
-      startDeployStatusMonitoring();
-    } catch (error) {
-      console.error("Publishing error:", error);
-      setSteps((prev) =>
-        prev.map((step) =>
-          step.id === "deploy" ? { ...step, status: "ERROR" } : step
-        )
-      );
-      setIsDeploying(false);
-    }
+    // Редиректим на overview по кнопке
+    console.log(
+      "✅ [ProjectSetup] Setup completed, redirecting to overview..."
+    );
+    router.push(`/project/${project.id}/overview`);
   };
 
   // Функция для возврата к шагу
@@ -346,7 +244,6 @@ export function ProjectSetup({
     const canGoToStep =
       (stepIndex === 0 && downloadCompleted) ||
       (stepIndex === 1 && setupCompleted) ||
-      (stepIndex === 2 && deployCompleted) ||
       stepIndex === currentStep;
 
     if (canGoToStep) {
@@ -358,29 +255,19 @@ export function ProjectSetup({
   // Показываем загрузку пока проверяем статус
   if (isLoadingStatus) {
     return (
-      <ProjectSetupLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Checking project status...
-            </p>
-          </div>
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="flex flex-col items-center justify-center text-center">
+          <Spinner size={32} />
+          <p className="mt-4 text-sm text-muted-foreground">
+            Checking project status...
+          </p>
         </div>
-      </ProjectSetupLayout>
+      </div>
     );
   }
 
-  // Show congratulations page only if deployment is complete AND user completed all steps
-  if (
-    deploymentComplete &&
-    projectUrl &&
-    downloadCompleted &&
-    setupCompleted &&
-    deployCompleted
-  ) {
-    return <CongratulationsView projectUrl={projectUrl} />;
-  }
+  // Убираем показ congratulations page так как deploy step больше нет в UI
+  // Редирект произойдет автоматически в onboarding/page.tsx при подключении агента
 
   return (
     <ProjectSetupLayout>
@@ -392,7 +279,7 @@ export function ProjectSetup({
             project={project}
             downloadCompleted={downloadCompleted}
             setupCompleted={setupCompleted}
-            deployCompleted={deployCompleted}
+            deployCompleted={false} // Всегда false так как deploy step убран
             onStepClick={handleStepClick}
           />
         </div>
@@ -415,7 +302,7 @@ export function ProjectSetup({
                 project={project}
                 onDownload={handleDownload}
                 isCompleted={downloadCompleted}
-                isInitializing={project.deploy_status === "pending"}
+                onInitializationComplete={handleInitializationComplete}
               />
             </div>
 
@@ -431,7 +318,11 @@ export function ProjectSetup({
                   : "opacity-50 pointer-events-none"
               }`}
             >
-              <SetupStep onDeploy={handleSetupComplete} />
+              <SetupStep
+                onDeploy={handleSetupComplete}
+                projectId={project.id}
+                agentConnected={agentConnected}
+              />
               {setupCompleted && (
                 <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
                   <svg
@@ -445,39 +336,6 @@ export function ProjectSetup({
                     <polyline points="20,6 9,17 4,12" />
                   </svg>
                   Setup completed successfully!
-                </div>
-              )}
-            </div>
-
-            <div
-              ref={deployStepRef}
-              className={`transition-opacity ${
-                currentStep === 2
-                  ? "" // Текущий шаг - яркий
-                  : deployCompleted
-                  ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
-                  : "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
-              }`}
-            >
-              <DeployStep
-                projectId={project.id}
-                isDeploying={isDeploying}
-                onDeploy={handleDeploy}
-                agentConnected={agentConnected}
-              />
-              {deployCompleted && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <polyline points="20,6 9,17 4,12" />
-                  </svg>
-                  Published successfully!
                 </div>
               )}
             </div>

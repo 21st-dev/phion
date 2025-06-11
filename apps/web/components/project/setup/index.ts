@@ -5,7 +5,7 @@ export { CongratulationsView } from './congratulations-view';
 // Steps
 export { DownloadStep } from './steps/download-step';
 export { SetupStep } from './steps/setup-step';
-export { DeployStep } from './steps/deploy-step';
+// DeployStep убран из UI онбординга, но файл сохранен для возможного использования в других местах
 
 // Types
 export interface SetupStep {

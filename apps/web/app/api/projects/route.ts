@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем проекты пользователя (RLS автоматически фильтрует)
-    const projects = await getUserProjects();
+    const projects = await getUserProjects(user.id);
     return NextResponse.json(projects);
   } catch (error) {
     console.error("Error fetching projects:", error);
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       // 1. Создаем GitHub репозиторий
       const repository = await githubAppService.createRepository(
         project.id,
-        `Shipvibes project: ${project.name}`
+        `Vybcel project: ${project.name}`
       );
       
       console.log(`✅ [PROJECT_CREATION] GitHub repository created: ${repository.html_url}`);
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       await projectQueries.updateGitHubInfo(project.id, {
         github_repo_url: repository.html_url,
         github_repo_name: repository.name,
-        github_owner: 'shipvibes'
+        github_owner: 'vybcel'
       });
 
       // 3. Устанавливаем статус "pending" пока проект инициализируется
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
           ...project,
           github_repo_url: repository.html_url,
           github_repo_name: repository.name,
-          github_owner: 'shipvibes',
+          github_owner: 'vybcel',
           deploy_status: "pending" // Показываем что проект инициализируется
         },
         downloadUrl: `/api/projects/${project.id}/download`,
@@ -235,7 +235,8 @@ async function collectTemplateFiles(
           const packageJson = JSON.parse(content);
           packageJson.name = projectName.toLowerCase().replace(/\s+/g, '-');
           content = JSON.stringify(packageJson, null, 2);
-        } else if (item.name === 'shipvibes-dev.js') {
+        } else if (item.name === 'vybcel.config.json') {
+          // Заменяем PROJECT_ID в конфигурационном файле
           content = content.replace(/__PROJECT_ID__/g, projectId);
         }
         
@@ -289,7 +290,7 @@ async function uploadTemplateFilesInBackground(
         project_id: projectId,
         commit_message: 'Initial commit from template',
         github_commit_sha: mainCommitSha,
-        github_commit_url: `https://github.com/shipvibes/${repositoryName}/commit/${mainCommitSha}`,
+        github_commit_url: `https://github.com/vybcel/${repositoryName}/commit/${mainCommitSha}`,
         files_count: Object.keys(templateFiles).length
       });
     }
@@ -298,10 +299,34 @@ async function uploadTemplateFilesInBackground(
     // Netlify сайт будет создан только при первом Save All Changes пользователя
     // Это позволит показать онбординг пользователю
     
-    // Обновляем статус проекта как готовый к работе (но без netlify_site_id)
+    // Обновляем статус проекта как готовый к скачиванию (но без netlify_site_id)
     await projectQueries.updateProject(projectId, {
-      deploy_status: "pending" // Ждем первого коммита пользователя
+      deploy_status: "ready" // Проект готов к скачиванию и разработке
     });
+
+    // 5. 🚀 ВАЖНО: Отправляем WebSocket событие о завершении инициализации
+    try {
+      const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:8080';
+      const notifyResponse = await fetch(`${websocketServerUrl}/api/notify-status-change`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId,
+          status: 'ready',
+          message: 'Project initialization completed'
+        })
+      });
+
+      if (notifyResponse.ok) {
+        console.log(`📡 [BACKGROUND] WebSocket notification sent for project ${projectId}`);
+      } else {
+        console.error(`⚠️ [BACKGROUND] Failed to send WebSocket notification for project ${projectId}`);
+      }
+    } catch (notifyError) {
+      console.error(`❌ [BACKGROUND] Error sending WebSocket notification:`, notifyError);
+    }
 
     console.log(`🎉 [BACKGROUND] Template upload completed for ${projectId}! Project ready for development.`);
 
@@ -314,6 +339,24 @@ async function uploadTemplateFilesInBackground(
     await projectQueries.updateProject(projectId, {
       deploy_status: "failed"
     });
+
+    // Отправляем WebSocket событие об ошибке
+    try {
+      const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:8080';
+      await fetch(`${websocketServerUrl}/api/notify-status-change`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId,
+          status: 'failed',
+          message: 'Project initialization failed'
+        })
+      });
+    } catch (notifyError) {
+      console.error(`❌ [BACKGROUND] Error sending failure WebSocket notification:`, notifyError);
+    }
     
     throw error;
   }

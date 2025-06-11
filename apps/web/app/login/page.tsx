@@ -4,10 +4,12 @@ import { useState } from "react";
 import { createAuthBrowserClient } from "@shipvibes/database";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createAuthBrowserClient();
+  const { error: showError } = useToast();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -21,11 +23,11 @@ export default function LoginPage() {
 
       if (error) {
         console.error("Error during Google login:", error.message);
-        alert("Login failed: " + error.message);
+        showError("Login failed", error.message);
       }
     } catch (error) {
       console.error("Unexpected error:", error);
-      alert("An unexpected error occurred");
+      showError("Login failed", "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +48,7 @@ export default function LoginPage() {
             {/* Header */}
             <div className="space-y-2">
               <h1 className="text-2xl font-semibold text-gray-1000">
-                Welcome to Shipvibes
+                Welcome to Vybcel
               </h1>
               <p className="text-gray-700">
                 Edit frontend code locally with automatic deployment
