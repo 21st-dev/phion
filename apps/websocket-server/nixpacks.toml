@@ -3,18 +3,19 @@ nixPkgs = ["nodejs_18"]
 
 [phases.install]
 cmds = [
-  "curl -fsSL https://get.pnpm.io/install.sh | sh -",
+  "export SHELL=/bin/bash",
+  "curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh -",
   "export PATH=\"$HOME/.local/share/pnpm:$PATH\"",
   "cd ../..",
-  "pnpm install",
+  "$HOME/.local/share/pnpm/pnpm install",
   "cd apps/websocket-server"
 ]
 
 [phases.build]
 cmds = [
-  "export PATH=\"$HOME/.local/share/pnpm:$PATH\"",
-  "pnpm build"
+  "cd apps/websocket-server",
+  "$HOME/.local/share/pnpm/pnpm build"
 ]
 
 [start]
-cmd = "export PATH=\"$HOME/.local/share/pnpm:$PATH\" && cd ../.. && cd apps/websocket-server && pnpm start" 
+cmd = "cd apps/websocket-server && $HOME/.local/share/pnpm/pnpm start" 
