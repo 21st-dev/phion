@@ -23,7 +23,8 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
   const createButton = trigger || (
     <Button
       size="medium"
-      onClick={() => canCreateProject ? null : setShowPricingModal(true)}
+      type="secondary"
+      onClick={() => (canCreateProject ? null : setShowPricingModal(true))}
       disabled={limitsLoading}
       prefix={
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
