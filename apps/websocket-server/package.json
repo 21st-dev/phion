@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' tsx watch src/index.ts",
     "build": "tsc",
-    "start": "NODE_OPTIONS='--no-deprecation' node dist/index.js"
+    "start": "NODE_OPTIONS='--no-deprecation' node dist/apps/websocket-server/src/index.js"
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.5.1",

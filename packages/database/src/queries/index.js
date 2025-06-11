@@ -1,0 +1,56 @@
+// Экспорт всех классов запросов
+export * from "./projects";
+export * from "./file-history";
+export * from "./pending-changes";
+export * from "./deploy-status";
+export * from "./commit-history";
+import { getSupabaseServerClient } from "../client";
+/**
+ * Получить коммиты проекта (группированные по commit_id)
+ */
+export async function getProjectCommits(projectId, limit = 50) {
+    const supabase = getSupabaseServerClient();
+    let query = supabase
+        .from('file_history')
+        .select('commit_id, commit_message, created_at, project_id')
+        .not('commit_id', 'is', null) // Исключаем записи с null commit_id
+        .order('created_at', { ascending: false })
+        .limit(limit);
+    if (projectId) {
+        query = query.eq('project_id', projectId);
+    }
+    const { data, error } = await query;
+    if (error) {
+        console.error('Error fetching commits:', error);
+        throw error;
+    }
+    // Группируем по commit_id и берем уникальные коммиты
+    const commitsMap = new Map();
+    for (const item of data || []) {
+        if (!commitsMap.has(item.commit_id)) {
+            commitsMap.set(item.commit_id, {
+                commit_id: item.commit_id,
+                commit_message: item.commit_message,
+                created_at: item.created_at,
+                project_id: item.project_id
+            });
+        }
+    }
+    return Array.from(commitsMap.values());
+}
+/**
+ * Получить файлы конкретного коммита
+ */
+export async function getCommitFiles(commitId) {
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+        .from('file_history')
+        .select('*')
+        .eq('commit_id', commitId)
+        .order('file_path', { ascending: true });
+    if (error) {
+        console.error('Error fetching commit files:', error);
+        throw error;
+    }
+    return data || [];
+}
