@@ -9,9 +9,7 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "cd packages/shared && $HOME/.local/share/pnpm/pnpm build",
-  "cd packages/database && $HOME/.local/share/pnpm/pnpm build", 
-  "cd apps/websocket-server && $HOME/.local/share/pnpm/pnpm build"
+  "$HOME/.local/share/pnpm/pnpm run build"
 ]
 
 [start]
