@@ -9,7 +9,7 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "$HOME/.local/share/pnpm/pnpm run build"
+  "$HOME/.local/share/pnpm/pnpm run build --filter=@shipvibes/websocket-server..."
 ]
 
 [start]
