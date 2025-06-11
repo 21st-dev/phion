@@ -113,7 +113,7 @@ export default function ProjectSettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
       {/* General Settings */}
-      <Material className="p-6">
+      <Material type="base" className="p-6">
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -186,7 +186,7 @@ export default function ProjectSettingsPage() {
       </Material>
 
       {/* Deployment Settings */}
-      <Material className="p-6">
+      <Material type="base" className="p-6">
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">

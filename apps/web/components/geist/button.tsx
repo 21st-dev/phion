@@ -65,53 +65,91 @@ export interface ButtonProps {
   ref?: React.Ref<HTMLButtonElement>;
 }
 
-export const Button = ({
-  size = "medium",
-  type = "primary",
-  shape = "square",
-  svgOnly = false,
-  children,
-  prefix,
-  suffix,
-  shadow = false,
-  loading = false,
-  disabled = false,
-  fullWidth = false,
-  onClick,
-  ref,
-  ...rest
-}: ButtonProps) => {
-  return (
-    <button
-      ref={ref}
-      type="submit"
-      disabled={disabled}
-      onClick={onClick}
-      tabIndex={0}
-      className={`flex justify-center items-center gap-0.5 duration-150 ${
-        sizes[+svgOnly][size]
-      } ${
-        disabled || loading
-          ? "bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f] fill-[#8f8f8f] border border-[#ebebeb] dark:border-[#2e2e2e] cursor-not-allowed"
-          : types[type]
-      } ${shapes[shape][size]}${
-        shadow
-          ? " shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none"
-          : ""
-      }${
-        fullWidth ? " w-100%" : ""
-      } focus:shadow-[0_0_0_2px_hsla(0,0%,100%,1),0_0_0_4px_oklch(57.61% 0.2508 258.23)]`}
-      {...rest}
-    >
-      {loading ? <Spinner size={size === "large" ? 24 : 16} /> : prefix}
-      <span
-        className={`overflow-hidden whitespace-nowrap overflow-ellipsis font-sans${
-          size === "tiny" ? "" : " px-1.5"
-        }`}
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      size = "medium",
+      type = "primary",
+      shape = "square",
+      svgOnly = false,
+      children,
+      prefix,
+      suffix,
+      shadow = false,
+      loading = false,
+      disabled = false,
+      fullWidth = false,
+      onClick,
+      ...rest
+    },
+    ref
+  ) => {
+    // Icon size for prefix/suffix
+    const iconSize = size === "large" ? 24 : size === "small" || size === "tiny" ? 16 : 20;
+
+    return (
+      <button
+        ref={ref}
+        type="submit"
+        disabled={disabled}
+        onClick={onClick}
+        tabIndex={0}
+        className={`flex justify-center items-center gap-2 duration-150 ${
+          sizes[+svgOnly][size]
+        } ${
+          disabled || loading
+            ? "bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f] fill-[#8f8f8f] border border-[#ebebeb] dark:border-[#2e2e2e] cursor-not-allowed"
+            : types[type]
+        } ${shapes[shape][size]}${
+          shadow
+            ? " shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none"
+            : ""
+        }${
+          fullWidth ? " w-full" : ""
+        } focus:shadow-[0_0_0_2px_hsla(0,0%,100%,1),0_0_0_4px_oklch(57.61% 0.2508 258.23)]`}
+        {...rest}
       >
-        {children}
-      </span>
-      {!loading && suffix}
-    </button>
-  );
-};
+        {/* Prefix/Icon */}
+        {loading ? (
+          <Spinner size={iconSize} />
+        ) : prefix ? (
+          <span className="flex items-center justify-center mr-2">
+            {React.isValidElement(prefix)
+              ? React.cloneElement(prefix as React.ReactElement, {
+                  width: iconSize,
+                  height: iconSize,
+                  className: `inline-block align-middle ${prefix.props?.className || ""}`,
+                })
+              : prefix}
+          </span>
+        ) : null}
+
+        {/* Button label */}
+        {children && (
+          <span
+            className={`overflow-hidden whitespace-nowrap overflow-ellipsis font-sans${
+              size === "tiny" ? "" : " px-1.5"
+            }`}
+          >
+            {children}
+          </span>
+        )}
+
+        {/* Suffix/Icon */}
+        {!loading && suffix ? (
+          <span className="flex items-center justify-center ml-2">
+            {React.isValidElement(suffix)
+              ? React.cloneElement(suffix as React.ReactElement, {
+                  width: iconSize,
+                  height: iconSize,
+                  className: `inline-block align-middle ${suffix.props?.className || ""}`,
+                })
+              : suffix}
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+);
+
+Button.displayName = "Button";

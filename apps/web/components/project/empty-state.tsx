@@ -7,7 +7,7 @@ import { CreateProjectDialog } from "@/components/create-project-dialog";
 export function EmptyState() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Material className="p-12 text-center">
+      <Material type="base" className="p-12 text-center">
         <div className="max-w-sm mx-auto items-center flex flex-col">
           {/* Icon */}
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">

@@ -17,6 +17,7 @@ interface UseWebSocketOptions {
     message: string; 
     timestamp: string 
   }) => void;
+  onCommitCreated?: (data: { projectId: string; commit: any; timestamp: number }) => void;
 }
 
 export function useWebSocket({ 
@@ -26,7 +27,8 @@ export function useWebSocket({
   onError,
   onAgentConnected,
   onAgentDisconnected,
-  onDeployStatusUpdate
+  onDeployStatusUpdate,
+  onCommitCreated
 }: UseWebSocketOptions) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -105,7 +107,13 @@ export function useWebSocket({
 
       // Новое событие для staged изменений
       newSocket.on('file_change_staged', (data) => {
-        console.log('📝 [WebSocket] File change staged:', data);
+        console.log('📝 [WebSocket] File change staged received:', {
+          projectId: data.projectId,
+          filePath: data.filePath,
+          action: data.action,
+          status: data.status,
+          contentLength: data.content?.length || 0
+        });
         onFileTracked(data);
       });
     }
@@ -141,6 +149,13 @@ export function useWebSocket({
       newSocket.on('deploy_status_update', (data) => {
         console.log('🚀 [WebSocket] Deploy status update:', data);
         onDeployStatusUpdate(data);
+      });
+    }
+
+    if (onCommitCreated) {
+      newSocket.on('commit_created', (data) => {
+        console.log('📝 [WebSocket] Commit created:', data);
+        onCommitCreated(data);
       });
     }
 

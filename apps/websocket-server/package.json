@@ -9,6 +9,7 @@
     "start": "NODE_OPTIONS='--no-deprecation' node dist/index.js"
   },
   "dependencies": {
+    "@ngrok/ngrok": "^1.5.1",
     "@shipvibes/database": "workspace:*",
     "@shipvibes/shared": "workspace:*",
     "@types/adm-zip": "^0.5.7",

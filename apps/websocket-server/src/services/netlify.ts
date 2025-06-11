@@ -195,6 +195,8 @@ export class NetlifyService {
     await this.setupWebhook(siteId, projectId);
   }
 
+  private static ngrokUrl: string | null = null;
+
   /**
    * Настраивает webhook для сайта
    */
@@ -206,11 +208,31 @@ export class NetlifyService {
       if (process.env.NODE_ENV === 'development' || !webhookUrl) {
         try {
           console.log('🔗 Starting ngrok tunnel for development webhooks...');
-          // Простая проверка localhost для development
-          webhookUrl = 'http://localhost:8080';
-          console.log('⚠️ Using localhost:8080 for webhooks (development mode)');
+          
+          // Используем глобальный ngrok URL или создаем новый
+          if (!NetlifyService.ngrokUrl) {
+            const ngrok = await import('@ngrok/ngrok');
+            
+            // Запускаем ngrok туннель для порта 8080
+            const listener = await ngrok.forward({ 
+              addr: 8080, 
+              authtoken_from_env: true 
+            });
+            
+            NetlifyService.ngrokUrl = listener.url();
+            console.log(`✅ Ngrok tunnel started: ${NetlifyService.ngrokUrl}`);
+          }
+          
+          if (NetlifyService.ngrokUrl) {
+            webhookUrl = NetlifyService.ngrokUrl;
+            console.log(`🌐 Using ngrok URL for webhooks: ${webhookUrl}`);
+          } else {
+            throw new Error('Failed to get ngrok URL');
+          }
+          
         } catch (error) {
-          console.error('❌ Failed to setup development webhook:', error);
+          console.error('❌ Failed to setup ngrok tunnel:', error);
+          console.log('⚠️ Falling back to localhost (webhooks will not work)');
           webhookUrl = 'http://localhost:8080';
         }
       }

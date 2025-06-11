@@ -52,41 +52,59 @@ export function ProjectSetup({
         if (response.ok) {
           const statusData = await response.json();
 
-          // Если проект уже задеплоен
+          // ИСПРАВЛЕНО: Проверяем только статус деплоя, не делаем предположений о других шагах
           if (statusData.deploy_status === "ready" && statusData.netlify_url) {
+            // Только последний шаг - деплой - отмечаем как готовый
             setDeploymentComplete(true);
             setProjectUrl(statusData.netlify_url);
-            setDownloadCompleted(true);
-            setSetupCompleted(true);
             setDeployCompleted(true);
-            setCurrentStep(2);
 
-            setSteps([
-              { id: "download", title: "Get Files", status: "READY" },
-              { id: "setup", title: "Open in Cursor", status: "READY" },
-              { id: "deploy", title: "Go Live", status: "READY" },
-            ]);
+            // НЕ устанавливаем downloadCompleted и setupCompleted автоматически
+            // Пользователь должен пройти эти шаги самостоятельно
+
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === "deploy" ? { ...step, status: "READY" } : step
+              )
+            );
           }
           // Если проект в процессе деплоя
           else if (statusData.deploy_status === "building") {
             setIsDeploying(true);
-            setDownloadCompleted(true);
-            setSetupCompleted(true);
-            setCurrentStep(2);
 
-            setSteps([
-              { id: "download", title: "Get Files", status: "READY" },
-              { id: "setup", title: "Open in Cursor", status: "READY" },
-              { id: "deploy", title: "Go Live", status: "BUILDING" },
-            ]);
+            // НЕ отмечаем предыдущие шаги как выполненные автоматически
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === "deploy" ? { ...step, status: "BUILDING" } : step
+              )
+            );
 
             // Начинаем мониторинг деплоя
             startDeployStatusMonitoring();
           }
-          // Если проект создан но не деплоился
-          else {
-            // Проект новый, оставляем дефолтное состояние
-            setCurrentStep(0);
+          // Если проект инициализируется (загружаются файлы шаблона)
+          else if (statusData.deploy_status === "pending") {
+            // Показываем что проект еще инициализируется
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === "download" ? { ...step, status: "BUILDING" } : step
+              )
+            );
+
+            // Запускаем проверку завершения инициализации
+            startInitializationMonitoring();
+          }
+
+          // НОВАЯ ЛОГИКА: Определяем текущий шаг на основе реального состояния
+          // Определяем какой шаг должен быть активным
+          if (!downloadCompleted) {
+            setCurrentStep(0); // Первый шаг - скачивание
+          } else if (!setupCompleted) {
+            setCurrentStep(1); // Второй шаг - настройка
+          } else if (!deployCompleted && statusData.deploy_status !== "ready") {
+            setCurrentStep(2); // Третий шаг - деплой (только если еще не готов)
+          } else if (deployCompleted || statusData.deploy_status === "ready") {
+            setCurrentStep(2); // Остаемся на последнем шаге если всё готово
           }
         }
       } catch (error) {
@@ -98,6 +116,44 @@ export function ProjectSetup({
 
     checkProjectStatus();
   }, [project.id]);
+
+  // Функция для мониторинга инициализации проекта
+  const startInitializationMonitoring = () => {
+    const checkInitializationStatus = async () => {
+      try {
+        const statusResponse = await fetch(
+          `/api/projects/${project.id}/status`
+        );
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+
+          // Если инициализация завершена (статус больше не "pending")
+          if (statusData.deploy_status !== "pending") {
+            setSteps((prev) =>
+              prev.map((step) =>
+                step.id === "download" ? { ...step, status: "READY" } : step
+              )
+            );
+            console.log("✅ Project initialization completed!");
+          }
+          // Если инициализация еще в процессе, проверяем снова через 2 секунды
+          else if (statusData.deploy_status === "pending") {
+            setTimeout(checkInitializationStatus, 2000);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking initialization status:", error);
+        setSteps((prev) =>
+          prev.map((step) =>
+            step.id === "download" ? { ...step, status: "ERROR" } : step
+          )
+        );
+      }
+    };
+
+    // Начинаем проверку статуса через 2 секунды
+    setTimeout(checkInitializationStatus, 2000);
+  };
 
   // Функция для мониторинга статуса деплоя
   const startDeployStatusMonitoring = () => {
@@ -162,6 +218,22 @@ export function ProjectSetup({
   };
 
   const handleDownload = async () => {
+    // Проверяем актуальный статус проекта перед скачиванием
+    try {
+      const statusResponse = await fetch(`/api/projects/${project.id}/status`);
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (statusData.deploy_status === "pending") {
+          alert(
+            "Project is still initializing. Please wait for initialization to complete."
+          );
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error checking project status:", error);
+    }
+
     try {
       const response = await fetch(`/api/projects/${project.id}/download`);
       if (!response.ok) {
@@ -299,8 +371,14 @@ export function ProjectSetup({
     );
   }
 
-  // Show congratulations page if deployment is complete
-  if (deploymentComplete && projectUrl) {
+  // Show congratulations page only if deployment is complete AND user completed all steps
+  if (
+    deploymentComplete &&
+    projectUrl &&
+    downloadCompleted &&
+    setupCompleted &&
+    deployCompleted
+  ) {
     return <CongratulationsView projectUrl={projectUrl} />;
   }
 
@@ -337,6 +415,7 @@ export function ProjectSetup({
                 project={project}
                 onDownload={handleDownload}
                 isCompleted={downloadCompleted}
+                isInitializing={project.deploy_status === "pending"}
               />
             </div>
 

@@ -6,16 +6,23 @@ import { cn } from "@/lib/utils";
 
 interface ProjectNavigationProps {
   projectId: string;
+  project?: any; // Проект с данными для определения показывать ли онбординг
 }
 
-const tabs = [
-  { id: "overview", label: "Overview", href: "overview" },
-  { id: "onboarding", label: "Onboarding", href: "onboarding" },
-  { id: "file-history", label: "File History", href: "file-history" },
-  { id: "settings", label: "Settings", href: "settings" },
-];
+export function ProjectNavigation({
+  projectId,
+  project,
+}: ProjectNavigationProps) {
+  // Скрываем Onboarding если уже есть netlify_site_id (первый деплой был сделан)
+  const showOnboarding = !project?.netlify_site_id;
 
-export function ProjectNavigation({ projectId }: ProjectNavigationProps) {
+  const tabs = [
+    { id: "overview", label: "Overview", href: "overview" },
+    ...(showOnboarding
+      ? [{ id: "onboarding", label: "Onboarding", href: "onboarding" }]
+      : []),
+    { id: "settings", label: "Settings", href: "settings" },
+  ];
   const pathname = usePathname();
 
   // Extract current tab from pathname

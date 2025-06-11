@@ -7,7 +7,6 @@ export { ProjectSetup } from "./setup/project-setup";
 
 // Other components
 export { PendingChangesSidebar } from "./pending-changes-sidebar";
-export { RecentDeploys } from "./recent-deploys";
 
 export * from './setup';
 export { ProjectCard } from './project-card';

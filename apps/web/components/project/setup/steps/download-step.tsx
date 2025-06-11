@@ -9,12 +9,14 @@ interface DownloadStepProps {
   project: DatabaseTypes.ProjectRow;
   onDownload: () => void;
   isCompleted?: boolean;
+  isInitializing?: boolean;
 }
 
 export function DownloadStep({
   project,
   onDownload,
   isCompleted = false,
+  isInitializing = false,
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -37,10 +39,11 @@ export function DownloadStep({
           type="primary"
           size="large"
           onClick={handleDownload}
-          loading={isDownloading}
+          loading={isDownloading || isInitializing}
+          disabled={isInitializing}
           fullWidth
           prefix={
-            !isDownloading ? (
+            !isDownloading && !isInitializing ? (
               <svg
                 width="16"
                 height="16"
@@ -56,8 +59,19 @@ export function DownloadStep({
             ) : undefined
           }
         >
-          {isDownloading ? "Generating files..." : "Download project files"}
+          {isInitializing
+            ? "Initializing project..."
+            : isDownloading
+            ? "Generating files..."
+            : "Download project files"}
         </Button>
+
+        {isInitializing && (
+          <div className="flex items-center gap-2 text-sm text-amber-600">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600"></div>
+            Project is being initialized. Please wait...
+          </div>
+        )}
 
         {isCompleted && (
           <div className="flex items-center gap-2 text-sm text-green-600">

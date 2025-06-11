@@ -34,7 +34,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-100">
       <div className="max-w-md w-full px-4">
-        <Material className="p-8">
+        <Material type="base" className="p-8">
           <div className="text-center space-y-6">
             {/* Logo */}
             <div className="flex justify-center">

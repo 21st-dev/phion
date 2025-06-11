@@ -5,12 +5,12 @@ import { Header } from "@/components/layout/header";
 import { ProjectNavigation } from "@/components/project/project-navigation";
 import { ProjectWebSocketProvider } from "@/components/project/project-websocket-provider";
 import { ProjectLayoutClient } from "@/components/project/project-layout-client";
-import { ProjectLogsOverlay } from "@/components/project/project-logs-overlay";
 import {
   getProjectById,
-  getProjectFileHistory,
   getPendingChanges,
   createAuthServerClient,
+  getSupabaseServerClient,
+  CommitHistoryQueries,
 } from "@shipvibes/database";
 
 interface ProjectLayoutProps {
@@ -50,11 +50,35 @@ export default async function ProjectLayout({
     redirect("/login");
   }
 
-  const [project, history, pendingChanges] = await Promise.all([
+  // Получаем историю коммитов (как в API роуте)
+  const supabaseServer = getSupabaseServerClient();
+  const commitHistoryQueries = new CommitHistoryQueries(supabaseServer);
+
+  const [project, commits, pendingChanges] = await Promise.all([
     getProjectById(id),
-    getProjectFileHistory(id, 50),
+    commitHistoryQueries.getProjectCommitHistory(id),
     getPendingChanges(id),
   ]);
+
+  // Преобразуем коммиты в формат для UI (как в API роуте)
+  const history = commits.map((commit) => ({
+    commit_id: commit.github_commit_sha,
+    commit_message: commit.commit_message,
+    created_at: commit.created_at,
+    project_id: commit.project_id,
+    files_count: commit.files_count || 0,
+  }));
+
+  // Логируем что получили из database queries
+  console.log("🎯 [ProjectLayout] Server-side data loaded:", {
+    projectId: id,
+    projectExists: !!project,
+    commitsFromDB: commits?.length || 0,
+    historyLength: history?.length || 0,
+    history: history,
+    pendingChangesLength: pendingChanges?.length || 0,
+    pendingChanges: pendingChanges,
+  });
 
   if (!project) {
     notFound();
@@ -78,15 +102,12 @@ export default async function ProjectLayout({
           {/* Navigation Tabs */}
           <div className="border-b border-border bg-card">
             <div className="container mx-auto px-6">
-              <ProjectNavigation projectId={project.id} />
+              <ProjectNavigation projectId={project.id} project={project} />
             </div>
           </div>
 
           {/* Page Content */}
           <div className="container mx-auto px-6 py-8">{children}</div>
-
-          {/* Floating logs overlay */}
-          <ProjectLogsOverlay projectId={project.id} />
         </div>
       </ProjectWebSocketProvider>
     </ProjectLayoutClient>

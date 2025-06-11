@@ -123,9 +123,9 @@ export async function POST(request: NextRequest) {
         github_owner: 'shipvibes'
       });
 
-      // 3. Устанавливаем статус "building" пока файлы загружаются
+      // 3. Устанавливаем статус "pending" пока проект инициализируется
       await projectQueries.updateProject(project.id, {
-        deploy_status: "building"
+        deploy_status: "pending"
       });
 
       // 4. 🚀 АСИНХРОННО загружаем файлы в фоне
@@ -146,11 +146,11 @@ export async function POST(request: NextRequest) {
           github_repo_url: repository.html_url,
           github_repo_name: repository.name,
           github_owner: 'shipvibes',
-          deploy_status: "building" // Показываем что идет процесс
+          deploy_status: "pending" // Показываем что проект инициализируется
         },
         downloadUrl: `/api/projects/${project.id}/download`,
         githubUrl: repository.html_url,
-        status: "building", // Клиент знает что нужно ждать
+        status: "pending", // Клиент знает что проект инициализируется
         message: "Project created! Template files are being uploaded in the background..."
       });
 

@@ -61,9 +61,9 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
 
       const data = await response.json();
 
-      // Закрываем диалог и перенаправляем на страницу проекта
+      // Закрываем диалог и перенаправляем на онбординг проекта
       setOpen(false);
-      router.push(`/project/${data.project.id}`);
+      router.push(`/project/${data.project.id}/onboarding`);
 
       // Сбрасываем форму
       setProjectName("");

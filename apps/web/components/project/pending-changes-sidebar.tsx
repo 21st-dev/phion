@@ -164,11 +164,10 @@ export function PendingChangesSidebar({
             </Button>
 
             <Button
-              type="secondary"
+              type="error"
               onClick={onDiscardAll}
               fullWidth
               disabled={isLoading}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <Minus className="h-4 w-4 mr-2" />
               Discard All Changes

@@ -556,21 +556,35 @@ io.on('connection', (socket) => {
         'file_watcher'
       );
 
-      // Уведомляем клиента о tracking (БЕЗ деплоя)
+      // Уведомляем ВСЕХ клиентов в проекте о staged изменении
+      const eventData = {
+        projectId,
+        filePath,
+        content,
+        action,
+        timestamp: Date.now(),
+        status: 'staged'
+      };
+      
+      // Проверяем количество клиентов в комнате
+      const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`);
+      const clientCount = roomClients ? roomClients.size : 0;
+      
+      console.log(`📡 [WebSocket] Sending file_change_staged event to project:${projectId}`, {
+        filePath,
+        action,
+        contentLength: content?.length || 0,
+        clientsInRoom: clientCount
+      });
+      
+      io.to(`project:${projectId}`).emit('file_change_staged', eventData);
+
+      // Отправляем подтверждение отправителю
       socket.emit('file_tracked', {
         filePath,
         action,
         timestamp: Date.now(),
         status: 'tracked'
-      });
-
-      // Уведомляем других клиентов
-      socket.to(`project:${projectId}`).emit('file_updated', {
-        filePath,
-        action,
-        timestamp: Date.now(),
-        updatedBy: socket.id,
-        isPending: true
       });
 
     } catch (error) {
@@ -604,21 +618,22 @@ io.on('connection', (socket) => {
         file_size: 0,
       });
       
-      // Уведомляем клиента о tracking удаления
+      // Уведомляем ВСЕХ клиентов в проекте о staged удалении
+      io.to(`project:${projectId}`).emit('file_change_staged', {
+        projectId,
+        filePath,
+        content: '', // Пустой content для удаленных файлов
+        action: 'deleted',
+        timestamp: Date.now(),
+        status: 'staged'
+      });
+
+      // Отправляем подтверждение отправителю
       socket.emit('file_tracked', {
         filePath,
         action: 'deleted',
         timestamp: Date.now(),
         status: 'tracked'
-      });
-
-      // Уведомляем других клиентов
-      socket.to(`project:${projectId}`).emit('file_updated', {
-        filePath,
-        action: 'deleted',
-        timestamp: Date.now(),
-        updatedBy: socket.id,
-        isPending: true
       });
 
     } catch (error) {
@@ -641,9 +656,22 @@ io.on('connection', (socket) => {
       
       const commitSha = await saveFullProjectSnapshot(projectId, commitMessage);
 
-      // Уведомляем о successful save
-      socket.emit('save_success', {
+      // Получаем данные коммита для уведомления
+      const supabase = getSupabaseServerClient();
+      const commitQueries = new CommitHistoryQueries(supabase);
+      const latestCommit = await commitQueries.getLatestCommit(projectId);
+
+      // Уведомляем ВСЕХ клиентов в проекте о successful save
+      io.to(`project:${projectId}`).emit('save_success', {
+        projectId,
         commitId: commitSha,
+        timestamp: Date.now()
+      });
+
+      // Уведомляем всех клиентов о новом коммите
+      io.to(`project:${projectId}`).emit('commit_created', {
+        projectId,
+        commit: latestCommit,
         timestamp: Date.now()
       });
 
@@ -684,8 +712,8 @@ io.on('connection', (socket) => {
       
       console.log(`✅ Discard command sent for project ${projectId}`);
       
-      // Уведомляем клиента об успехе
-      socket.emit('discard_success', {
+      // Уведомляем ВСЕХ клиентов в проекте об очистке pending changes
+      io.to(`project:${projectId}`).emit('discard_success', {
         projectId,
         timestamp: Date.now()
       });

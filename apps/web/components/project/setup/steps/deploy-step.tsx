@@ -52,7 +52,7 @@ export function DeployStep({
   const [versions, setVersions] = useState<ProjectVersions[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [shouldAutoTriggerDeploy, setShouldAutoTriggerDeploy] = useState(false);
+  const [hasExistingCommits, setHasExistingCommits] = useState(false);
 
   // Состояние для онбординга
   const [deployLogs, setDeployLogs] = useState<string[]>([]);
@@ -89,6 +89,21 @@ export function DeployStep({
     }
   };
 
+  // Функция для проверки существующих коммитов
+  const fetchExistingCommits = async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/commits`);
+      if (response.ok) {
+        const commits = await response.json();
+        setHasExistingCommits(commits.length > 0);
+        return commits.length > 0;
+      }
+    } catch (error) {
+      console.error("Error fetching project commits:", error);
+      return false;
+    }
+  };
+
   // Функция для получения версий проекта
   const fetchProjectVersions = async () => {
     try {
@@ -122,31 +137,15 @@ export function DeployStep({
     }
   };
 
-  // Автоматический первый деплой при подключении агента
-  useEffect(() => {
-    if (
-      agentConnected &&
-      !projectStatus?.netlify_url &&
-      !shouldAutoTriggerDeploy
-    ) {
-      console.log("🚀 Agent connected, triggering initial deploy...");
-      setShouldAutoTriggerDeploy(true);
-      // Небольшая задержка чтобы дать время обновиться статусу
-      setTimeout(() => {
-        onDeploy();
-      }, 1000);
-    }
-  }, [
-    agentConnected,
-    projectStatus?.netlify_url,
-    shouldAutoTriggerDeploy,
-    onDeploy,
-  ]);
-
   // ✅ УБИРАЕМ HTTP POLLING! Загружаем данные только при инициализации
   useEffect(() => {
-    fetchProjectStatus();
-    fetchProjectVersions();
+    const initializeData = async () => {
+      await fetchProjectStatus();
+      await fetchExistingCommits();
+      await fetchProjectVersions();
+    };
+
+    initializeData();
   }, [projectId]);
 
   useEffect(() => {
@@ -174,7 +173,7 @@ export function DeployStep({
   // Показываем онбординг если НЕТ деплоя (независимо от файлов)
   if (!projectStatus?.netlify_url) {
     return (
-      <Material className="p-6">
+      <Material type="base" className="p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Initial Setup
         </h3>
@@ -207,29 +206,20 @@ export function DeployStep({
             </div>
           </div>
 
-          {/* Статус первого деплоя */}
+          {/* ✅ УБИРАЕМ автоматический деплой - показываем инструкции */}
           {agentConnected && (
             <div className="p-4 rounded-lg border bg-card border-border">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
-                  {isCurrentlyDeploying ? (
-                    <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-                  ) : shouldAutoTriggerDeploy ? (
-                    <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
-                  ) : (
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                  )}
+                  <Clock className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="flex-1">
                   <h4 className="font-semibold text-sm text-foreground">
-                    Initial Deployment
+                    Ready for Development
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    {isCurrentlyDeploying
-                      ? "🚀 Building and deploying your project..."
-                      : shouldAutoTriggerDeploy
-                      ? "🚀 Starting deployment..."
-                      : "⏳ Ready to deploy..."}
+                    🎯 Make changes to your files, then click "Save All Changes"
+                    to deploy
                   </p>
 
                   {/* Реальный статус деплоя */}
@@ -269,6 +259,9 @@ export function DeployStep({
                     pnpm start
                   </code>
                 </li>
+                <li className="pt-1 font-medium">
+                  5. Edit files and click "Save All Changes" to deploy! 🚀
+                </li>
               </ol>
             </div>
           )}
@@ -283,7 +276,7 @@ export function DeployStep({
     );
 
     return (
-      <Material className="p-6">
+      <Material type="base" className="p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">Go Live</h3>
 
         <div className="space-y-4">
@@ -342,7 +335,7 @@ export function DeployStep({
   }
 
   return (
-    <Material className="p-6">
+    <Material type="base" className="p-6">
       <h3 className="text-lg font-semibold text-foreground mb-4">Go Live</h3>
 
       <div className="space-y-4">
