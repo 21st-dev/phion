@@ -9,8 +9,10 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "$HOME/.local/share/pnpm/pnpm run build --filter=@shipvibes/websocket-server..."
+  "$HOME/.local/share/pnpm/pnpm run build --filter=@shipvibes/websocket-server...",
+  "echo '=== Checking websocket-server dist folder ===' && ls -la apps/websocket-server/",
+  "echo '=== Checking if dist/index.js exists ===' && ls -la apps/websocket-server/dist/ || echo 'dist folder not found'"
 ]
 
 [start]
-cmd = "cd apps/websocket-server && $HOME/.local/share/pnpm/pnpm start" 
+cmd = "cd apps/websocket-server && echo '=== Current directory ===' && pwd && echo '=== Files in current directory ===' && ls -la && echo '=== Starting server ===' && $HOME/.local/share/pnpm/pnpm start" 
