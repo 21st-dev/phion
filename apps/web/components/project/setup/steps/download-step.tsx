@@ -21,6 +21,9 @@ export function DownloadStep({
   onInitializationComplete,
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadStage, setDownloadStage] = useState<
+    "downloading" | "processing" | null
+  >(null);
   const [isInitializing, setIsInitializing] = useState(
     project.deploy_status === "pending"
   );
@@ -105,10 +108,58 @@ export function DownloadStep({
     }
 
     setIsDownloading(true);
+    setDownloadStage("downloading");
+
     try {
+      // Создаем ссылку для скачивания
+      const downloadUrl = `/api/projects/${project.id}/download`;
+
+      // Используем fetch для мониторинга прогресса
+      const response = await fetch(downloadUrl);
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`);
+      }
+
+      // Переключаемся на этап обработки
+      setDownloadStage("processing");
+
+      // Получаем blob
+      const blob = await response.blob();
+
+      // Создаем ссылку для скачивания
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${project.name}-${project.id}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // Вызываем callback
+      onDownload();
+    } catch (error) {
+      console.error("Download error:", error);
+      // В случае ошибки все равно пытаемся вызвать оригинальный onDownload
       await onDownload();
     } finally {
       setIsDownloading(false);
+      setDownloadStage(null);
+    }
+  };
+
+  const getDownloadButtonText = () => {
+    if (isInitializing) return "Preparing...";
+    if (!isDownloading) return "Download";
+
+    switch (downloadStage) {
+      case "downloading":
+        return "Downloading...";
+      case "processing":
+        return "Processing...";
+      default:
+        return "Downloading...";
     }
   };
 
@@ -144,11 +195,7 @@ export function DownloadStep({
             }
           >
             <div className="flex items-center gap-2">
-              {isInitializing
-                ? "Preparing..."
-                : isDownloading
-                ? "Downloading..."
-                : "Download"}
+              {getDownloadButtonText()}
 
               {isInitializing && (
                 <div className="text-sm text-muted-foreground min-w-[50px]">
@@ -181,10 +228,20 @@ export function DownloadStep({
               </div>
             )}
 
-            {!isInitializing && !isCompleted && (
+            {!isInitializing && !isCompleted && !isDownloading && (
               <div className="text-sm text-muted-foreground">
                 Download your project files to get started with local
                 development.
+              </div>
+            )}
+
+            {isDownloading && (
+              <div className="text-sm text-muted-foreground">
+                {downloadStage === "downloading"
+                  ? "Fetching project from GitHub..."
+                  : downloadStage === "processing"
+                  ? "Preparing your project files..."
+                  : "Processing..."}
               </div>
             )}
           </div>

@@ -1,10 +1,10 @@
 {
   "projectId": "__PROJECT_ID__",
-  "wsUrl": "__WS_URL__",
-  "debug": true,
+  "websocketUrl": "__WS_URL__",
   "toolbar": {
     "enabled": true,
     "position": "top",
-    "autoOpen": true
+    "autoUpdate": true,
+    "updateChannel": "stable"
   }
 }

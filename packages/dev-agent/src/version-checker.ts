@@ -12,13 +12,32 @@ export interface VersionInfo {
  */
 export function getCurrentVersion(): string {
   try {
-    // В production это будет dist/package.json
-    const packageJsonPath = path.join(__dirname, '..', 'package.json');
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    return packageJson.version || '1.0.0';
+    // Пробуем разные пути для package.json
+    const possiblePaths = [
+      path.join(__dirname, '..', 'package.json'),  // Из dist/ в корень пакета
+      path.join(__dirname, '..', '..', 'package.json'),  // Если dist в подпапке
+      path.join(process.cwd(), 'node_modules', 'vybcel', 'package.json'),  // В node_modules
+    ];
+    
+    for (const packageJsonPath of possiblePaths) {
+      try {
+        if (fs.existsSync(packageJsonPath)) {
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          if (packageJson.name === 'vybcel' && packageJson.version) {
+            return packageJson.version;
+          }
+        }
+      } catch (pathError) {
+        // Пробуем следующий путь
+        continue;
+      }
+    }
+    
+    // Fallback версия
+    return '1.0.1';
   } catch (error) {
     // Fallback версия
-    return '1.0.0';
+    return '1.0.1';
   }
 }
 

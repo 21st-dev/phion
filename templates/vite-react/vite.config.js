@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { vybcelPlugin } from "./vybcel-plugin.js";
 import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), vybcelPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

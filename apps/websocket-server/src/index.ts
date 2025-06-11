@@ -24,7 +24,7 @@ const httpServer = createServer(app);
 // Настройка CORS для Express
 app.use(
   cors({
-    origin: "http://localhost:3004",
+    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004",
     credentials: true,
   })
 );
@@ -34,7 +34,7 @@ app.use(express.json());
 // Настройка Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3004",
+    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -127,6 +127,115 @@ app.post('/api/deploy', async (req, res) => {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'websocket-server' });
+});
+
+// ========= TOOLBAR UPDATE API ENDPOINTS =========
+
+// Push toolbar update to specific project
+app.post('/api/toolbar/push-update', async (req, res) => {
+  try {
+    const { projectId, version, forceUpdate, releaseNotes, channel } = req.body;
+    
+    if (!projectId || !version) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: projectId, version' 
+      });
+    }
+
+    console.log(`🚀 [PUSH_UPDATE] Pushing toolbar update to project ${projectId}: v${version} (force: ${forceUpdate})`);
+    
+    // Отправляем обновление в конкретную комнату проекта
+    io.to(`project:${projectId}`).emit('toolbar_update_available', {
+      version,
+      forceUpdate: forceUpdate || false,
+      releaseNotes: releaseNotes || `New version ${version} is available`,
+      channel: channel || 'stable'
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Update pushed to project ${projectId}`,
+      version,
+      forceUpdate 
+    });
+
+  } catch (error) {
+    console.error('❌ [PUSH_UPDATE] Error pushing toolbar update:', error);
+    res.status(500).json({ 
+      error: 'Failed to push update',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Broadcast toolbar update to all projects
+app.post('/api/toolbar/broadcast-update', async (req, res) => {
+  try {
+    const { version, forceUpdate, releaseNotes, channel } = req.body;
+    
+    if (!version) {
+      return res.status(400).json({ 
+        error: 'Missing required field: version' 
+      });
+    }
+
+    console.log(`📢 [BROADCAST_UPDATE] Broadcasting toolbar update to all projects: v${version} (force: ${forceUpdate})`);
+    
+    // Отправляем обновление всем подключенным клиентам
+    io.emit('toolbar_update_available', {
+      version,
+      forceUpdate: forceUpdate || false,
+      releaseNotes: releaseNotes || `New version ${version} is available`,
+      channel: channel || 'stable'
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Update broadcasted to all projects`,
+      version,
+      forceUpdate 
+    });
+
+  } catch (error) {
+    console.error('❌ [BROADCAST_UPDATE] Error broadcasting toolbar update:', error);
+    res.status(500).json({ 
+      error: 'Failed to broadcast update',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Force toolbar reload for specific project
+app.post('/api/toolbar/force-reload', async (req, res) => {
+  try {
+    const { projectId, reason } = req.body;
+    
+    if (!projectId) {
+      return res.status(400).json({ 
+        error: 'Missing required field: projectId' 
+      });
+    }
+
+    console.log(`🔄 [FORCE_RELOAD] Forcing toolbar reload for project ${projectId}: ${reason || 'no reason'}`);
+    
+    // Отправляем команду перезагрузки
+    io.to(`project:${projectId}`).emit('toolbar_reload', {
+      reason: reason || 'Admin requested reload'
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Reload command sent to project ${projectId}`,
+      reason 
+    });
+
+  } catch (error) {
+    console.error('❌ [FORCE_RELOAD] Error forcing toolbar reload:', error);
+    res.status(500).json({ 
+      error: 'Failed to force reload',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // API endpoint для получения последней версии агента
@@ -494,7 +603,7 @@ io.on('connection', (socket) => {
     socket.data.clientType = clientType || 'web'; // По умолчанию web-клиент
     
     console.log(`🔐 Client ${socket.id} authenticated for project ${projectId} (type: ${socket.data.clientType})`);
-    socket.emit('authenticated', { projectId });
+    socket.emit('authenticated', { success: true, projectId });
     
     // Если это агент - добавляем в список подключенных агентов
     if (clientType === 'agent') {
@@ -665,7 +774,9 @@ io.on('connection', (socket) => {
   // НОВЫЙ HANDLER: Сохранение полного снапшота проекта
   socket.on('save_all_changes', async (data) => {
     try {
-      const { projectId, commitMessage } = data;
+      // Используем projectId из data или из socket.data
+      const projectId = data?.projectId || socket.data.projectId;
+      const commitMessage = data?.commitMessage;
       
       if (!projectId) {
         socket.emit('error', { message: 'Missing projectId' });
@@ -710,7 +821,8 @@ io.on('connection', (socket) => {
   // НОВЫЙ HANDLER: Откат локальных изменений
   socket.on('discard_all_changes', async (data) => {
     try {
-      const { projectId } = data;
+      // Используем projectId из data или из socket.data
+      const projectId = data?.projectId || socket.data.projectId;
       
       if (!projectId) {
         socket.emit('error', { message: 'Missing projectId' });
@@ -857,6 +969,242 @@ io.on('connection', (socket) => {
         timestamp: Date.now()
       });
     }
+  });
+
+  // ✅ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ TOOLBAR
+  
+  // Получить текущий статус проекта для toolbar
+  socket.on('toolbar_get_status', async (data) => {
+    const projectId = socket.data.projectId;
+    if (!projectId) {
+      socket.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      const pendingQueries = new PendingChangesQueries(supabase);
+      
+      // Получаем данные проекта
+      const project = await projectQueries.getProjectById(projectId);
+      if (!project) {
+        socket.emit('error', { message: 'Project not found' });
+        return;
+      }
+
+      // Получаем количество pending changes
+      const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
+      
+      // Проверяем подключенных агентов
+      const projectAgents = connectedAgents.get(projectId) || new Set();
+      const agentConnected = projectAgents.size > 0;
+
+      // Определяем реальный статус деплоя
+      let deployStatus = project.deploy_status || 'ready';
+      
+      // Если нет netlify_url, то деплой точно не готов
+      if (!project.netlify_url && deployStatus === 'ready') {
+        deployStatus = 'pending';
+      }
+      
+      // Если есть pending changes, то статус не может быть ready
+      if (pendingChanges.length > 0 && deployStatus === 'ready') {
+        deployStatus = 'pending';
+      }
+
+      // Отправляем статус
+      socket.emit('toolbar_status', {
+        pendingChanges: pendingChanges.length,
+        deployStatus,
+        agentConnected,
+        netlifyUrl: project.netlify_url
+      });
+
+      if (socket.data.clientType === 'toolbar') {
+        console.log(`📊 Toolbar status sent for project ${projectId}: ${pendingChanges.length} pending, ${deployStatus}, agent: ${agentConnected}, url: ${project.netlify_url || 'none'}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error getting toolbar status for project ${projectId}:`, error);
+      socket.emit('error', { message: 'Failed to get project status' });
+    }
+  });
+
+  // Алиас для save_all_changes (для toolbar)
+  socket.on('toolbar_save_all', async (data) => {
+    // Вызываем обработчик напрямую
+    const projectId = data?.projectId || socket.data.projectId;
+    const commitMessage = data?.commitMessage;
+    
+    if (!projectId) {
+      socket.emit('error', { message: 'Missing projectId' });
+      return;
+    }
+
+    try {
+      console.log(`💾 [TOOLBAR] Saving all changes for project ${projectId}`);
+      
+      const commitSha = await saveFullProjectSnapshot(projectId, commitMessage);
+
+      // Получаем данные коммита для уведомления
+      const supabase = getSupabaseServerClient();
+      const commitQueries = new CommitHistoryQueries(supabase);
+      const latestCommit = await commitQueries.getLatestCommit(projectId);
+
+      // Уведомляем ВСЕХ клиентов в проекте о successful save
+      io.to(`project:${projectId}`).emit('save_success', {
+        projectId,
+        commitId: commitSha,
+        timestamp: Date.now()
+      });
+
+      // Уведомляем всех клиентов о новом коммите
+      io.to(`project:${projectId}`).emit('commit_created', {
+        projectId,
+        commit: latestCommit,
+        timestamp: Date.now()
+      });
+
+      // Триггерим деплой ТОЛЬКО после сохранения
+      console.log(`🚀 [TOOLBAR] Triggering deploy after save for project ${projectId}`);
+      triggerDeploy(projectId, commitSha).catch(error => {
+        console.error(`❌ Deploy failed for project ${projectId}:`, error);
+      });
+
+    } catch (error) {
+      console.error('❌ [TOOLBAR] Error saving changes:', error);
+      socket.emit('error', { message: 'Failed to save changes' });
+    }
+  });
+
+  // Алиас для discard_all_changes (для toolbar)
+  socket.on('toolbar_discard_all', async (data) => {
+    // Вызываем обработчик напрямую
+    const projectId = data?.projectId || socket.data.projectId;
+    
+    if (!projectId) {
+      socket.emit('error', { message: 'Missing projectId' });
+      return;
+    }
+
+    try {
+      console.log(`🔄 [TOOLBAR] Discarding all changes for project ${projectId}`);
+      
+      const supabase = getSupabaseServerClient();
+      const pendingQueries = new PendingChangesQueries(supabase);
+      
+      // Очищаем pending changes в базе данных
+      await pendingQueries.clearAllPendingChanges(projectId);
+      
+      // Отправляем команду на откат локальному агенту
+      io.to(`project:${projectId}`).emit('discard_local_changes', {
+        projectId
+      });
+      
+      console.log(`✅ [TOOLBAR] Discard command sent for project ${projectId}`);
+      
+      // Уведомляем ВСЕХ клиентов в проекте об очистке pending changes
+      io.to(`project:${projectId}`).emit('discard_success', {
+        projectId,
+        timestamp: Date.now()
+      });
+
+    } catch (error) {
+      console.error('❌ [TOOLBAR] Error discarding changes:', error);
+      socket.emit('error', { message: 'Failed to discard changes' });
+    }
+  });
+
+  // ========= TOOLBAR AUTO-UPDATE HANDLERS =========
+  
+  // Проверка обновлений toolbar
+  socket.on('toolbar_check_updates', async (data) => {
+    const projectId = socket.data.projectId;
+    if (!projectId) {
+      socket.emit('error', { message: 'Not authenticated' });
+      return;
+    }
+
+    try {
+      console.log(`🔄 [TOOLBAR_UPDATE] Update check requested for project ${projectId}`);
+      
+      // Делаем запрос к нашему API endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/api/toolbar/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentVersion: data?.currentVersion || '0.1.0',
+          channel: data?.channel || 'stable',
+          projectId
+        })
+      });
+
+      if (response.ok) {
+        const updateInfo = await response.json() as {
+          hasUpdate: boolean;
+          latestVersion?: {
+            version: string;
+            releaseNotes?: string;
+          };
+          forceUpdate?: boolean;
+        };
+        
+        if (updateInfo.hasUpdate && updateInfo.latestVersion) {
+          console.log(`🚀 [TOOLBAR_UPDATE] Update available for project ${projectId}: ${updateInfo.latestVersion.version}`);
+          
+          // Отправляем уведомление об обновлении
+          socket.emit('toolbar_update_available', {
+            version: updateInfo.latestVersion.version,
+            forceUpdate: updateInfo.forceUpdate || false,
+            releaseNotes: updateInfo.latestVersion.releaseNotes
+          });
+        } else {
+          console.log(`✅ [TOOLBAR_UPDATE] No updates available for project ${projectId}`);
+        }
+      } else {
+        console.log(`❌ [TOOLBAR_UPDATE] Failed to check updates: ${response.status}`);
+      }
+
+    } catch (error) {
+      console.error(`❌ [TOOLBAR_UPDATE] Error checking updates for project ${projectId}:`, error);
+    }
+  });
+
+  // Подтверждение получения обновления
+  socket.on('toolbar_update_acknowledged', async (data) => {
+    const projectId = socket.data.projectId;
+    const version = data?.version;
+    
+    if (!projectId || !version) {
+      return;
+    }
+
+    console.log(`📝 [TOOLBAR_UPDATE] Update acknowledged for project ${projectId}, version ${version}`);
+  });
+
+  // Уведомление об успешном обновлении
+  socket.on('toolbar_update_success', async (data) => {
+    const projectId = socket.data.projectId;
+    const version = data?.version;
+    
+    if (!projectId || !version) {
+      return;
+    }
+
+    console.log(`✅ [TOOLBAR_UPDATE] Update successful for project ${projectId}, version ${version}`);
+  });
+
+  // Уведомление об ошибке обновления
+  socket.on('toolbar_update_error', async (data) => {
+    const projectId = socket.data.projectId;
+    const version = data?.version;
+    const error = data?.error;
+    
+    if (!projectId || !version) {
+      return;
+    }
+
+    console.log(`❌ [TOOLBAR_UPDATE] Update error for project ${projectId}, version ${version}: ${error}`);
   });
 
   // Обработка ошибок
@@ -1106,7 +1454,7 @@ async function initializeProjectInBackground(
       projectId,
       stage: 'uploading_files',
       progress: 20,
-      message: 'Preparing files...'
+      message: 'Uploading project files...'
     });
 
     // 2. 🚀 Загружаем все файлы ОДНИМ КОММИТОМ с прогрессом
@@ -1239,7 +1587,7 @@ async function initializeProjectInBackground(
       projectId,
       stage: 'completed',
       progress: 100,
-      message: 'Ready!'
+      message: 'Project ready for download!'
     });
     
     console.log(`📡 [INIT_BG] Sending deploy_status_update to project:${projectId}`);
