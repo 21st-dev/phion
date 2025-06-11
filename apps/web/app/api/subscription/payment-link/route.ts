@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     console.log("🔐 Sending API key in Authorization header");
 
     // Proxy request to local 21st.dev API server for testing
-    const response = await fetch("http://localhost:3000/api/subscription/payment-link", {
+    const response = await fetch("https://21st.dev/api/subscription/payment-link", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
       cancelUrl,
     };
 
-    const response = await fetch("http://localhost:3000/api/subscription/payment-link", {
+    const response = await fetch("https://21st.dev/api/subscription/payment-link", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
