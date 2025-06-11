@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ["nodejs_18"]
+
+[phases.install]
+cmds = [
+  "curl -fsSL https://get.pnpm.io/install.sh | sh -",
+  "export PATH=\"$HOME/.local/share/pnpm:$PATH\"",
+  "cd ../..",
+  "pnpm install",
+  "cd apps/websocket-server"
+]
+
+[phases.build]
+cmds = [
+  "export PATH=\"$HOME/.local/share/pnpm:$PATH\"",
+  "pnpm build"
+]
+
+[start]
+cmd = "export PATH=\"$HOME/.local/share/pnpm:$PATH\" && cd ../.. && cd apps/websocket-server && pnpm start" 
