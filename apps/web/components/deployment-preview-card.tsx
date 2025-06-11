@@ -52,13 +52,13 @@ export function DeploymentPreviewCard({
     <Card className={className}>
       <CardContent className="p-0">
         {/* Preview iframe or placeholder - более компактный */}
-        <div className="relative aspect-[4/3] bg-muted rounded-t-lg overflow-hidden">
+        <div className="relative aspect-[16/10] rounded-t-lg overflow-hidden  p-1">
           {hasDeployUrl && !isBuilding ? (
-            <div className="w-full h-full relative">
+            <div className="w-full h-full relative aspect-[16/10] rounded-md overflow-hidden border">
               <iframe
                 key={`iframe-${iframeKey}`}
                 src={project.netlify_url!}
-                className="w-full h-full border-0 origin-top-left"
+                className="w-full h-full border-0 origin-top-left pointer-events-none"
                 title="Live Preview"
                 sandbox="allow-scripts allow-same-origin"
                 style={{
@@ -67,6 +67,8 @@ export function DeploymentPreviewCard({
                   height: "250%",
                 }}
               />
+              {/* Overlay to prevent clicks */}
+              <div className="absolute inset-0 pointer-events-none" />
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -86,7 +88,7 @@ export function DeploymentPreviewCard({
         </div>
 
         {/* Footer with status and actions - более компактный */}
-        <div className="p-3 border-t">
+        <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1">
               <Globe className="h-3 w-3 text-muted-foreground" />

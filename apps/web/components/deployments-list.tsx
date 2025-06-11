@@ -4,12 +4,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadge } from "@/lib/deployment-utils";
+import { motion, AnimatePresence } from "motion/react";
 
 import {
   GitCommit,
-  ChevronDown,
   ChevronRight,
-  User,
   FileText,
   Plus,
   Minus,
@@ -18,14 +17,12 @@ import {
   ExternalLink,
   Globe,
   Clock,
-  CheckCircle,
   XCircle,
   Loader2,
   Save,
   X,
   AlertCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useProject } from "@/components/project/project-layout-client";
 
 interface FileChange {
@@ -99,11 +96,12 @@ function PendingChangesCard({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start gap-3">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground mt-1" />
-          ) : (
+          <motion.div
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
             <ChevronRight className="h-4 w-4 text-muted-foreground mt-1" />
-          )}
+          </motion.div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
@@ -157,54 +155,73 @@ function PendingChangesCard({
         </div>
       </div>
 
-      {isExpanded && (
-        <div className="border-t bg-muted/25">
-          <div className="p-4 space-y-4">
-            {/* Draft Details */}
-            <div>
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Draft Details
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="text-muted-foreground">
-                  <strong>Status:</strong> Unsaved changes
-                </div>
-                <div className="text-muted-foreground">
-                  <strong>Files changed:</strong> {pendingChanges.length}
-                </div>
-                <div className="text-muted-foreground">
-                  <strong>Action:</strong> Save to publish
-                </div>
-              </div>
-            </div>
-
-            {/* Changed Files */}
-            <div>
-              <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <FileText className="h-3 w-3" />
-                Changed Files
-              </h5>
-              <div className="space-y-1">
-                {pendingChanges.map((change) => (
-                  <div
-                    key={change.id}
-                    className="flex items-center gap-2 text-sm p-2 rounded bg-background"
-                  >
-                    {getChangeIcon(change.action)}
-                    <span className="font-mono text-sm flex-1">
-                      {change.file_path}
-                    </span>
-                    <Badge variant="outline" className="text-xs">
-                      {change.action}
-                    </Badge>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="border-t bg-muted/25 overflow-hidden"
+          >
+            <div className="p-4 space-y-4">
+              {/* Draft Details */}
+              <motion.div
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Draft Details
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="text-muted-foreground">
+                    <strong>Status:</strong> Unsaved changes
                   </div>
-                ))}
-              </div>
+                  <div className="text-muted-foreground">
+                    <strong>Files changed:</strong> {pendingChanges.length}
+                  </div>
+                  <div className="text-muted-foreground">
+                    <strong>Action:</strong> Save to publish
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Changed Files */}
+              <motion.div
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <FileText className="h-3 w-3" />
+                  Changed Files
+                </h5>
+                <div className="space-y-1">
+                  {pendingChanges.map((change) => (
+                    <motion.div
+                      key={change.id}
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-2 text-sm p-2 rounded bg-background"
+                    >
+                      {getChangeIcon(change.action)}
+                      <span className="font-mono text-sm flex-1">
+                        {change.file_path}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {change.action}
+                      </Badge>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -260,11 +277,12 @@ function DeploymentItem({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start gap-3">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground mt-1" />
-          ) : (
+          <motion.div
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
             <ChevronRight className="h-4 w-4 text-muted-foreground mt-1" />
-          )}
+          </motion.div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
@@ -325,107 +343,131 @@ function DeploymentItem({
         </div>
       </div>
 
-      {isExpanded && (
-        <div className="border-t bg-muted/25">
-          <div className="p-4 space-y-4">
-            {/* Deployment Details */}
-            <div>
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                Publication Details
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="text-muted-foreground">
-                  <strong>Publication ID:</strong>{" "}
-                  {deployment.id?.substring(0, 8) || "unknown"}...
-                </div>
-                <div className="text-muted-foreground">
-                  <strong>Status:</strong> {deployment.status}
-                </div>
-                {deployment.deploy_url && (
-                  <div className="text-muted-foreground">
-                    <strong>URL:</strong>{" "}
-                    <a
-                      href={deployment.deploy_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {deployment.deploy_url}
-                    </a>
-                  </div>
-                )}
-                {deployment.build_time && (
-                  <div className="text-muted-foreground">
-                    <strong>Build Time:</strong> {deployment.build_time}s
-                  </div>
-                )}
-                {deployment.error_message && (
-                  <div className="text-destructive">
-                    <strong>Error:</strong> {deployment.error_message}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Commit Details */}
-            {commit && (
-              <div>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="border-t bg-muted/25 overflow-hidden"
+          >
+            <div className="p-4 space-y-4">
+              {/* Deployment Details */}
+              <motion.div
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <GitCommit className="h-4 w-4" />
-                  Commit Details
+                  <Globe className="h-4 w-4" />
+                  Publication Details
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div className="text-muted-foreground">
-                    <strong>Commit ID:</strong>{" "}
-                    {commit.commit_id?.substring(0, 8) || "unknown"}...
+                    <strong>Publication ID:</strong>{" "}
+                    {deployment.id?.substring(0, 8) || "unknown"}...
                   </div>
                   <div className="text-muted-foreground">
-                    <strong>Files changed:</strong> {commit.files_count}
+                    <strong>Status:</strong> {deployment.status}
                   </div>
-                  <div className="text-muted-foreground">
-                    <strong>Date:</strong>{" "}
-                    {new Date(commit.created_at).toLocaleString()}
-                  </div>
+                  {deployment.deploy_url && (
+                    <div className="text-muted-foreground">
+                      <strong>URL:</strong>{" "}
+                      <a
+                        href={deployment.deploy_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {deployment.deploy_url}
+                      </a>
+                    </div>
+                  )}
+                  {deployment.build_time && (
+                    <div className="text-muted-foreground">
+                      <strong>Build Time:</strong> {deployment.build_time}s
+                    </div>
+                  )}
+                  {deployment.error_message && (
+                    <div className="text-destructive">
+                      <strong>Error:</strong> {deployment.error_message}
+                    </div>
+                  )}
                 </div>
+              </motion.div>
 
-                {/* File Changes */}
-                {commit.file_changes && commit.file_changes.length > 0 && (
-                  <div className="mt-3">
-                    <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <FileText className="h-3 w-3" />
-                      Changed Files
-                    </h5>
-                    <div className="space-y-1">
-                      {commit.file_changes.map((change, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 text-sm p-2 rounded bg-background"
-                        >
-                          {getChangeIcon(change.change_type)}
-                          <span className="font-mono text-sm flex-1">
-                            {change.file_path}
-                          </span>
-                          {change.additions !== undefined && (
-                            <span className="text-primary text-xs">
-                              +{change.additions}
-                            </span>
-                          )}
-                          {change.deletions !== undefined && (
-                            <span className="text-destructive text-xs">
-                              -{change.deletions}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+              {/* Commit Details */}
+              {commit && (
+                <motion.div
+                  initial={{ y: -10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <GitCommit className="h-4 w-4" />
+                    Commit Details
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="text-muted-foreground">
+                      <strong>Commit ID:</strong>{" "}
+                      {commit.commit_id?.substring(0, 8) || "unknown"}...
+                    </div>
+                    <div className="text-muted-foreground">
+                      <strong>Files changed:</strong> {commit.files_count}
+                    </div>
+                    <div className="text-muted-foreground">
+                      <strong>Date:</strong>{" "}
+                      {new Date(commit.created_at).toLocaleString()}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+
+                  {/* File Changes */}
+                  {commit.file_changes && commit.file_changes.length > 0 && (
+                    <motion.div
+                      initial={{ y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-3"
+                    >
+                      <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <FileText className="h-3 w-3" />
+                        Changed Files
+                      </h5>
+                      <div className="space-y-1">
+                        {commit.file_changes.map((change, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ x: -10, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex items-center gap-2 text-sm p-2 rounded bg-background"
+                          >
+                            {getChangeIcon(change.change_type)}
+                            <span className="font-mono text-sm flex-1">
+                              {change.file_path}
+                            </span>
+                            {change.additions !== undefined && (
+                              <span className="text-primary text-xs">
+                                +{change.additions}
+                              </span>
+                            )}
+                            {change.deletions !== undefined && (
+                              <span className="text-destructive text-xs">
+                                -{change.deletions}
+                              </span>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
