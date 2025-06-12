@@ -14,8 +14,18 @@
 
 import { execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
-import { resolve, join } from "path";
-import { r2ToolbarManager } from "../packages/storage/src/r2-toolbar.js";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+import { r2ToolbarManager } from "../packages/storage/dist/r2-toolbar.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Configuration
+const TOOLBAR_SOURCE_PATH = join(
+  __dirname,
+  "../packages/dev-agent/dist/toolbar/index.global.js"
+);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -93,7 +103,7 @@ async function main() {
 
     // 2. Build the toolbar
     console.log(`🔨 Building toolbar...`);
-    const pluginDir = resolve(process.cwd(), "packages/vite-plugin-vybcel");
+    const pluginDir = join(__dirname, "../packages/dev-agent");
 
     if (!existsSync(pluginDir)) {
       throw new Error("Vite plugin directory not found");

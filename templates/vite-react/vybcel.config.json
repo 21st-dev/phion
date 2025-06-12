@@ -1,7 +1,7 @@
 {
   "projectId": "__PROJECT_ID__",
   "wsUrl": "__WS_URL__",
-  "debug": true,
+  "debug": "__DEBUG_MODE__",
   "toolbar": {
     "enabled": true,
     "position": "top",

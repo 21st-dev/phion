@@ -45,7 +45,7 @@ export function SetupStep({
 
     if (agentConnected && countdown === null) {
       // Начинаем отсчет только если агент подключен и отсчет еще не начался
-      setCountdown(10);
+      setCountdown(5);
     }
 
     if (countdown !== null && countdown > 0) {
@@ -109,7 +109,7 @@ export function SetupStep({
       return "Waiting for Connection...";
     }
     if (countdown !== null && countdown > 0) {
-      return `Continue to Development (${countdown})`;
+      return `Continue to Development ${countdown}`;
     }
     return "Continue to Development";
   };
@@ -278,6 +278,11 @@ export function SetupStep({
             >
               {getButtonText()}
             </Button>
+            {agentConnected && countdown !== null && countdown > 0 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Auto redirect in {countdown} seconds
+              </p>
+            )}
           </div>
         </div>
       </CardContent>

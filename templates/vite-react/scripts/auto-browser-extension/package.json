@@ -1,0 +1,43 @@
+{
+  "name": "vybcel-dev-tools",
+  "displayName": "Vybcel Dev Tools",
+  "description": "Tools for Vybcel development: auto-open browser, optimize workspace, monitor server, clear ports",
+  "version": "0.0.3",
+  "publisher": "vybcel",
+  "engines": {
+    "vscode": "^1.81.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vybcel.startProject",
+        "title": "Vybcel: Start Project"
+      },
+      {
+        "command": "vybcel.openPreview",
+        "title": "Vybcel: Open Preview"
+      },
+      {
+        "command": "vybcel.clearPortsAndOpen",
+        "title": "Vybcel: Fix Connection and Open Preview"
+      },
+      {
+        "command": "vybcel.fixConnection",
+        "title": "Vybcel: Fix Connection Issues"
+      },
+      {
+        "command": "vybcel.resetProjectHistory",
+        "title": "Vybcel: Reset Project History (for testing)"
+      }
+    ]
+  },
+  "scripts": {},
+  "devDependencies": {}
+}

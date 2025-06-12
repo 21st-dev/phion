@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { vybcelPlugin } from "./vybcel-plugin.js";
+import { plugin as vybcelPlugin } from "vybcel";
 import path from "path";
 
 // https://vitejs.dev/config/

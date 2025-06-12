@@ -94,15 +94,18 @@ export function useProjectLimits(): ProjectLimits {
   }, []);
 
   const hasActiveSubscription = subscriptionData?.hasActiveSubscription || false;
-  const maxProjects = hasActiveSubscription ? Infinity : FREE_TIER_LIMIT;
-  const canCreateProject = projectCount < maxProjects;
+  
+  // В development окружении убираем лимиты
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const maxProjects = (hasActiveSubscription || isDevelopment) ? Infinity : FREE_TIER_LIMIT;
+  const canCreateProject = (isDevelopment || projectCount < maxProjects);
 
   return {
     isLoading,
     canCreateProject,
-    hasActiveSubscription,
+    hasActiveSubscription: hasActiveSubscription || isDevelopment,
     projectCount,
-    maxProjects: hasActiveSubscription ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
+    maxProjects: (hasActiveSubscription || isDevelopment) ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
     subscriptionData,
     error,
     refreshLimits: fetchLimits

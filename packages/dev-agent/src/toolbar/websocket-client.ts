@@ -67,7 +67,8 @@ export class ToolbarWebSocketClient {
   private setupEventListeners() {
     if (!this.socket) return
 
-    this.socket.on('file_change_staged', (data: { file: string; action: string }) => {
+    this.socket.on('file_change_staged', (data: { file?: string; filePath?: string; action: string }) => {
+      console.log('[Vybcel Toolbar] File change staged:', data)
       this.state.pendingChanges += 1
       this.emit('stateChange', this.state)
     })
@@ -87,18 +88,21 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('save_success', () => {
+      console.log('[Vybcel Toolbar] Save success')
       this.state.pendingChanges = 0
       this.emit('stateChange', this.state)
       this.emit('saveSuccess')
     })
 
     this.socket.on('discard_success', () => {
+      console.log('[Vybcel Toolbar] Discard success')
       this.state.pendingChanges = 0
       this.emit('stateChange', this.state)
       this.emit('discardSuccess')
     })
 
     this.socket.on('toolbar_status', (status: ToolbarState) => {
+      console.log('[Vybcel Toolbar] Status update:', status)
       this.state = { ...this.state, ...status }
       this.emit('stateChange', this.state)
     })

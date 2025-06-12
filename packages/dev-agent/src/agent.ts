@@ -398,6 +398,8 @@ export class VybcelAgent {
         ".env*",
         "*.timestamp-*.mjs",
         "vite.config.*.timestamp-*.mjs",
+        "**/*timestamp-*",
+        "**/*.timestamp-*.*",
         "*.tmp",
         "*.temp",
         ".vite/**",
@@ -427,6 +429,14 @@ export class VybcelAgent {
     if (!this.isConnected) {
       if (this.config.debug) {
         console.log(`⏳ Not connected, skipping: ${filePath}`);
+      }
+      return;
+    }
+
+    // Additional check to ignore timestamp files that might slip through chokidar
+    if (filePath.includes('.timestamp-') || filePath.includes('timestamp-')) {
+      if (this.config.debug) {
+        console.log(`⏭️ Ignoring timestamp file: ${filePath}`);
       }
       return;
     }

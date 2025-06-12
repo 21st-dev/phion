@@ -1,11 +1,43 @@
 import type { Plugin } from 'vite'
 import { readFileSync, existsSync, writeFileSync } from 'fs'
-import { resolve, join } from 'path'
+import { resolve, join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import type { VybcelConfig, VybcelPluginOptions, ToolbarVersion, UpdateCheckResponse } from './types'
 
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
 // Current version of the plugin (should match package.json)
-const PLUGIN_VERSION = '0.2.0'
+const PLUGIN_VERSION = '1.1.10'
 const DEFAULT_UPDATE_ENDPOINT = process.env.TOOLBAR_UPDATE_ENDPOINT || 'http://localhost:3004/api/toolbar'
+
+// Find the toolbar bundle location (working in both dev and prod environments)
+const findToolbarBundle = () => {
+  // Using import.meta.url for ESM compatibility
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = dirname(__filename)
+  
+  // Try different potential locations
+  const locations = [
+    // Direct in dist/toolbar folder (new package structure)
+    join(__dirname, 'toolbar', 'index.global.js'),
+    // In node_modules
+    join(dirname(dirname(__dirname)), 'dist', 'toolbar', 'index.global.js'),
+    // One level up (when used as dependency)
+    join(dirname(dirname(dirname(__dirname))), 'vybcel', 'dist', 'toolbar', 'index.global.js'),
+  ]
+  
+  for (const location of locations) {
+    if (existsSync(location)) {
+      console.log(`[Vybcel] Found toolbar bundle at: ${location}`)
+      return location
+    }
+  }
+  
+  console.warn('[Vybcel] Could not find toolbar bundle at any of these locations:', locations)
+  return null
+}
 
 export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
   const {
@@ -101,57 +133,73 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
     configureServer(server) {
       if (!toolbarEnabled || !config) return
 
-      // Serve toolbar bundle (with auto-update support)
+      // Serve the toolbar configuration
+      server.middlewares.use('/vybcel/config.js', (req, res, next) => {
+        try {
+          // Simply use the existing config 
+          // (config was already read in configResolved hook)
+          const toolbarConfig = {
+            projectId: config?.projectId || '',
+            websocketUrl: websocketUrl || 'ws://localhost:8080',
+            position: config?.toolbar?.position || 'top',
+            version: PLUGIN_VERSION,
+            autoUpdate: config?.toolbar?.autoUpdate !== false,
+            updateChannel: config?.toolbar?.updateChannel || 'stable'
+          }
+          
+          res.writeHead(200, { 'Content-Type': 'application/javascript' })
+          res.end(`window.VYBCEL_CONFIG = ${JSON.stringify(toolbarConfig)};`)
+        } catch (err) {
+          console.error('[Vybcel] Error serving config:', err)
+          res.writeHead(500, { 'Content-Type': 'text/plain' })
+          res.end('Error generating toolbar config')
+        }
+      })
+
+      // Serve the toolbar bundle
       server.middlewares.use('/vybcel/toolbar.js', async (req, res, next) => {
         try {
+          // Try to get the remote version first
           let toolbarCode = cachedToolbarCode
-
-          // Check for updates if enabled
-          if (config?.toolbar?.autoUpdate !== false) {
-            const updateCheck = await checkForUpdates()
-            if (updateCheck?.hasUpdate && updateCheck.latestVersion) {
-              const updatedCode = await downloadToolbarUpdate(updateCheck.latestVersion)
-              if (updatedCode) {
-                toolbarCode = updatedCode
+          
+          try {
+            // Check for updates if enabled
+            if (config?.toolbar?.autoUpdate !== false) {
+              const updateCheck = await checkForUpdates()
+              if (updateCheck?.hasUpdate && updateCheck.latestVersion) {
+                console.log(`[Vybcel] Using latest toolbar from ${updateCheck.latestVersion.url}`)
+                const updatedCode = await downloadToolbarUpdate(updateCheck.latestVersion)
+                if (updatedCode) {
+                  toolbarCode = updatedCode
+                }
               }
             }
+          } catch (fetchError) {
+            console.log(`[Vybcel] Could not fetch remote toolbar: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`)
           }
 
           // Fallback to local version
           if (!toolbarCode) {
-            const toolbarPath = join(__dirname, '../dist/toolbar/index.global.js')
-            if (existsSync(toolbarPath)) {
+            const toolbarPath = findToolbarBundle()
+            if (toolbarPath) {
+              console.log(`[Vybcel] Using local toolbar from ${toolbarPath}`)
               toolbarCode = readFileSync(toolbarPath, 'utf-8')
             }
           }
 
           if (toolbarCode) {
-            res.setHeader('Content-Type', 'application/javascript')
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+            res.writeHead(200, { 'Content-Type': 'application/javascript' })
             res.end(toolbarCode)
           } else {
-            res.statusCode = 404
+            console.error('[Vybcel] Toolbar bundle not found')
+            res.writeHead(404, { 'Content-Type': 'text/plain' })
             res.end('Toolbar bundle not found')
           }
-        } catch (error) {
-          next(error)
+        } catch (err) {
+          console.error('[Vybcel] Error serving toolbar:', err)
+          res.writeHead(500, { 'Content-Type': 'text/plain' })
+          res.end('Error loading toolbar')
         }
-      })
-
-      // Serve toolbar config (with version info)
-      server.middlewares.use('/vybcel/config.js', (req, res) => {
-        const toolbarConfig = {
-          projectId: config!.projectId,
-          websocketUrl,
-          position: config!.toolbar?.position || 'top',
-          version: PLUGIN_VERSION,
-          autoUpdate: config!.toolbar?.autoUpdate !== false,
-          updateChannel: config!.toolbar?.updateChannel || 'stable'
-        }
-        
-        res.setHeader('Content-Type', 'application/javascript')
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
-        res.end(`window.VYBCEL_CONFIG = ${JSON.stringify(toolbarConfig)};`)
       })
 
       // API endpoint for manual update check

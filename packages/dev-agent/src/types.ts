@@ -21,6 +21,7 @@ export interface ToolbarState {
   deployStatus: 'ready' | 'building' | 'failed' | 'pending'
   agentConnected: boolean
   netlifyUrl?: string
+  changedFiles?: string[]
 }
 
 export interface WebSocketEvents {
@@ -32,7 +33,7 @@ export interface WebSocketEvents {
 
   // Incoming events
   authenticated: { success: boolean }
-  file_change_staged: { file: string; action: string }
+  file_change_staged: { file: string; action: string; changedFiles?: string[] }
   commit_created: { commitId: string; message: string }
   deploy_status_update: { status: string; url?: string }
   save_success: void

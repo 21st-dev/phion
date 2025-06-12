@@ -261,30 +261,30 @@ export async function openPreview(config: VSCodeConfig, debug = false): Promise<
   console.log('🌐 ═══════════════════════════════════════════════════════════')
   console.log('')
 
-  // Сначала пробуем системный браузер (более надежно)
+  // Сначала пробуем Simple Browser если обнаружен VS Code/Cursor
+  if (isVSCode && hasCodeCommand) {
+    if (debug) {
+      console.log(`🚀 Trying ${useCursor ? 'Cursor' : 'VS Code'} Simple Browser...`)
+    }
+    
+    const success = await openInVSCodeSimpleBrowser(url)
+    if (success) {
+      if (debug) {
+        console.log(`✅ Successfully opened in ${useCursor ? 'Cursor' : 'VS Code'} Simple Browser`)
+      }
+      return
+    }
+  }
+
+  // Fallback к системному браузеру если Simple Browser не сработал
   if (debug) {
-    console.log(`🌐 Opening ${url} in system browser...`)
+    console.log(`🌐 Opening ${url} in system browser as fallback...`)
   }
   
   const systemSuccess = await openInSystemBrowser(url)
   if (systemSuccess) {
     console.log('✅ Preview opened in system browser')
     return
-  }
-
-  // Fallback к VS Code/Cursor если системный браузер не сработал
-  if (isVSCode && hasCodeCommand) {
-    if (debug) {
-      console.log(`🚀 Trying ${useCursor ? 'Cursor' : 'VS Code'} Simple Browser as fallback...`)
-    }
-    
-    const success = await openInVSCodeSimpleBrowser(url)
-    if (success) {
-      if (debug) {
-        console.log(`✅ Successfully opened in ${useCursor ? 'Cursor' : 'VS Code'}`)
-      }
-      return
-    }
   }
 
   console.log('💡 Please manually open the URL above in your browser')

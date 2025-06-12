@@ -118,46 +118,33 @@ export async function POST(request: NextRequest) {
     
     if (subscriptionApiKey) {
       try {
-        // Add timeout and better error handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-        const subscriptionResponse = await fetch('https://21st.dev/api/subscription/check', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({
-            apiKey: subscriptionApiKey,
-            email: email
-          }),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
+        const subscriptionResponse = await fetch(
+          `https://api.21st.dev/v1/customers/${encodeURIComponent(email)}/subscription`,
+          {
+            headers: {
+              Authorization: `Bearer ${subscriptionApiKey}`,
+            },
+          }
+        );
 
         if (subscriptionResponse.ok) {
-          // Check if response is JSON before parsing
-          const contentType = subscriptionResponse.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const subscriptionData = await subscriptionResponse.json();
-            hasActiveSubscription = subscriptionData.hasActiveSubscription || false;
-          } else {
-            console.warn("Subscription API returned non-JSON response, defaulting to free tier");
-          }
+          const subscriptionData = await subscriptionResponse.json();
+          hasActiveSubscription = subscriptionData.status === 'active';
+          console.log(`🔍 Subscription check for ${email}:`, {
+            status: subscriptionData.status,
+            hasActiveSubscription
+          });
+        } else {
+          console.log(`⚠️ Subscription API returned ${subscriptionResponse.status} for ${email}`);
         }
       } catch (subscriptionError) {
-        if (subscriptionError instanceof Error && subscriptionError.name === 'AbortError') {
-          console.warn("Subscription check timed out, defaulting to free tier");
-        } else {
-          console.warn("Error checking subscription, defaulting to free tier:", subscriptionError);
-        }
-        // Продолжаем работу, считая что подписки нет
+        console.error("Error checking subscription:", subscriptionError);
+        // Продолжаем без проверки подписки если API недоступен
       }
     }
 
-    // Проверяем лимиты
-    if (!hasActiveSubscription && projectCount >= FREE_TIER_LIMIT) {
+    // Проверяем лимиты (отключено в dev окружении)
+    if (process.env.NODE_ENV !== 'development' && !hasActiveSubscription && projectCount >= FREE_TIER_LIMIT) {
       return NextResponse.json(
         { 
           error: "Project limit exceeded",
@@ -169,121 +156,123 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Создаем проект с привязкой к пользователю
+    // ✅ 1. СРАЗУ создаем проект в БД (быстрая операция)
     const project = await createProject({
       name,
       template_type,
-      user_id: user.id, // Привязываем к текущему пользователю
+      user_id: user.id,
     });
 
-    // Логируем создание проекта
     console.log(`🎉 Project created: ${project.id} by user ${user.id}`);
 
-    try {
-      console.log(`🚀 [PROJECT_CREATION] Starting GitHub-based project creation for ${project.id}`);
-      
-      const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:8080';
-      
-      // 1. 🚀 ВЫЗЫВАЕМ WebSocket сервер для создания GitHub репозитория (безопасно для serverless)
-      console.log(`🔄 [PROJECT_CREATION] Creating GitHub repository via WebSocket server...`);
-      const repoResponse = await fetch(`${websocketServerUrl}/api/projects/create-repository`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId: project.id,
-          projectName: name
-        })
+    // ✅ 2. НЕМЕДЛЕННО возвращаем ответ пользователю для быстрого redirect
+    const response = NextResponse.json({
+      project: {
+        ...project,
+        deploy_status: "pending", // Показываем что проект инициализируется
+      },
+      downloadUrl: `/api/projects/${project.id}/download`,
+      status: "pending", // Клиент знает что проект инициализируется
+      message: "Project created! Setting up GitHub repository and template files..."
+    });
+
+    // ✅ 3. Запускаем тяжелые операции АСИНХРОННО в фоне (без await!)
+    // Это не блокирует возврат ответа пользователю
+    initializeProjectInBackground(project.id, name, template_type, user.id)
+      .catch(error => {
+        console.error(`❌ [PROJECT_CREATION] Background initialization failed for ${project.id}:`, error);
       });
 
-      if (!repoResponse.ok) {
-        const errorText = await repoResponse.text();
-        console.error(`❌ [PROJECT_CREATION] GitHub repository creation failed:`, errorText);
-        throw new Error(`Repository creation failed: ${errorText}`);
-      }
+    return response;
 
-      const repoData = await repoResponse.json();
-      const repository = repoData.repository;
-      
-      console.log(`✅ [PROJECT_CREATION] GitHub repository created: ${repository.html_url}`);
-
-      // 2. Устанавливаем статус "pending" пока проект инициализируется
-      const supabaseClient = getSupabaseServerClient();
-      const projectQueries = new ProjectQueries(supabaseClient);
-      
-      await projectQueries.updateProject(project.id, {
-        deploy_status: "pending"
-      });
-
-      // 3. 🚀 ВЫЗЫВАЕМ WebSocket сервер для инициализации шаблона (безопасно для serverless)
-      console.log(`🔄 [PROJECT_CREATION] Starting template upload via WebSocket server...`);
-      const initResponse = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId: project.id,
-          templateType: template_type,
-          projectName: name,
-          repositoryName: repository.name
-        })
-      });
-
-      if (initResponse.ok) {
-        console.log(`✅ [PROJECT_CREATION] Template upload initiated via WebSocket server`);
-      } else {
-        const errorText = await initResponse.text();
-        console.error(`❌ [PROJECT_CREATION] WebSocket server init failed:`, errorText);
-        // Обновляем статус на failed
-        await projectQueries.updateProject(project.id, { deploy_status: "failed" });
-      }
-
-      // 4. 🎯 НЕМЕДЛЕННО возвращаем ответ пользователю
-      console.log(`✅ [PROJECT_CREATION] Project created, files uploading in background...`);
-      
-      return NextResponse.json({
-        project: {
-          ...project,
-          github_repo_url: repository.html_url,
-          github_repo_name: repository.name,
-          github_owner: 'vybcel',
-          deploy_status: "pending" // Показываем что проект инициализируется
-        },
-        downloadUrl: `/api/projects/${project.id}/download`,
-        githubUrl: repository.html_url,
-        status: "pending", // Клиент знает что проект инициализируется
-        message: "Project created! Template files are being uploaded in the background..."
-      });
-
-    } catch (error) {
-      console.error("❌ [PROJECT_CREATION] Error in project creation:", error);
-      
-      // Обновляем статус проекта на failed при любой ошибке
-      try {
-        const supabaseClient = getSupabaseServerClient();
-        const projectQueries = new ProjectQueries(supabaseClient);
-        await projectQueries.updateProject(project.id, {
-          deploy_status: "failed"
-        });
-      } catch (updateError) {
-        console.error("❌ Error updating project status:", updateError);
-      }
-      
-      return NextResponse.json({
-        project,
-        downloadUrl: `/api/projects/${project.id}/download`,
-        error: "Project initialization failed",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, { status: 500 });
-    }
   } catch (error) {
     console.error("Error creating project:", error);
     return NextResponse.json(
       { error: "Failed to create project" },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * ✅ Асинхронная инициализация проекта в фоне
+ * Не блокирует HTTP ответ пользователю
+ */
+async function initializeProjectInBackground(
+  projectId: string,
+  projectName: string,
+  templateType: string,
+  userId: string
+): Promise<void> {
+  try {
+    console.log(`🚀 [PROJECT_INIT_BG] Starting background initialization for ${projectId}...`);
+    
+    const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:8080';
+    
+    // 1. Создаем GitHub репозиторий
+    console.log(`🔄 [PROJECT_INIT_BG] Creating GitHub repository...`);
+    const repoResponse = await fetch(`${websocketServerUrl}/api/projects/create-repository`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectId,
+        projectName
+      })
+    });
+
+    if (!repoResponse.ok) {
+      const errorText = await repoResponse.text();
+      console.error(`❌ [PROJECT_INIT_BG] GitHub repository creation failed:`, errorText);
+      throw new Error(`Repository creation failed: ${errorText}`);
+    }
+
+    const repoData = await repoResponse.json();
+    const repository = repoData.repository;
+    
+    console.log(`✅ [PROJECT_INIT_BG] GitHub repository created: ${repository.html_url}`);
+
+    // 2. Инициализируем шаблон
+    console.log(`🔄 [PROJECT_INIT_BG] Starting template upload...`);
+    const initResponse = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectId,
+        templateType,
+        projectName,
+        repositoryName: repository.name
+      })
+    });
+
+    if (initResponse.ok) {
+      console.log(`✅ [PROJECT_INIT_BG] Template upload initiated for ${projectId}`);
+    } else {
+      const errorText = await initResponse.text();
+      console.error(`❌ [PROJECT_INIT_BG] Template upload failed:`, errorText);
+      throw new Error(`Template upload failed: ${errorText}`);
+    }
+
+  } catch (error) {
+    console.error(`❌ [PROJECT_INIT_BG] Background initialization failed for ${projectId}:`, error);
+    
+    // Обновляем статус проекта на failed
+    try {
+      const supabaseClient = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabaseClient);
+      await projectQueries.updateProject(projectId, {
+        deploy_status: "failed"
+      });
+      console.log(`📊 Updated project ${projectId} status to failed`);
+    } catch (updateError) {
+      console.error(`❌ Error updating project status for ${projectId}:`, updateError);
+    }
+    
+    // Rethrow для логирования в catch блоке выше
+    throw error;
   }
 }
 

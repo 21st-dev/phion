@@ -21,9 +21,6 @@ export function DownloadStep({
   onInitializationComplete,
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStage, setDownloadStage] = useState<
-    "downloading" | "processing" | null
-  >(null);
   const [isInitializing, setIsInitializing] = useState(
     project.deploy_status === "pending"
   );
@@ -98,69 +95,81 @@ export function DownloadStep({
     checkInitialStatus();
   }, [project.id]);
 
-  const handleDownload = async () => {
-    // Проверяем актуальный статус перед скачиванием
-    if (isInitializing) {
-      console.log(
-        "⚠️ [DownloadStep] Download blocked - project still initializing"
-      );
-      return;
+  const tryAlternativeDownloads = (projectId: string, projectName: string) => {
+    console.log("🔄 [DownloadStep] Trying alternative download methods...");
+
+    // Способ 1: Создание невидимого iframe
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = `/api/projects/${projectId}/download`;
+      document.body.appendChild(iframe);
+
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 3000);
+
+      console.log("✅ [DownloadStep] Iframe method triggered");
+    } catch (iframeError) {
+      console.warn("⚠️ [DownloadStep] Iframe method failed:", iframeError);
     }
+
+    // Способ 2: Показываем пользователю уведомление через 1.5 секунды
+    setTimeout(() => {
+      const userWantsManual = confirm(
+        "🚨 Download Issue Detected\n\n" +
+          "The automatic download appears to be blocked by your browser.\n\n" +
+          "💡 Solutions:\n" +
+          "• Click OK to try direct download\n" +
+          "• Use the 'Direct Link' button on the page\n" +
+          "• Check if popup blocker is enabled\n\n" +
+          "Would you like to try downloading now?"
+      );
+
+      if (userWantsManual) {
+        // Попробуем несколько методов
+        try {
+          window.open(`/api/projects/${projectId}/download`, "_blank");
+        } catch (error) {
+          // Если window.open не работает, используем location
+          window.location.href = `/api/projects/${projectId}/download`;
+        }
+      }
+    }, 1500);
+  };
+
+  const handleDownload = () => {
+    if (isInitializing || isDownloading) return;
 
     setIsDownloading(true);
-    setDownloadStage("downloading");
 
-    try {
-      // Создаем ссылку для скачивания
-      const downloadUrl = `/api/projects/${project.id}/download`;
+    const url = `/api/projects/${project.id}/download`;
+    console.log(`🔽 [DownloadStep] Opening download URL: ${url}`);
 
-      // Используем fetch для мониторинга прогресса
-      const response = await fetch(downloadUrl);
+    // Open in a new tab to trigger browser-native download
+    const newTab = window.open(url, "_blank", "noopener,noreferrer");
 
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`);
-      }
-
-      // Переключаемся на этап обработки
-      setDownloadStage("processing");
-
-      // Получаем blob
-      const blob = await response.blob();
-
-      // Создаем ссылку для скачивания
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${project.name}-${project.id}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      // Вызываем callback
-      onDownload();
-    } catch (error) {
-      console.error("Download error:", error);
-      // В случае ошибки все равно пытаемся вызвать оригинальный onDownload
-      await onDownload();
-    } finally {
-      setIsDownloading(false);
-      setDownloadStage(null);
+    // Fallback: navigate current tab if popup blocked
+    if (!newTab) {
+      console.log("🔄 [DownloadStep] Popup blocked, trying same tab...");
+      window.location.href = url;
     }
+
+    // Reset downloading state after a short delay since we can't detect download completion
+    setTimeout(() => {
+      setIsDownloading(false);
+      console.log("✅ [DownloadStep] Download state reset");
+    }, 2000);
+
+    onDownload();
   };
 
   const getDownloadButtonText = () => {
     if (isInitializing) return "Preparing...";
-    if (!isDownloading) return "Download";
-
-    switch (downloadStage) {
-      case "downloading":
-        return "Downloading...";
-      case "processing":
-        return "Processing...";
-      default:
-        return "Downloading...";
-    }
+    if (isDownloading) return "Downloading...";
+    return "Download";
   };
 
   return (
@@ -228,20 +237,21 @@ export function DownloadStep({
               </div>
             )}
 
-            {!isInitializing && !isCompleted && !isDownloading && (
+            {!isInitializing && !isCompleted && (
               <div className="text-sm text-muted-foreground">
                 Download your project files to get started with local
                 development.
+                {!isCompleted && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Click "Download" to get your project ZIP file.
+                  </div>
+                )}
               </div>
             )}
 
             {isDownloading && (
               <div className="text-sm text-muted-foreground">
-                {downloadStage === "downloading"
-                  ? "Fetching project from GitHub..."
-                  : downloadStage === "processing"
-                  ? "Preparing your project files..."
-                  : "Processing..."}
+                Downloading...
               </div>
             )}
           </div>
