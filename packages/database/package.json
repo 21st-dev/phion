@@ -32,11 +32,11 @@
   "dependencies": {
     "@shipvibes/shared": "workspace:*",
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.9"
+    "@supabase/supabase-js": "^2.49.9",
+    "tsup": "^8.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
-    "tsup": "^8.0.1",
     "typescript": "^5.2.2"
   }
 }
