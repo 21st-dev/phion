@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface SubscriptionData {
   hasActiveSubscription: boolean;
@@ -10,6 +10,11 @@ interface SubscriptionData {
   error?: string;
 }
 
+interface ProjectLimitsData {
+  projectCount: number;
+  subscriptionData: SubscriptionData;
+}
+
 interface ProjectLimits {
   isLoading: boolean;
   canCreateProject: boolean;
@@ -18,81 +23,63 @@ interface ProjectLimits {
   maxProjects: number;
   subscriptionData: SubscriptionData | null;
   error: string | null;
-  refreshLimits: () => Promise<void>;
+  refetch: () => void;
 }
 
 const FREE_TIER_LIMIT = 1;
 
-export function useProjectLimits(): ProjectLimits {
-  const [isLoading, setIsLoading] = useState(true);
-  const [projectCount, setProjectCount] = useState(0);
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+async function fetchProjectLimits(): Promise<ProjectLimitsData> {
+  // Параллельно загружаем проекты и подписку
+  const [projectsResponse, subscriptionResponse] = await Promise.all([
+    fetch("/api/projects"),
+    fetch("/api/subscription/check")
+  ]);
 
-  const fetchLimits = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  if (!projectsResponse.ok) {
+    throw new Error("Failed to fetch projects");
+  }
 
-      // Параллельно загружаем проекты и подписку
-      const [projectsResponse, subscriptionResponse] = await Promise.all([
-        fetch("/api/projects"),
-        fetch("/api/subscription/check")
-      ]);
+  const projects = await projectsResponse.json();
+  const projectCount = Array.isArray(projects) ? projects.length : 0;
 
-      if (!projectsResponse.ok) {
-        throw new Error("Failed to fetch projects");
-      }
-
-      const projects = await projectsResponse.json();
-      setProjectCount(Array.isArray(projects) ? projects.length : 0);
-
-      if (subscriptionResponse.ok) {
-        try {
-          const subscription = await subscriptionResponse.json();
-          setSubscriptionData(subscription);
-        } catch (parseError) {
-          // JSON parsing failed, default to free tier
-          console.warn("Failed to parse subscription response, defaulting to free tier");
-          setSubscriptionData({
-            hasActiveSubscription: false,
-            email: "",
-            error: "Subscription check failed"
-          });
-        }
-      } else {
-        // Если проверка подписки не удалась, считаем что подписки нет
-        console.warn("Subscription check failed, defaulting to free tier");
-        setSubscriptionData({
-          hasActiveSubscription: false,
-          email: "",
-          error: "Subscription check failed"
-        });
-      }
-    } catch (err) {
-      // Only set error for critical failures (like projects fetch failing)
-      if (err instanceof Error && err.message.includes("Failed to fetch projects")) {
-        setError(err.message);
-      } else {
-        // For other errors, just log and continue with free tier
-        console.warn("Non-critical error in fetchLimits:", err);
-      }
-      
-      // В случае ошибки считаем, что подписки нет
-      setSubscriptionData({
-        hasActiveSubscription: false,
-        email: "",
-        error: err instanceof Error ? err.message : "Unknown error"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  let subscriptionData: SubscriptionData = {
+    hasActiveSubscription: false,
+    email: "",
+    error: "Subscription check failed"
   };
 
-  useEffect(() => {
-    fetchLimits();
-  }, []);
+  if (subscriptionResponse.ok) {
+    try {
+      subscriptionData = await subscriptionResponse.json();
+    } catch (parseError) {
+      // JSON parsing failed, default to free tier
+      console.warn("Failed to parse subscription response, defaulting to free tier");
+    }
+  } else {
+    // Если проверка подписки не удалась, считаем что подписки нет
+    console.warn("Subscription check failed, defaulting to free tier");
+  }
 
+  return { projectCount, subscriptionData };
+}
+
+export function useProjectLimits(): ProjectLimits {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["project-limits"],
+    queryFn: fetchProjectLimits,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      // Retry only for network errors, not for project fetch failures
+      if (error?.message?.includes("Failed to fetch projects")) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  const projectCount = data?.projectCount || 0;
+  const subscriptionData = data?.subscriptionData || null;
   const hasActiveSubscription = subscriptionData?.hasActiveSubscription || false;
   
   // В development окружении убираем лимиты
@@ -107,7 +94,7 @@ export function useProjectLimits(): ProjectLimits {
     projectCount,
     maxProjects: (hasActiveSubscription || isDevelopment) ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
     subscriptionData,
-    error,
-    refreshLimits: fetchLimits
+    error: error?.message || null,
+    refetch: () => { refetch(); }
   };
 } 

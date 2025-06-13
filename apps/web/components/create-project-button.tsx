@@ -17,7 +17,7 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
     projectCount,
     maxProjects,
     isLoading: limitsLoading,
-    refreshLimits,
+    refetch,
   } = useProjectLimits();
 
   const createButton = trigger || (
@@ -63,7 +63,7 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
             onOpenChange={(open) => {
               setShowPricingModal(open);
               if (!open) {
-                refreshLimits();
+                refetch();
               }
             }}
             currentProjectCount={projectCount}

@@ -1,51 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/project/project-card";
 import { ProjectCardSkeleton } from "@/components/project/project-card-skeleton";
 import { EmptyState } from "@/components/project/empty-state";
-import type { ProjectRow } from "@shipvibes/database";
+import { useProjects } from "@/hooks/use-projects";
 import { useToast } from "@/hooks/use-toast";
+import type { ProjectRow } from "@shipvibes/database";
 
 export function ProjectList() {
-  const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: projects, isLoading, error } = useProjects();
   const { error: showError } = useToast();
 
-  useEffect(() => {
-    fetchProjects();
-
-    // ✅ УБИРАЕМ АГРЕССИВНЫЙ POLLING!
-    // Обновляем статус только при необходимости, а не каждые 30 секунд
-    // const interval = setInterval(() => {
-    //   fetchProjects();
-    // }, 30000);
-
-    // return () => clearInterval(interval);
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      const response = await fetch("/api/projects");
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
-      }
-      const data = await response.json();
-      setProjects(data);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      showError(
-        "Failed to load projects",
-        "Please refresh the page to try again"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Показываем ошибку через toast, если есть
+  if (error) {
+    showError(
+      "Failed to load projects",
+      "Please refresh the page to try again"
+    );
+  }
 
   // Конвертируем данные для совместимости с ProjectCard
-  const formatProjectsForCards = (projects: ProjectRow[]) => {
-    return projects.map((project) => ({
+  const formatProjectsForCards = (projects: ProjectRow[] | undefined) => {
+    if (!projects) return [];
+
+    return projects.map((project: ProjectRow) => ({
       id: project.id,
       name: project.name,
       url: project.netlify_url || undefined,
@@ -83,7 +61,7 @@ export function ProjectList() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
@@ -93,7 +71,7 @@ export function ProjectList() {
     );
   }
 
-  if (projects.length === 0) {
+  if (!projects || projects.length === 0) {
     return <EmptyState />;
   }
 

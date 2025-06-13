@@ -2,10 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
-import type { DatabaseTypes } from "@shipvibes/database";
+import type { ProjectRow } from "@shipvibes/database";
 
 interface ProjectContextType {
-  project: DatabaseTypes.ProjectRow;
+  project: ProjectRow;
   history: any[];
   pendingChanges: any[];
   agentConnected: boolean;
@@ -29,7 +29,7 @@ export function useProject() {
 }
 
 interface ProjectLayoutClientProps {
-  project: DatabaseTypes.ProjectRow;
+  project: ProjectRow;
   initialHistory: any[];
   initialPendingChanges: any[];
   children: React.ReactNode;
@@ -185,7 +185,7 @@ export function ProjectLayoutClient({
       console.log("🚀 [ProjectLayout] Deploy status update:", data);
       if (data.projectId === project.id) {
         // Обновляем статус проекта в реальном времени
-        setProject((prev) => ({
+        setProject((prev: ProjectRow) => ({
           ...prev,
           deploy_status: data.status,
           netlify_url: data.url || prev.netlify_url,

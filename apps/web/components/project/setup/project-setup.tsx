@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { DatabaseTypes } from "@shipvibes/database";
+import type { ProjectRow } from "@shipvibes/database";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { Spinner } from "@/components/geist/spinner";
 import { useToast } from "@/hooks/use-toast";
@@ -10,14 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ProjectSetupLayout,
   ProjectSetupSidebar,
-  CongratulationsView,
   DownloadStep,
   SetupStep,
   type SetupStep as ISetupStep,
 } from "./index";
 
 interface ProjectSetupProps {
-  project: DatabaseTypes.ProjectRow;
+  project: ProjectRow;
   agentConnected?: boolean; // Статус агента получаем извне
 }
 

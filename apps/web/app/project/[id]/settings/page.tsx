@@ -9,6 +9,7 @@ import { DeleteProjectDialog } from "@/components/project/delete-project-dialog"
 import { ExternalLink, Copy } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
 import { useToast } from "@/hooks/use-toast";
+import { useUpdateProjectSettings } from "@/hooks/use-project-settings";
 import { getStatusBadge } from "@/lib/deployment-utils";
 
 // Client-side only date/time display component
@@ -36,37 +37,26 @@ function DateTimeDisplay({ timestamp }: { timestamp: string }) {
 export default function ProjectSettingsPage() {
   const { project } = useProject();
   const [projectName, setProjectName] = useState(project.name);
-  const [isSaving, setIsSaving] = useState(false);
   const { error: showError, success: showSuccess } = useToast();
+  const updateProjectMutation = useUpdateProjectSettings();
 
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/projects/${project.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+  const handleSaveSettings = () => {
+    updateProjectMutation.mutate(
+      { projectId: project.id, name: projectName },
+      {
+        onSuccess: () => {
+          showSuccess(
+            "Settings saved",
+            "Project settings have been updated successfully"
+          );
+          console.log("Settings saved successfully");
         },
-        body: JSON.stringify({
-          name: projectName,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save settings");
+        onError: (error) => {
+          console.error("Error saving settings:", error);
+          showError("Failed to save settings", "Please try again");
+        },
       }
-
-      showSuccess(
-        "Settings saved",
-        "Project settings have been updated successfully"
-      );
-      console.log("Settings saved successfully");
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      showError("Failed to save settings", "Please try again");
-    } finally {
-      setIsSaving(false);
-    }
+    );
   };
 
   const handleCopyProjectId = () => {
@@ -139,9 +129,11 @@ export default function ProjectSettingsPage() {
           <div className="bg-muted p-3 rounded-b-lg flex justify-end gap-3 border-t">
             <Button
               onClick={handleSaveSettings}
-              disabled={isSaving || projectName === project.name}
+              disabled={
+                updateProjectMutation.isPending || projectName === project.name
+              }
             >
-              {isSaving ? "Saving..." : "Save Changes"}
+              {updateProjectMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>

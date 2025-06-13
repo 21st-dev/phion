@@ -1,7 +1,7 @@
 "use client";
 
 import { StatusDot } from "@/components/geist/status-dot";
-import type { DatabaseTypes } from "@shipvibes/database";
+import type { ProjectRow } from "@shipvibes/database";
 
 interface SetupStep {
   id: string;
@@ -12,7 +12,7 @@ interface SetupStep {
 interface ProjectSetupSidebarProps {
   steps: SetupStep[];
   currentStep: number;
-  project: DatabaseTypes.ProjectRow;
+  project: ProjectRow;
   downloadCompleted?: boolean;
   setupCompleted?: boolean;
   deployCompleted?: boolean;

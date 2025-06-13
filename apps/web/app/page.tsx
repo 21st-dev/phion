@@ -8,14 +8,15 @@ import { Header } from "@/components/layout/header";
 import { createAuthBrowserClient } from "@shipvibes/database";
 import type { User } from "@supabase/supabase-js";
 import { CreateProjectButton } from "@/components/create-project-button";
+import { useInvalidateProjects } from "@/hooks/use-projects";
 import { Spinner } from "@/components/geist/spinner";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
   const supabase = createAuthBrowserClient();
+  const invalidateProjects = useInvalidateProjects();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -36,8 +37,8 @@ export default function HomePage() {
   }, [router, supabase.auth]);
 
   const handleDeleteAllSuccess = () => {
-    // Обновляем список проектов принудительно
-    setRefreshKey((prev) => prev + 1);
+    // Инвалидируем кеш проектов
+    invalidateProjects();
   };
 
   if (loading) {
@@ -91,7 +92,7 @@ export default function HomePage() {
             </div>
 
             {/* Projects */}
-            <ProjectList key={refreshKey} />
+            <ProjectList />
           </div>
         </div>
       </main>

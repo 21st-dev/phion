@@ -5,10 +5,10 @@ import NumberFlow from "@number-flow/react";
 import { Button } from "@/components/geist/button";
 import { Material } from "@/components/geist/material";
 import { useWebSocket } from "@/hooks/use-websocket";
-import type { DatabaseTypes } from "@shipvibes/database";
+import type { ProjectRow } from "@shipvibes/database";
 
 interface DownloadStepProps {
-  project: DatabaseTypes.ProjectRow;
+  project: ProjectRow;
   onDownload: () => void;
   isCompleted?: boolean;
   onInitializationComplete?: () => void;
