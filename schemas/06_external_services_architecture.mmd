@@ -1,0 +1,416 @@
+sequenceDiagram
+    participant WS as 🔄 WebSocket Server
+    participant GITHUB_APP as 🤖 GitHub App
+    participant GITHUB_API as 🐙 GitHub API
+    participant REPO as 📦 GitHub Repository
+    participant NETLIFY_API as 🚀 Netlify API
+    participant NETLIFY_SITE as 🌐 Netlify Site
+    participant BUILD as 🏗️ Build Process
+    participant CDN as 🌍 CDN/Edge
+
+    Note over WS,CDN: 🔗 EXTERNAL SERVICES - ДЕТАЛЬНАЯ АРХИТЕКТУРА
+
+    %% === GITHUB APP ИНТЕГРАЦИЯ ===
+    rect rgb(250, 245, 255)
+        Note over GITHUB_APP: 🤖 GITHUB APP АРХИТЕКТУРА
+        
+        Note left of GITHUB_APP: КОНФИГУРАЦИЯ GITHUB APP
+        Note left of GITHUB_APP: ├── App Name: "Vybcel Bot"
+        Note left of GITHUB_APP: ├── App ID: 1390062
+        Note left of GITHUB_APP: ├── Installation ID: 70719351
+        Note left of GITHUB_APP: ├── Organization: vybcel
+        Note left of GITHUB_APP: ├── Private Key (PEM format)
+        Note left of GITHUB_APP: └── Webhook URL (для событий)
+
+        Note right of GITHUB_APP: PERMISSIONS И SCOPE
+        Note right of GITHUB_APP: ├── Repository permissions:
+        Note right of GITHUB_APP: │   ├── Contents: Read & Write
+        Note right of GITHUB_APP: │   ├── Metadata: Read
+        Note right of GITHUB_APP: │   ├── Pull requests: Read & Write
+        Note right of GITHUB_APP: │   └── Administration: Write
+        Note right of GITHUB_APP: ├── Organization permissions:
+        Note right of GITHUB_APP: │   ├── Members: Read
+        Note right of GITHUB_APP: │   └── Administration: Write
+        Note right of GITHUB_APP: └── Account permissions:
+        Note right of GITHUB_APP:     └── Email addresses: Read
+
+        Note over GITHUB_APP: JWT AUTHENTICATION FLOW
+        Note over GITHUB_APP: ├── Генерация JWT с private key
+        Note over GITHUB_APP: ├── Получение installation token (60 мин)
+        Note over GITHUB_APP: ├── Использование token для API calls
+        Note over GITHUB_APP: └── Автоматическое обновление токенов
+
+        alt JWT Token Generation
+            WS->>GITHUB_APP: Генерация installation token
+            GITHUB_APP->>GITHUB_APP: Создание JWT с private key
+            GITHUB_APP->>GITHUB_API: POST /app/installations/{id}/access_tokens
+            GITHUB_API-->>GITHUB_APP: Installation token (60 мин)
+            GITHUB_APP-->>WS: Ready для API операций
+        end
+        
+        alt Token Refresh
+            GITHUB_APP->>GITHUB_APP: Token expiration check
+            GITHUB_APP->>GITHUB_API: Новый installation token
+            GITHUB_API-->>GITHUB_APP: Обновленный token
+            GITHUB_APP->>WS: Token refreshed
+        end
+    end
+
+    %% === GITHUB REPOSITORY OPERATIONS ===
+    rect rgb(240, 248, 255)
+        Note over REPO: 📦 GITHUB REPOSITORY ОПЕРАЦИИ
+        
+        Note left of REPO: СОЗДАНИЕ РЕПОЗИТОРИЯ
+        Note left of REPO: ├── POST /orgs/vybcel/repos
+        Note left of REPO: ├── Private repository by default
+        Note left of REPO: ├── Auto-initialization с README
+        Note left of REPO: ├── Default branch: main
+        Note left of REPO: ├── Repository naming: vybcel-project-{id}
+        Note left of REPO: └── Template files injection
+
+        Note right of REPO: FILE OPERATIONS
+        Note right of REPO: ├── PUT /repos/{owner}/{repo}/contents/{path}
+        Note right of REPO: │   └── Create/Update файлов
+        Note right of REPO: ├── GET /repos/{owner}/{repo}/contents/{path}
+        Note right of REPO: │   └── Read file contents
+        Note right of REPO: ├── DELETE /repos/{owner}/{repo}/contents/{path}
+        Note right of REPO: │   └── Delete файлов
+        Note right of REPO: └── Batch operations для multiple files
+
+        Note over REPO: GIT OPERATIONS
+        Note over REPO: ├── Создание blobs для файлов
+        Note over REPO: ├── Создание tree с файловой структурой
+        Note over REPO: ├── Создание commit с message
+        Note over REPO: └── Обновление main branch reference
+
+        alt Создание репозитория
+            WS->>GITHUB_API: POST /orgs/vybcel/repos
+            GITHUB_API->>REPO: Создание приватного репо
+            REPO->>REPO: Инициализация с README
+            REPO->>REPO: Настройка default branch (main)
+            REPO-->>WS: Repository URL + clone URL
+        end
+        
+        alt Batch upload файлов
+            WS->>GITHUB_API: Получение parent commit SHA
+            GITHUB_API-->>WS: Latest commit SHA
+            
+            loop Для каждого файла
+                WS->>GITHUB_API: POST /repos/{owner}/{repo}/git/blobs
+                GITHUB_API-->>WS: Blob SHA
+            end
+            
+            WS->>GITHUB_API: POST /repos/{owner}/{repo}/git/trees
+            GITHUB_API-->>WS: Tree SHA
+            
+            WS->>GITHUB_API: POST /repos/{owner}/{repo}/git/commits
+            GITHUB_API-->>WS: Commit SHA
+            
+            WS->>GITHUB_API: PATCH /repos/{owner}/{repo}/git/refs/heads/main
+            GITHUB_API-->>WS: Updated main branch
+        end
+        
+        alt Удаление репозитория
+            WS->>GITHUB_API: DELETE /repos/vybcel/{repo-name}
+            GITHUB_API->>REPO: Repository deletion
+            REPO->>REPO: Удаление всех файлов и истории
+            REPO-->>WS: Deletion confirmed
+        end
+    end
+
+    %% === GITHUB WEBHOOKS ===
+    rect rgb(255, 250, 240)
+        Note over GITHUB_API: 🔔 GITHUB WEBHOOKS
+        
+        Note left of GITHUB_API: WEBHOOK EVENTS
+        Note left of GITHUB_API: ├── push (commits в main)
+        Note left of GITHUB_API: ├── pull_request (PR события)
+        Note left of GITHUB_API: ├── repository (создание/удаление)
+        Note left of GITHUB_API: ├── installation (app install/uninstall)
+        Note left of GITHUB_API: └── release (новые релизы)
+
+        Note right of GITHUB_API: WEBHOOK PAYLOAD
+        Note right of GITHUB_API: ├── Headers:
+        Note right of GITHUB_API: │   ├── X-GitHub-Event
+        Note right of GITHUB_API: │   ├── X-GitHub-Delivery
+        Note right of GITHUB_API: │   └── X-Hub-Signature-256
+        Note right of GITHUB_API: ├── Body:
+        Note right of GITHUB_API: │   ├── action (opened, closed, etc.)
+        Note right of GITHUB_API: │   ├── repository (repo info)
+        Note right of GITHUB_API: │   ├── sender (user info)
+        Note right of GITHUB_API: │   └── commits (для push events)
+
+        alt Push webhook
+            REPO->>GITHUB_API: Git push to main branch
+            GITHUB_API->>WS: POST /webhooks/github
+            WS->>WS: Signature verification
+            WS->>WS: Парсинг payload
+            WS->>WS: Trigger auto-deploy if needed
+        end
+        
+        alt Repository webhook
+            GITHUB_API->>WS: Repository created/deleted
+            WS->>WS: Update internal state
+            WS->>WS: Cleanup related resources
+        end
+    end
+
+    %% === NETLIFY API ИНТЕГРАЦИЯ ===
+    rect rgb(255, 245, 250)
+        Note over NETLIFY_API: 🚀 NETLIFY API АРХИТЕКТУРА
+        
+        Note left of NETLIFY_API: API CONFIGURATION
+        Note left of NETLIFY_API: ├── Access Token (Personal/Team)
+        Note left of NETLIFY_API: ├── API Base URL: api.netlify.com
+        Note left of NETLIFY_API: ├── Rate Limits: 500 requests/min
+        Note left of NETLIFY_API: ├── Authentication: Bearer token
+        Note left of NETLIFY_API: └── HTTPS only
+
+        Note right of NETLIFY_API: CORE API ENDPOINTS
+        Note right of NETLIFY_API: ├── Sites Management:
+        Note right of NETLIFY_API: │   ├── POST /sites (создание)
+        Note right of NETLIFY_API: │   ├── GET /sites/{id} (информация)
+        Note right of NETLIFY_API: │   ├── PATCH /sites/{id} (обновление)
+        Note right of NETLIFY_API: │   └── DELETE /sites/{id} (удаление)
+        Note right of NETLIFY_API: ├── Deploy Management:
+        Note right of NETLIFY_API: │   ├── POST /sites/{id}/deploys
+        Note right of NETLIFY_API: │   ├── GET /deploys/{id}
+        Note right of NETLIFY_API: │   └── POST /deploys/{id}/restore
+        Note right of NETLIFY_API: ├── Build Configuration:
+        Note right of NETLIFY_API: │   ├── Build command setting
+        Note right of NETLIFY_API: │   ├── Publish directory
+        Note right of NETLIFY_API: │   └── Environment variables
+        Note right of NETLIFY_API: └── Webhooks:
+        Note right of NETLIFY_API:     ├── POST /hooks
+        Note right of NETLIFY_API:     └── Webhook event types
+
+        alt Создание Netlify сайта
+            WS->>NETLIFY_API: POST /sites
+            NETLIFY_API->>NETLIFY_SITE: Создание нового сайта
+            NETLIFY_SITE->>NETLIFY_SITE: Генерация subdomain
+            NETLIFY_SITE->>NETLIFY_SITE: Настройка GitHub integration
+            NETLIFY_API-->>WS: Site ID + URL + deploy settings
+        end
+        
+        alt Настройка GitHub интеграции
+            WS->>NETLIFY_API: PATCH /sites/{id} с GitHub repo URL
+            NETLIFY_API->>NETLIFY_SITE: Конфигурация GitHub связи
+            NETLIFY_SITE->>GITHUB_API: Настройка deploy key
+            NETLIFY_SITE->>GITHUB_API: Установка webhook
+            NETLIFY_API-->>WS: Integration configured
+        end
+    end
+
+    %% === NETLIFY BUILD PROCESS ===
+    rect rgb(250, 255, 245)
+        Note over BUILD: 🏗️ NETLIFY BUILD PROCESS
+        
+        Note left of BUILD: BUILD CONFIGURATION
+        Note left of BUILD: ├── Build Command: "pnpm install && pnpm build"
+        Note left of BUILD: ├── Publish Directory: "dist/"
+        Note left of BUILD: ├── Node.js Version: 18.x
+        Note left of BUILD: ├── Package Manager: pnpm
+        Note left of BUILD: ├── Build Timeout: 15 minutes
+        Note left of BUILD: └── Environment Variables
+
+        Note right of BUILD: BUILD STEPS
+        Note right of BUILD: ├── 1. Git clone от GitHub
+        Note right of BUILD: ├── 2. Dependencies installation
+        Note right of BUILD: ├── 3. Build script execution
+        Note right of BUILD: ├── 4. Output validation
+        Note right of BUILD: ├── 5. Asset optimization
+        Note right of BUILD: ├── 6. CDN deployment
+        Note right of BUILD: └── 7. Cache invalidation
+
+        Note over BUILD: BUILD ENVIRONMENT
+        Note over BUILD: ├── Ubuntu-based container
+        Note over BUILD: ├── Isolated build environment
+        Note over BUILD: ├── Build caching (node_modules)
+        Note over BUILD: ├── Asset processing pipeline
+        Note over BUILD: └── Deploy preview generation
+
+        alt Successful build
+            NETLIFY_SITE->>BUILD: Trigger build from GitHub push
+            BUILD->>GITHUB_API: Git clone repository
+            BUILD->>BUILD: pnpm install (dependencies)
+            BUILD->>BUILD: pnpm build (compilation)
+            BUILD->>BUILD: Asset optimization
+            BUILD->>CDN: Deploy to edge locations
+            BUILD->>WS: Webhook: deploy-succeeded
+        end
+        
+        alt Failed build
+            BUILD->>BUILD: Build error detected
+            BUILD->>BUILD: Capture error logs
+            BUILD->>WS: Webhook: deploy-failed
+            BUILD->>BUILD: Cleanup build artifacts
+        end
+    end
+
+    %% === NETLIFY WEBHOOKS ===
+    rect rgb(245, 255, 245)
+        Note over NETLIFY_API: 🔔 NETLIFY WEBHOOKS
+        
+        Note left of NETLIFY_API: WEBHOOK EVENTS
+        Note left of NETLIFY_API: ├── deploy-building
+        Note left of NETLIFY_API: ├── deploy-succeeded
+        Note left of NETLIFY_API: ├── deploy-failed
+        Note left of NETLIFY_API: ├── deploy-locked
+        Note left of NETLIFY_API: ├── deploy-unlocked
+        Note left of NETLIFY_API: └── site-created
+
+        Note right of NETLIFY_API: WEBHOOK PAYLOAD
+        Note right of NETLIFY_API: ├── id (deploy ID)
+        Note right of NETLIFY_API: ├── site_id (site identifier)
+        Note right of NETLIFY_API: ├── state (building/ready/error)
+        Note right of NETLIFY_API: ├── url (deploy URL)
+        Note right of NETLIFY_API: ├── ssl_url (HTTPS URL)
+        Note right of NETLIFY_API: ├── created_at (timestamp)
+        Note right of NETLIFY_API: ├── error_message (если есть)
+        Note right of NETLIFY_API: └── build_log_url (ссылка на логи)
+
+        alt Deploy webhook processing
+            NETLIFY_SITE->>WS: POST /webhooks/netlify
+            WS->>WS: Webhook signature verification
+            WS->>WS: Парсинг deploy payload
+            WS->>WS: Обновление project deploy_status
+            WS->>WS: Broadcast to WebSocket clients
+        end
+    end
+
+    %% === CDN И EDGE DEPLOYMENT ===
+    rect rgb(255, 255, 245)
+        Note over CDN: 🌍 CDN И EDGE DEPLOYMENT
+        
+        Note left of CDN: NETLIFY CDN FEATURES
+        Note left of CDN: ├── Global edge locations
+        Note left of CDN: ├── Automatic asset optimization
+        Note left of CDN: ├── Image processing
+        Note left of CDN: ├── Gzip/Brotli compression
+        Note left of CDN: ├── Cache invalidation
+        Note left of CDN: ├── Custom headers
+        Note left of CDN: └── Edge functions support
+
+        Note right of CDN: PERFORMANCE OPTIMIZATION
+        Note right of CDN: ├── Static asset caching
+        Note right of CDN: ├── HTTP/2 support
+        Note right of CDN: ├── Progressive Web App features
+        Note right of CDN: ├── Asset bundling optimization
+        Note right of CDN: ├── Critical CSS inlining
+        Note right of CDN: └── Lazy loading implementation
+
+        alt Asset deployment
+            BUILD->>CDN: Upload optimized assets
+            CDN->>CDN: Distribute to edge locations
+            CDN->>CDN: Setup cache headers
+            CDN->>CDN: Generate deploy URL
+            CDN-->>BUILD: Deployment ready
+        end
+    end
+
+    %% === ERROR HANDLING И MONITORING ===
+    rect rgb(255, 245, 245)
+        Note over WS: ❌ ERROR HANDLING И MONITORING
+        
+        Note left of WS: GITHUB API ERROR HANDLING
+        Note left of WS: ├── Rate limit handling (5000 req/hour)
+        Note left of WS: ├── API timeout handling (30s)
+        Note left of WS: ├── Network retry logic (exponential backoff)
+        Note left of WS: ├── Token expiration handling
+        Note left of WS: ├── Repository access errors
+        Note left of WS: └── Webhook delivery failures
+
+        Note right of WS: NETLIFY API ERROR HANDLING
+        Note right of WS: ├── Build failure notifications
+        Note right of WS: ├── Deploy timeout handling (15 min)
+        Note right of WS: ├── Site limit monitoring
+        Note right of WS: ├── Bandwidth usage tracking
+        Note right of WS: ├── SSL certificate issues
+        Note right of WS: └── Custom domain configuration
+
+        alt GitHub API rate limit
+            WS->>GITHUB_API: API request
+            GITHUB_API-->>WS: 403 Rate limit exceeded
+            WS->>WS: Exponential backoff delay
+            WS->>WS: Queue request for retry
+            WS->>GITHUB_API: Retry after delay
+        end
+        
+        alt Netlify build failure
+            BUILD->>WS: deploy-failed webhook
+            WS->>WS: Parse error details
+            WS->>WS: Log error для debugging
+            WS->>WS: Notify user через UI
+            WS->>WS: Optionally retry deploy
+        end
+    end
+
+    %% === SECURITY И BEST PRACTICES ===
+    rect rgb(250, 250, 255)
+        Note over WS: 🔒 SECURITY И BEST PRACTICES
+        
+        Note left of WS: GITHUB SECURITY
+        Note left of WS: ├── Private key secure storage
+        Note left of WS: ├── JWT token short lifetime (10 min)
+        Note left of WS: ├── Installation token rotation
+        Note left of WS: ├── Webhook signature verification
+        Note left of WS: ├── Repository access auditing
+        Note left of WS: └── Least privilege принцип
+
+        Note right of WS: NETLIFY SECURITY
+        Note right of WS: ├── Access token secure storage
+        Note right of WS: ├── HTTPS enforcement
+        Note right of WS: ├── Environment variable encryption
+        Note right of WS: ├── Build log access control
+        Note right of WS: ├── Deploy branch protection
+        Note right of WS: └── Custom domain SSL/TLS
+
+        Note over WS: API COMMUNICATION SECURITY
+        Note over WS: ├── HTTPS only для всех API calls
+        Note over WS: ├── Request/response validation
+        Note over WS: ├── API key rotation policies
+        Note over WS: ├── Audit logging для API usage
+        Note over WS: └── Error message sanitization
+
+        alt Secure API communication
+            WS->>WS: Encrypt sensitive data
+            WS->>GITHUB_API: HTTPS API request
+            GITHUB_API-->>WS: Secure response
+            WS->>WS: Validate response integrity
+            WS->>WS: Log API usage (sanitized)
+        end
+    end
+
+    %% === INTEGRATION PATTERNS ===
+    rect rgb(245, 245, 255)
+        Note over WS: 🔄 INTEGRATION PATTERNS
+        
+        Note left of WS: REPOSITORY LIFECYCLE
+        Note left of WS: ├── Create → Initialize → Upload template
+        Note left of WS: ├── Update → Commit changes → Auto-deploy
+        Note left of WS: ├── Backup → Branch creation → Archive
+        Note left of WS: └── Delete → Cleanup → Resource deallocation
+
+        Note right of WS: DEPLOYMENT LIFECYCLE
+        Note right of WS: ├── Site creation → GitHub integration setup
+        Note right of WS: ├── Build trigger → Progress monitoring
+        Note right of WS: ├── Deploy success → URL generation
+        Note right of WS: └── Cleanup → Site/domain deallocation
+
+        Note over WS: ERROR RECOVERY PATTERNS
+        Note over WS: ├── Retry mechanisms с exponential backoff
+        Note over WS: ├── Fallback strategies для service outages
+        Note over WS: ├── Circuit breaker pattern для API calls
+        Note over WS: ├── Graceful degradation при partial failures
+        Note over WS: └── User notification при critical errors
+
+        alt End-to-end project creation
+            WS->>GITHUB_API: Create repository
+            GITHUB_API-->>WS: Repository ready
+            WS->>GITHUB_API: Upload template files
+            GITHUB_API-->>WS: Files committed
+            WS->>NETLIFY_API: Create site with GitHub link
+            NETLIFY_API-->>WS: Site ready + auto-deploy configured
+            WS->>WS: Project fully initialized
+        end
+    end

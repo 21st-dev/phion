@@ -1,0 +1,390 @@
+sequenceDiagram
+    participant WEB as 🌐 Web App
+    participant WS as 🔄 WebSocket Server
+    participant IO as 📡 Socket.IO
+    participant GITHUB as 🛠️ GitHub Service
+    participant NETLIFY as 🚀 Netlify Service
+    participant PROJECT as 📁 Project Service
+    participant DB as 🗃️ Database
+    participant AGENT as 📱 Dev Agent
+
+    Note over WEB,AGENT: 🔄 WEBSOCKET SERVER - ДЕТАЛЬНАЯ АРХИТЕКТУРА
+
+    %% === СТРУКТУРА СЕРВЕРА ===
+    rect rgb(245, 255, 245)
+        Note over WS: 📁 ФАЙЛОВАЯ СТРУКТУРА СЕРВЕРА
+        
+        Note left of WS: apps/websocket-server/
+        Note left of WS: ├── src/
+        Note left of WS: │   ├── index.ts (главный файл)
+        Note left of WS: │   ├── server.ts (Express app)
+        Note left of WS: │   ├── socket.ts (Socket.IO setup)
+        Note left of WS: │   ├── services/
+        Note left of WS: │   │   ├── github.ts
+        Note left of WS: │   │   ├── netlify.ts
+        Note left of WS: │   │   ├── project.ts
+        Note left of WS: │   │   └── r2-storage.ts
+        Note left of WS: │   ├── handlers/
+        Note left of WS: │   │   ├── auth.ts
+        Note left of WS: │   │   ├── files.ts
+        Note left of WS: │   │   ├── commits.ts
+        Note left of WS: │   │   └── toolbar.ts
+        Note left of WS: │   ├── utils/
+        Note left of WS: │   │   ├── git.ts
+        Note left of WS: │   │   ├── validation.ts
+        Note left of WS: │   │   └── logger.ts
+        Note left of WS: │   └── types/
+        Note left of WS: │       ├── socket.ts
+        Note left of WS: │       ├── github.ts
+        Note left of WS: │       └── project.ts
+        Note left of WS: ├── package.json
+        Note left of WS: ├── tsconfig.json
+        Note left of WS: └── .env
+
+        Note right of WS: ОСНОВНЫЕ КОМПОНЕНТЫ
+        Note right of WS: ├── Express.js HTTP сервер (порт 8080)
+        Note right of WS: ├── Socket.IO WebSocket сервер
+        Note right of WS: ├── GitHub App интеграция
+        Note right of WS: ├── Netlify API клиент
+        Note right of WS: ├── Supabase Database клиент
+        Note right of WS: ├── Cloudflare R2 клиент
+        Note right of WS: └── Memory store для состояния
+    end
+
+    %% === SOCKET.IO АРХИТЕКТУРА ===
+    rect rgb(240, 248, 255)
+        Note over IO: 📡 SOCKET.IO АРХИТЕКТУРА
+        
+        Note left of IO: WEBSOCKET СОБЫТИЯ
+        Note left of IO: ВХОДЯЩИЕ СОБЫТИЯ:
+        Note left of IO: ├── authenticate
+        Note left of IO: │   └── {projectId, clientType}
+        Note left of IO: ├── file_change
+        Note left of IO: │   └── {filePath, content, action}
+        Note left of IO: ├── save_all_changes
+        Note left of IO: │   └── {projectId}
+        Note left of IO: ├── discard_all_changes
+        Note left of IO: │   └── {projectId}
+        Note left of IO: ├── toolbar_connected
+        Note left of IO: │   └── {projectId, version}
+        Note left of IO: └── ping
+        Note left of IO:     └── keepalive
+
+        Note right of IO: ИСХОДЯЩИЕ СОБЫТИЯ:
+        Note right of IO: ├── authenticated
+        Note right of IO: │   └── {success, projectData}
+        Note right of IO: ├── file_change_staged
+        Note right of IO: │   └── {pendingChanges}
+        Note right of IO: ├── commit_created
+        Note right of IO: │   └── {commitData, history}
+        Note right of IO: ├── deploy_status_update
+        Note right of IO: │   └── {status, url, logs}
+        Note right of IO: ├── toolbar_update_available
+        Note right of IO: │   └── {version, hasUpdate}
+        Note right of IO: ├── agent_connected
+        Note right of IO: │   └── {projectId, agentStatus}
+        Note right of IO: └── error
+        Note right of IO:     └── {message, code}
+
+        alt Подключение клиента
+            AGENT->>IO: WebSocket connection
+            IO->>IO: socket.on('connection')
+            IO->>IO: Присвоение уникального socket.id
+            IO-->>AGENT: Connection established
+        end
+        
+        alt Аутентификация
+            AGENT->>IO: emit('authenticate', {projectId})
+            IO->>DB: Проверка проекта
+            IO->>IO: socket.join(`project_${projectId}`)
+            IO-->>AGENT: emit('authenticated', {success: true})
+        end
+    end
+
+    %% === КОМНАТЫ И СОЕДИНЕНИЯ ===
+    rect rgb(255, 250, 240)
+        Note over IO: 🏠 КОМНАТЫ И УПРАВЛЕНИЕ СОЕДИНЕНИЯМИ
+        
+        Note left of IO: СТРУКТУРА КОМНАТ
+        Note left of IO: ├── project_{projectId}
+        Note left of IO: │   ├── Web клиенты (браузеры)
+        Note left of IO: │   ├── Dev Agent (локальный)
+        Note left of IO: │   └── Toolbar клиенты
+        Note left of IO: ├── admin_toolbar
+        Note left of IO: │   └── Админ интерфейс
+        Note left of IO: └── global
+        Note left of IO:     └── Системные уведомления
+
+        Note right of IO: СОСТОЯНИЕ СОЕДИНЕНИЙ
+        Note right of IO: ├── connectedAgents Map
+        Note right of IO: │   └── {socketId: projectId}
+        Note right of IO: ├── connectedClients Map
+        Note right of IO: │   └── {socketId: {projectId, type}}
+        Note right of IO: ├── activeProjects Set
+        Note right of IO: │   └── Список активных проектов
+        Note right of IO: └── connectionStats Object
+        Note right of IO:     └── Статистика подключений
+
+        alt Broadcast в комнату проекта
+            WS->>IO: io.to(`project_${projectId}`)
+            IO->>IO: Поиск всех сокетов в комнате
+            IO->>AGENT: emit('file_change_staged')
+            IO->>WEB: emit('file_change_staged')
+        end
+        
+        alt Отключение клиента
+            AGENT->>IO: disconnect event
+            IO->>IO: socket.on('disconnect')
+            IO->>IO: Удаление из Maps и Sets
+            IO->>WEB: emit('agent_disconnected')
+        end
+    end
+
+    %% === GITHUB SERVICE ===
+    rect rgb(250, 245, 255)
+        Note over GITHUB: 🐙 GITHUB SERVICE ИНТЕГРАЦИЯ
+        
+        Note left of GITHUB: GITHUB APP АУТЕНТИФИКАЦИЯ
+        Note left of GITHUB: ├── App ID: 1390062
+        Note left of GITHUB: ├── Installation ID: 70719351
+        Note left of GITHUB: ├── Private Key (JWT подпись)
+        Note left of GITHUB: ├── Installation Token (60 мин)
+        Note left of GITHUB: └── Organization: vybcel
+
+        Note right of GITHUB: API ОПЕРАЦИИ
+        Note right of GITHUB: ├── createRepository()
+        Note right of GITHUB: │   └── POST /orgs/vybcel/repos
+        Note right of GITHUB: ├── uploadFiles()
+        Note right of GITHUB: │   └── PUT /repos/{owner}/{repo}/contents/{path}
+        Note right of GITHUB: ├── createCommit()
+        Note right of GITHUB: │   └── POST /repos/{owner}/{repo}/git/commits
+        Note right of GITHUB: ├── updateRef()
+        Note right of GITHUB: │   └── PATCH /repos/{owner}/{repo}/git/refs/heads/main
+        Note right of GITHUB: └── deleteRepository()
+        Note right of GITHUB:     └── DELETE /repos/{owner}/{repo}
+
+        alt Создание репозитория
+            WS->>GITHUB: createRepository(projectId)
+            GITHUB->>GITHUB: Генерация installation token
+            GITHUB->>GITHUB: POST /orgs/vybcel/repos
+            GITHUB->>DB: Сохранение repo данных
+            GITHUB-->>WS: {repoUrl, repoName}
+        end
+        
+        alt Создание коммита
+            WS->>GITHUB: createCommit(files, message)
+            GITHUB->>GITHUB: Создание blobs для файлов
+            GITHUB->>GITHUB: Создание tree с blobs
+            GITHUB->>GITHUB: Создание commit с tree
+            GITHUB->>GITHUB: Обновление main ref
+            GITHUB-->>WS: {commitSha, commitUrl}
+        end
+    end
+
+    %% === NETLIFY SERVICE ===
+    rect rgb(255, 245, 250)
+        Note over NETLIFY: 🚀 NETLIFY SERVICE ИНТЕГРАЦИЯ
+        
+        Note left of NETLIFY: NETLIFY API ОПЕРАЦИИ
+        Note left of NETLIFY: ├── createSite()
+        Note left of NETLIFY: │   └── POST /sites
+        Note left of NETLIFY: ├── updateSite()
+        Note left of NETLIFY: │   └── PATCH /sites/{site_id}
+        Note left of NETLIFY: ├── deleteSite()
+        Note left of NETLIFY: │   └── DELETE /sites/{site_id}
+        Note left of NETLIFY: ├── setupWebhook()
+        Note left of NETLIFY: │   └── POST /hooks
+        Note left of NETLIFY: └── getBuildStatus()
+        Note left of NETLIFY:     └── GET /sites/{site_id}/deploys
+
+        Note right of NETLIFY: WEBHOOK ОБРАБОТКА
+        Note right of NETLIFY: ├── deploy-building
+        Note right of NETLIFY: ├── deploy-succeeded  
+        Note right of NETLIFY: ├── deploy-failed
+        Note right of NETLIFY: └── deploy-cancelled
+
+        alt Создание Netlify сайта
+            WS->>NETLIFY: createSite(repoUrl, buildSettings)
+            NETLIFY->>NETLIFY: Создание сайта с GitHub интеграцией
+            NETLIFY->>NETLIFY: Настройка build commands
+            NETLIFY->>NETLIFY: Настройка deploy key
+            NETLIFY-->>WS: {siteId, siteUrl, deployUrl}
+        end
+        
+        alt Webhook от Netlify
+            NETLIFY->>WS: POST /webhooks/netlify
+            WS->>WS: Парсинг webhook payload
+            WS->>DB: Обновление deploy_status
+            WS->>IO: Broadcast deploy_status_update
+        end
+    end
+
+    %% === PROJECT SERVICE ===
+    rect rgb(240, 255, 240)
+        Note over PROJECT: 📁 PROJECT SERVICE
+        
+        Note left of PROJECT: ОПЕРАЦИИ С ПРОЕКТАМИ
+        Note left of PROJECT: ├── initializeProject()
+        Note left of PROJECT: │   ├── Создание GitHub репо
+        Note left of PROJECT: │   ├── Генерация шаблона
+        Note left of PROJECT: │   └── Загрузка файлов
+        Note left of PROJECT: ├── commitAllChanges()
+        Note left of PROJECT: │   ├── Сбор pending changes
+        Note left of PROJECT: │   ├── Создание коммита
+        Note left of PROJECT: │   └── Очистка staging
+        Note left of PROJECT: ├── discardAllChanges()
+        Note left of PROJECT: │   ├── Очистка pending changes
+        Note left of PROJECT: │   └── Git reset локально
+        Note left of PROJECT: └── deleteProject()
+        Note left of PROJECT:     ├── Удаление GitHub репо
+        Note left of PROJECT:     ├── Удаление Netlify сайта
+        Note left of PROJECT:     └── Очистка БД
+
+        Note right of PROJECT: ФОНОВЫЕ ЗАДАЧИ
+        Note right of PROJECT: ├── initializeProjectInBackground()
+        Note right of PROJECT: │   └── Async инициализация шаблона
+        Note right of PROJECT: ├── syncWithGitHub()
+        Note right of PROJECT: │   └── Синхронизация изменений
+        Note right of PROJECT: ├── cleanupOldProjects()
+        Note right of PROJECT: │   └── Удаление неактивных проектов
+        Note right of PROJECT: └── healthCheck()
+        Note right of PROJECT:     └── Проверка состояния сервисов
+
+        alt Инициализация проекта
+            WS->>PROJECT: initializeProject(projectId)
+            PROJECT->>GITHUB: Создание репозитория
+            PROJECT->>PROJECT: Генерация файлов шаблона
+            PROJECT->>GITHUB: Загрузка файлов в репо
+            PROJECT->>DB: Обновление статуса проекта
+            PROJECT-->>WS: Проект готов
+        end
+        
+        alt Сохранение изменений
+            WS->>PROJECT: commitAllChanges(projectId)
+            PROJECT->>DB: Получение pending changes
+            PROJECT->>GITHUB: Создание коммита
+            PROJECT->>DB: Очистка pending changes
+            PROJECT->>NETLIFY: Триггер автодеплоя
+            PROJECT-->>WS: Коммит создан
+        end
+    end
+
+    %% === HTTP API ENDPOINTS ===
+    rect rgb(250, 250, 245)
+        Note over WS: 🌐 HTTP API ENDPOINTS
+        
+        Note left of WS: REST API МАРШРУТЫ
+        Note left of WS: ├── POST /api/projects/create-repository
+        Note left of WS: │   └── Создание GitHub репозитория
+        Note left of WS: ├── POST /api/projects/initialize
+        Note left of WS: │   └── Инициализация шаблона проекта
+        Note left of WS: ├── POST /api/projects/:id/commit
+        Note left of WS: │   └── Создание коммита
+        Note left of WS: ├── POST /api/projects/:id/discard
+        Note left of WS: │   └── Отмена изменений
+        Note left of WS: ├── POST /api/webhooks/netlify
+        Note left of WS: │   └── Webhook от Netlify
+        Note left of WS: ├── POST /api/webhooks/github
+        Note left of WS: │   └── Webhook от GitHub
+        Note left of WS: ├── GET /api/health
+        Note left of WS: │   └── Health check
+        Note left of WS: └── POST /api/notify-status-change
+        Note left of WS:     └── Межсервисные уведомления
+
+        Note right of WS: MIDDLEWARE
+        Note right of WS: ├── cors() - CORS policy
+        Note right of WS: ├── express.json() - Body parser
+        Note right of WS: ├── rateLimit() - Rate limiting
+        Note right of WS: ├── validateApiKey() - API auth
+        Note right of WS: └── errorHandler() - Error handling
+
+        alt HTTP запрос к API
+            WEB->>WS: POST /api/projects/create-repository
+            WS->>WS: Middleware обработка
+            WS->>PROJECT: Выполнение операции
+            PROJECT-->>WS: Результат операции
+            WS-->>WEB: HTTP ответ
+        end
+        
+        alt Webhook обработка
+            NETLIFY->>WS: POST /api/webhooks/netlify
+            WS->>WS: Парсинг webhook данных
+            WS->>IO: Broadcast события клиентам
+            WS-->>NETLIFY: 200 OK
+        end
+    end
+
+    %% === ЛОГИРОВАНИЕ И МОНИТОРИНГ ===
+    rect rgb(255, 255, 240)
+        Note over WS: 📊 ЛОГИРОВАНИЕ И МОНИТОРИНГ
+        
+        Note left of WS: СИСТЕМА ЛОГИРОВАНИЯ
+        Note left of WS: ├── winston logger
+        Note left of WS: │   ├── Console transport (dev)
+        Note left of WS: │   ├── File transport (prod)
+        Note left of WS: │   └── Error levels (error, warn, info)
+        Note left of WS: ├── Structured logging (JSON)
+        Note left of WS: ├── Request ID tracing
+        Note left of WS: └── Performance metrics
+
+        Note right of WS: МОНИТОРИНГ И МЕТРИКИ
+        Note right of WS: ├── Connection metrics
+        Note right of WS: │   └── Активные соединения
+        Note right of WS: ├── API metrics
+        Note right of WS: │   └── Request/response время
+        Note right of WS: ├── GitHub API rate limits
+        Note right of WS: ├── Netlify API usage
+        Note right of WS: └── Database query время
+
+        alt Логирование операций
+            WS->>WS: logger.info('Project created', {projectId})
+            WS->>WS: logger.error('GitHub API failed', {error})
+            WS->>WS: Структурированный JSON лог
+        end
+        
+        alt Мониторинг производительности
+            WS->>WS: performance.mark('start')
+            WS->>GITHUB: API операция
+            WS->>WS: performance.mark('end')
+            WS->>WS: performance.measure('github-api')
+        end
+    end
+
+    %% === DEPLOYMENT И ENVIRONMENT ===
+    rect rgb(245, 255, 255)
+        Note over WS: 🚀 DEPLOYMENT & ENVIRONMENT
+        
+        Note left of WS: PRODUCTION DEPLOYMENT
+        Note left of WS: ├── Railway.app hosting
+        Note left of WS: ├── Node.js 18+ runtime
+        Note left of WS: ├── PM2 process manager
+        Note left of WS: ├── Auto-scaling (CPU/Memory)
+        Note left of WS: ├── Health checks
+        Note left of WS: └── Zero-downtime deploys
+
+        Note right of WS: ENVIRONMENT VARIABLES
+        Note right of WS: ├── PORT (8080)
+        Note right of WS: ├── NODE_ENV (production/development)
+        Note right of WS: ├── DATABASE_URL (Supabase)
+        Note right of WS: ├── GITHUB_APP_ID
+        Note right of WS: ├── GITHUB_APP_PRIVATE_KEY
+        Note right of WS: ├── GITHUB_APP_INSTALLATION_ID
+        Note right of WS: ├── NETLIFY_ACCESS_TOKEN
+        Note right of WS: ├── R2_ENDPOINT, R2_ACCESS_KEY_ID
+        Note right of WS: ├── R2_SECRET_ACCESS_KEY
+        Note right of WS: └── CORS_ORIGIN (Web App URL)
+
+        alt Development режим
+            WS->>WS: npm run dev
+            WS->>WS: nodemon + TypeScript compilation
+            WS->>WS: ngrok tunnel для webhooks
+            WS-->>AGENT: ws://localhost:8080
+        end
+        
+        alt Production режим
+            WS->>WS: npm run build
+            WS->>WS: TypeScript → JavaScript
+            WS->>WS: pm2 start ecosystem.config.js
+            WS-->>AGENT: wss://production-url
+        end
+    end

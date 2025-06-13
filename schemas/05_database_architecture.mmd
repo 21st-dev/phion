@@ -1,0 +1,403 @@
+sequenceDiagram
+    participant APP as 🌐 Web App
+    participant CLIENT as 💾 Supabase Client
+    participant AUTH as 🔐 Supabase Auth
+    participant DB as 🗃️ PostgreSQL
+    participant RLS as 🛡️ Row Level Security
+    participant REALTIME as ⚡ Realtime Engine
+    participant QUERIES as 📋 Query Layer
+
+    Note over APP,QUERIES: 🗃️ DATABASE (Supabase) - ДЕТАЛЬНАЯ АРХИТЕКТУРА
+
+    %% === СХЕМА БАЗЫ ДАННЫХ ===
+    rect rgb(250, 240, 255)
+        Note over DB: 📊 СХЕМА БАЗЫ ДАННЫХ
+        
+        Note left of DB: ОСНОВНЫЕ ТАБЛИЦЫ
+        Note left of DB: ├── auth.users (Supabase Auth)
+        Note left of DB: │   ├── id (uuid, primary)
+        Note left of DB: │   ├── email (varchar, unique)
+        Note left of DB: │   ├── encrypted_password
+        Note left of DB: │   ├── email_confirmed_at
+        Note left of DB: │   ├── created_at, updated_at
+        Note left of DB: │   └── raw_user_meta_data (jsonb)
+        Note left of DB: ├── public.projects
+        Note left of DB: │   ├── id (uuid, primary, default: gen_random_uuid())
+        Note left of DB: │   ├── user_id (uuid, foreign → auth.users.id)
+        Note left of DB: │   ├── name (varchar(255), not null)
+        Note left of DB: │   ├── description (text)
+        Note left of DB: │   ├── template_type (varchar(50), default: 'vite-react')
+        Note left of DB: │   ├── github_repo_url (varchar(500))
+        Note left of DB: │   ├── github_repo_name (varchar(255))
+        Note left of DB: │   ├── netlify_site_id (varchar(255))
+        Note left of DB: │   ├── netlify_url (varchar(500))
+        Note left of DB: │   ├── deploy_status (varchar(50), default: 'pending')
+        Note left of DB: │   ├── is_deleted (boolean, default: false)
+        Note left of DB: │   ├── created_at (timestamptz, default: now())
+        Note left of DB: │   └── updated_at (timestamptz, default: now())
+
+        Note right of DB: ДОПОЛНИТЕЛЬНЫЕ ТАБЛИЦЫ
+        Note right of DB: ├── public.file_history
+        Note right of DB: │   ├── id (uuid, primary)
+        Note right of DB: │   ├── project_id (uuid, foreign → projects.id)
+        Note right of DB: │   ├── file_path (varchar(500), not null)
+        Note right of DB: │   ├── content (text)
+        Note right of DB: │   ├── content_hash (varchar(64))
+        Note right of DB: │   ├── action (varchar(20)) -- created/modified/deleted
+        Note right of DB: │   ├── file_size (integer)
+        Note right of DB: │   ├── mime_type (varchar(100))
+        Note right of DB: │   ├── version_number (integer, default: 1)
+        Note right of DB: │   ├── created_at (timestamptz, default: now())
+        Note right of DB: │   └── INDEX ON (project_id, file_path, created_at)
+        Note right of DB: ├── public.commit_history
+        Note right of DB: │   ├── id (uuid, primary)
+        Note right of DB: │   ├── project_id (uuid, foreign → projects.id)
+        Note right of DB: │   ├── github_commit_sha (varchar(40))
+        Note right of DB: │   ├── github_commit_url (varchar(500))
+        Note right of DB: │   ├── commit_message (text)
+        Note right of DB: │   ├── file_count (integer, default: 0)
+        Note right of DB: │   ├── changes_summary (jsonb)
+        Note right of DB: │   ├── created_at (timestamptz, default: now())
+        Note right of DB: │   └── INDEX ON (project_id, created_at DESC)
+        Note right of DB: └── public.pending_changes
+        Note right of DB:     ├── id (uuid, primary)
+        Note right of DB:     ├── project_id (uuid, foreign → projects.id)
+        Note right of DB:     ├── file_path (varchar(500), not null)
+        Note right of DB:     ├── content (text)
+        Note right of DB:     ├── action (varchar(20)) -- modified/created/deleted
+        Note right of DB:     ├── content_hash (varchar(64))
+        Note right of DB:     ├── created_at (timestamptz, default: now())
+        Note right of DB:     ├── updated_at (timestamptz, default: now())
+        Note right of DB:     ├── UNIQUE (project_id, file_path)
+        Note right of DB:     └── INDEX ON (project_id, updated_at DESC)
+    end
+
+    %% === ROW LEVEL SECURITY ===
+    rect rgb(255, 245, 245)
+        Note over RLS: 🛡️ ROW LEVEL SECURITY (RLS)
+        
+        Note left of RLS: RLS ПОЛИТИКИ
+        Note left of RLS: ├── projects table:
+        Note left of RLS: │   ├── SELECT: user_id = auth.uid()
+        Note left of RLS: │   ├── INSERT: user_id = auth.uid()
+        Note left of RLS: │   ├── UPDATE: user_id = auth.uid()
+        Note left of RLS: │   └── DELETE: user_id = auth.uid()
+        Note left of RLS: ├── file_history table:
+        Note left of RLS: │   ├── SELECT: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS: │   ├── INSERT: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS: │   └── DELETE: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS: ├── commit_history table:
+        Note left of RLS: │   ├── SELECT: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS: │   └── INSERT: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS: └── pending_changes table:
+        Note left of RLS:     ├── SELECT: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS:     ├── INSERT: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS:     ├── UPDATE: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+        Note left of RLS:     └── DELETE: project_id IN (SELECT id FROM projects WHERE user_id = auth.uid())
+
+        Note right of RLS: БЕЗОПАСНОСТЬ И ИЗОЛЯЦИЯ
+        Note right of RLS: ├── Автоматическая изоляция данных по пользователям
+        Note right of RLS: ├── Защита от несанкционированного доступа
+        Note right of RLS: ├── Query-level security enforcement
+        Note right of RLS: ├── Защита на уровне базы данных
+        Note right of RLS: └── Audit trail для всех операций
+
+        alt Проверка доступа к проекту
+            CLIENT->>RLS: SELECT * FROM projects WHERE id = ?
+            RLS->>AUTH: auth.uid() проверка
+            AUTH-->>RLS: Current user ID
+            RLS->>DB: Фильтрация по user_id = auth.uid()
+            DB-->>CLIENT: Только проекты пользователя
+        end
+        
+        alt Попытка доступа к чужим данным
+            CLIENT->>RLS: SELECT * FROM file_history WHERE project_id = ?
+            RLS->>RLS: Проверка ownership через projects table
+            RLS->>DB: Subquery проверка владельца
+            alt Пользователь не владелец
+                RLS-->>CLIENT: Пустой результат (нет ошибки)
+            else Пользователь владелец
+                RLS->>DB: Возврат данных
+                DB-->>CLIENT: File history данные
+            end
+        end
+    end
+
+    %% === SUPABASE CLIENT ===
+    rect rgb(240, 248, 255)
+        Note over CLIENT: 💾 SUPABASE CLIENT ИНТЕГРАЦИЯ
+        
+        Note left of CLIENT: CLIENT КОНФИГУРАЦИЯ
+        Note left of CLIENT: ├── @supabase/supabase-js
+        Note left of CLIENT: ├── URL: NEXT_PUBLIC_SUPABASE_URL
+        Note left of CLIENT: ├── Anon Key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        Note left of CLIENT: ├── Auto refresh tokens
+        Note left of CLIENT: ├── Real-time subscriptions
+        Note left of CLIENT: └── TypeScript support
+
+        Note right of CLIENT: ОСНОВНЫЕ МЕТОДЫ
+        Note right of CLIENT: ├── supabase.from('table_name')
+        Note right of CLIENT: │   ├── .select() - запросы
+        Note right of CLIENT: │   ├── .insert() - создание
+        Note right of CLIENT: │   ├── .update() - обновление
+        Note right of CLIENT: │   ├── .delete() - удаление
+        Note right of CLIENT: │   └── .upsert() - insert or update
+        Note right of CLIENT: ├── supabase.auth
+        Note right of CLIENT: │   ├── .signUp() - регистрация
+        Note right of CLIENT: │   ├── .signInWithPassword() - вход
+        Note right of CLIENT: │   ├── .signOut() - выход
+        Note right of CLIENT: │   └── .getSession() - текущая сессия
+        Note right of CLIENT: └── supabase.channel()
+        Note right of CLIENT:     ├── .on('postgres_changes') - подписки
+        Note right of CLIENT:     └── .subscribe() - активация
+
+        alt Инициализация клиента
+            APP->>CLIENT: createClient(url, anonKey)
+            CLIENT->>CLIENT: Инициализация с конфигурацией
+            CLIENT->>AUTH: Проверка существующей сессии
+            AUTH-->>CLIENT: Session данные или null
+            CLIENT-->>APP: Готовый client instance
+        end
+        
+        alt CRUD операции
+            APP->>CLIENT: supabase.from('projects').select()
+            CLIENT->>RLS: Применение RLS политик
+            RLS->>DB: Filtered query execution
+            DB-->>CLIENT: Query results
+            CLIENT-->>APP: Typed результаты
+        end
+    end
+
+    %% === AUTHENTICATION ===
+    rect rgb(255, 250, 240)
+        Note over AUTH: 🔐 SUPABASE AUTHENTICATION
+        
+        Note left of AUTH: AUTH КОНФИГУРАЦИЯ
+        Note left of AUTH: ├── JWT токены (access + refresh)
+        Note left of AUTH: ├── Автоматическое обновление токенов
+        Note left of AUTH: ├── Email/Password провайдер
+        Note left of AUTH: ├── OAuth провайдеры (опционально)
+        Note left of AUTH: ├── Email подтверждение
+        Note left of AUTH: ├── Password reset
+        Note left of AUTH: └── User metadata поддержка
+
+        Note right of AUTH: ЖИЗНЕННЫЙ ЦИКЛ СЕССИИ
+        Note right of AUTH: ├── Registration → Email confirmation
+        Note right of AUTH: ├── Login → JWT token generation
+        Note right of AUTH: ├── Token refresh (автоматически)
+        Note right of AUTH: ├── Session persistence (localStorage)
+        Note right of AUTH: ├── Logout → Token invalidation
+        Note right of AUTH: └── Session expiration handling
+
+        alt Регистрация пользователя
+            APP->>AUTH: signUp({email, password})
+            AUTH->>DB: Создание записи в auth.users
+            DB->>AUTH: User record created
+            AUTH->>AUTH: Отправка confirmation email
+            AUTH-->>APP: {user, session: null}
+            APP->>APP: Redirect на confirmation page
+        end
+        
+        alt Вход в систему
+            APP->>AUTH: signInWithPassword({email, password})
+            AUTH->>DB: Проверка credentials
+            DB-->>AUTH: User validation result
+            AUTH->>AUTH: Генерация JWT tokens
+            AUTH-->>APP: {user, session: {access_token, refresh_token}}
+            APP->>APP: Сохранение session + redirect
+        end
+        
+        alt Автообновление токена
+            AUTH->>AUTH: Token expiration check
+            AUTH->>AUTH: Использование refresh_token
+            AUTH->>DB: Валидация refresh token
+            DB-->>AUTH: Token validation result
+            AUTH->>AUTH: Генерация нового access_token
+            AUTH-->>CLIENT: Updated session
+        end
+    end
+
+    %% === QUERY LAYER ===
+    rect rgb(245, 255, 245)
+        Note over QUERIES: 📋 QUERY LAYER И ОПТИМИЗАЦИЯ
+        
+        Note left of QUERIES: ОРГАНИЗАЦИЯ ЗАПРОСОВ
+        Note left of QUERIES: ├── packages/database/
+        Note left of QUERIES: │   ├── src/
+        Note left of QUERIES: │   │   ├── client.ts (Supabase client)
+        Note left of QUERIES: │   │   ├── types.ts (Database types)
+        Note left of QUERIES: │   │   └── queries/
+        Note left of QUERIES: │   │       ├── ProjectQueries.ts
+        Note left of QUERIES: │   │       ├── FileHistoryQueries.ts
+        Note left of QUERIES: │   │       ├── CommitHistoryQueries.ts
+        Note left of QUERIES: │   │       └── PendingChangesQueries.ts
+        Note left of QUERIES: │   └── package.json
+        Note left of QUERIES: ├── TypeScript строгая типизация
+        Note left of QUERIES: ├── Error handling wrapper
+        Note left of QUERIES: └── Query result validation
+
+        Note right of QUERIES: ОПТИМИЗАЦИЯ ЗАПРОСОВ
+        Note right of QUERIES: ├── SELECT оптимизация (только нужные поля)
+        Note right of QUERIES: ├── Indexes на часто используемые поля
+        Note right of QUERIES: ├── Batch operations для множественных изменений
+        Note right of QUERIES: ├── Connection pooling (автоматически)
+        Note right of QUERIES: ├── Query caching стратегии
+        Note right of QUERIES: └── Pagination для больших результатов
+
+        Note over QUERIES: ПРИМЕРЫ ОСНОВНЫХ ЗАПРОСОВ
+        Note over QUERIES: ├── getProjectById(id: string)
+        Note over QUERIES: ├── createProject(data: ProjectInsert)
+        Note over QUERIES: ├── updateProject(id: string, updates: ProjectUpdate)
+        Note over QUERIES: ├── getAllPendingChanges(projectId: string)
+        Note over QUERIES: ├── upsertPendingChange(data: PendingChangeUpsert)
+        Note over QUERIES: ├── clearAllPendingChanges(projectId: string)
+        Note over QUERIES: ├── createCommitHistory(data: CommitHistoryInsert)
+        Note over QUERIES: └── getCommitHistory(projectId: string, limit?: number)
+
+        alt Типизированный запрос
+            APP->>QUERIES: ProjectQueries.getProjectById(id)
+            QUERIES->>CLIENT: supabase.from('projects').select().eq('id', id).single()
+            CLIENT->>DB: SQL: SELECT * FROM projects WHERE id = ? AND user_id = auth.uid()
+            DB-->>CLIENT: Project record или null
+            CLIENT-->>QUERIES: Typed результат
+            QUERIES-->>APP: Project | null
+        end
+        
+        alt Batch операция
+            APP->>QUERIES: PendingChangesQueries.upsertMultiple(changes)
+            QUERIES->>CLIENT: supabase.from('pending_changes').upsert(changes)
+            CLIENT->>DB: UPSERT multiple records
+            DB-->>CLIENT: Результат операции
+            CLIENT-->>QUERIES: Success/error response
+            QUERIES-->>APP: Обработанный результат
+        end
+    end
+
+    %% === REALTIME SUBSCRIPTIONS ===
+    rect rgb(255, 245, 250)
+        Note over REALTIME: ⚡ REALTIME SUBSCRIPTIONS
+        
+        Note left of REALTIME: REALTIME КОНФИГУРАЦИЯ
+        Note left of REALTIME: ├── WebSocket соединение
+        Note left of REALTIME: ├── Автоматическое переподключение
+        Note left of REALTIME: ├── Channel management
+        Note left of REALTIME: ├── Event filtering
+        Note left of REALTIME: └── Security через RLS
+
+        Note right of REALTIME: ТИПЫ СОБЫТИЙ
+        Note right of REALTIME: ├── INSERT - новые записи
+        Note right of REALTIME: ├── UPDATE - обновления записей
+        Note right of REALTIME: ├── DELETE - удаления записей
+        Note right of REALTIME: ├── Table-level subscriptions
+        Note right of REALTIME: └── Row-level filtering
+
+        alt Подписка на изменения проекта
+            APP->>REALTIME: supabase.channel('project-changes')
+            REALTIME->>REALTIME: Создание WebSocket channel
+            APP->>REALTIME: .on('postgres_changes', {table: 'projects'})
+            REALTIME->>DB: Регистрация subscription
+            APP->>REALTIME: .subscribe()
+            REALTIME-->>APP: Subscription active
+        end
+        
+        alt Real-time обновление
+            DB->>REALTIME: UPDATE projects SET deploy_status = 'ready'
+            REALTIME->>RLS: Проверка прав доступа
+            RLS-->>REALTIME: User authorized for this record
+            REALTIME->>APP: {eventType: 'UPDATE', new: {...}, old: {...}}
+            APP->>APP: Обновление UI состояния
+        end
+    end
+
+    %% === ИНДЕКСЫ И ПРОИЗВОДИТЕЛЬНОСТЬ ===
+    rect rgb(250, 255, 245)
+        Note over DB: 🚀 ИНДЕКСЫ И ПРОИЗВОДИТЕЛЬНОСТЬ
+        
+        Note left of DB: ОСНОВНЫЕ ИНДЕКСЫ
+        Note left of DB: ├── projects table:
+        Note left of DB: │   ├── PRIMARY KEY (id)
+        Note left of DB: │   ├── INDEX ON (user_id) - для RLS
+        Note left of DB: │   ├── INDEX ON (created_at DESC) - сортировка
+        Note left of DB: │   └── INDEX ON (deploy_status) - фильтрация
+        Note left of DB: ├── file_history table:
+        Note left of DB: │   ├── PRIMARY KEY (id)
+        Note left of DB: │   ├── INDEX ON (project_id, file_path) - поиск файлов
+        Note left of DB: │   ├── INDEX ON (project_id, created_at DESC) - история
+        Note left of DB: │   └── INDEX ON (content_hash) - дедупликация
+        Note left of DB: ├── commit_history table:
+        Note left of DB: │   ├── PRIMARY KEY (id)
+        Note left of DB: │   ├── INDEX ON (project_id, created_at DESC) - хронология
+        Note left of DB: │   └── INDEX ON (github_commit_sha) - GitHub sync
+        Note left of DB: └── pending_changes table:
+        Note left of DB:     ├── PRIMARY KEY (id)
+        Note left of DB:     ├── UNIQUE INDEX (project_id, file_path) - no duplicates
+        Note left of DB:     └── INDEX ON (project_id, updated_at DESC) - latest changes
+
+        Note right of DB: ОПТИМИЗАЦИИ ПРОИЗВОДИТЕЛЬНОСТИ
+        Note right of DB: ├── Connection pooling (managed by Supabase)
+        Note right of DB: ├── Query optimization (EXPLAIN ANALYZE)
+        Note right of DB: ├── Prepared statements (автоматически)
+        Note right of DB: ├── Partial indexes для filtered queries
+        Note right of DB: ├── VACUUM и ANALYZE (автоматически)
+        Note right of DB: └── Read replicas для scaling (если нужно)
+
+        alt Анализ производительности запроса
+            QUERIES->>DB: EXPLAIN ANALYZE SELECT * FROM projects WHERE user_id = ?
+            DB->>DB: Query plan analysis
+            DB-->>QUERIES: Execution plan + timing
+            QUERIES->>QUERIES: Performance metrics logging
+        end
+    end
+
+    %% === BACKUP И ВОССТАНОВЛЕНИЕ ===
+    rect rgb(255, 255, 245)
+        Note over DB: 💾 BACKUP И DISASTER RECOVERY
+        
+        Note left of DB: BACKUP СТРАТЕГИЯ
+        Note left of DB: ├── Автоматические daily backups (Supabase)
+        Note left of DB: ├── Point-in-time recovery (PITR)
+        Note left of DB: ├── Cross-region replication
+        Note left of DB: ├── Manual backup triggers
+        Note left of DB: └── Backup retention policies
+
+        Note right of DB: МОНИТОРИНГ И АЛЕРТЫ
+        Note right of DB: ├── Database connection monitoring
+        Note right of DB: ├── Query performance metrics
+        Note right of DB: ├── Storage usage tracking
+        Note right of DB: ├── Error rate monitoring
+        Note right of DB: └── Automated alerts setup
+
+        alt Регулярный backup
+            DB->>DB: Daily automated backup
+            DB->>DB: Backup compression и encryption
+            DB->>DB: Upload to secure storage
+            DB->>DB: Retention policy enforcement
+        end
+    end
+
+    %% === МИГРАЦИИ И ВЕРСИОНИРОВАНИЕ ===
+    rect rgb(245, 245, 255)
+        Note over DB: 🔄 DATABASE MIGRATIONS
+        
+        Note left of DB: СИСТЕМА МИГРАЦИЙ
+        Note left of DB: ├── supabase/migrations/ папка
+        Note left of DB: ├── SQL migration файлы
+        Note left of DB: ├── Versioned schema changes
+        Note left of DB: ├── Rollback capabilities
+        Note left of DB: └── Environment sync (dev/staging/prod)
+
+        Note right of DB: ПРИМЕРЫ МИГРАЦИЙ
+        Note right of DB: ├── 001_initial_schema.sql
+        Note right of DB: ├── 002_add_projects_table.sql
+        Note right of DB: ├── 003_add_rls_policies.sql
+        Note right of DB: ├── 004_add_indexes.sql
+        Note right of DB: └── 005_add_pending_changes_table.sql
+
+        alt Применение миграции
+            DB->>DB: supabase db push
+            DB->>DB: Чтение новых migration файлов
+            DB->>DB: Выполнение SQL commands
+            DB->>DB: Обновление migration history
+            DB-->>APP: Schema updated
+        end
+    end

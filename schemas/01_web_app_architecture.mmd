@@ -1,0 +1,318 @@
+sequenceDiagram
+    participant U as 👤 User
+    participant B as 🌐 Browser
+    participant APP as ⚛️ Next.js App
+    participant API as 🔗 API Routes
+    participant WS_CLIENT as 🔄 WS Client
+    participant DB_CLIENT as 💾 DB Client
+    participant AUTH as 🔐 Supabase Auth
+
+    Note over U,AUTH: 🌐 WEB APP (Next.js) - ДЕТАЛЬНАЯ АРХИТЕКТУРА
+
+    %% === СТРУКТУРА ПРИЛОЖЕНИЯ ===
+    rect rgb(240, 248, 255)
+        Note over APP: 📁 ФАЙЛОВАЯ СТРУКТУРА ПРИЛОЖЕНИЯ
+        
+        Note left of APP: apps/web/
+        Note left of APP: ├── app/ (App Router)
+        Note left of APP: │   ├── (auth)/
+        Note left of APP: │   │   ├── login/page.tsx
+        Note left of APP: │   │   └── register/page.tsx
+        Note left of APP: │   ├── dashboard/
+        Note left of APP: │   │   └── page.tsx
+        Note left of APP: │   ├── project/[id]/
+        Note left of APP: │   │   ├── overview/page.tsx
+        Note left of APP: │   │   ├── onboarding/page.tsx
+        Note left of APP: │   │   └── settings/page.tsx
+        Note left of APP: │   ├── admin/
+        Note left of APP: │   │   └── toolbar/page.tsx
+        Note left of APP: │   ├── api/ (API Routes)
+        Note left of APP: │   │   ├── projects/
+        Note left of APP: │   │   ├── toolbar/
+        Note left of APP: │   │   └── webhooks/
+        Note left of APP: │   ├── globals.css
+        Note left of APP: │   ├── layout.tsx
+        Note left of APP: │   └── page.tsx
+
+        Note right of APP: КОМПОНЕНТЫ И БИБЛИОТЕКИ
+        Note right of APP: ├── components/
+        Note right of APP: │   ├── ui/ (shadcn/ui)
+        Note right of APP: │   │   ├── button.tsx
+        Note right of APP: │   │   ├── card.tsx
+        Note right of APP: │   │   ├── dialog.tsx
+        Note right of APP: │   │   └── ... (35+ компонентов)
+        Note right of APP: │   ├── project/
+        Note right of APP: │   │   ├── ProjectOverview.tsx
+        Note right of APP: │   │   ├── CommitHistory.tsx
+        Note right of APP: │   │   ├── PendingChanges.tsx
+        Note right of APP: │   │   └── DeployStatus.tsx
+        Note right of APP: │   ├── layout/
+        Note right of APP: │   │   ├── Header.tsx
+        Note right of APP: │   │   ├── Navigation.tsx
+        Note right of APP: │   │   └── Footer.tsx
+        Note right of APP: │   └── providers/
+        Note right of APP: │       ├── WebSocketProvider.tsx
+        Note right of APP: │       ├── ProjectProvider.tsx
+        Note right of APP: │       └── QueryProvider.tsx
+    end
+
+    %% === API ROUTES ДЕТАЛИ ===
+    rect rgb(245, 255, 245)
+        Note over API: 🔗 API ROUTES АРХИТЕКТУРА
+        
+        Note left of API: /api/projects/
+        Note left of API: ├── route.ts (GET, POST)
+        Note left of API: ├── [id]/route.ts (GET, PUT, DELETE)
+        Note left of API: ├── [id]/download/route.ts
+        Note left of API: └── [id]/commit/route.ts
+        Note left of API: 
+        Note left of API: /api/toolbar/
+        Note left of API: ├── check/route.ts (GET)
+        Note left of API: ├── upload/route.ts (POST)
+        Note left of API: ├── broadcast/route.ts (POST)
+        Note left of API: └── force-reload/route.ts (POST)
+        Note left of API: 
+        Note left of API: /api/webhooks/
+        Note left of API: ├── netlify/route.ts (POST)
+        Note left of API: └── github/route.ts (POST)
+
+        Note right of API: MIDDLEWARE И УТИЛИТЫ
+        Note right of API: ├── middleware.ts
+        Note right of API: │   ├── CORS настройки
+        Note right of API: │   ├── Rate limiting
+        Note right of API: │   └── Auth проверки
+        Note right of API: ├── lib/
+        Note right of API: │   ├── supabase.ts (DB client)
+        Note right of API: │   ├── websocket-client.ts
+        Note right of API: │   ├── utils.ts (cn, formatters)
+        Note right of API: │   └── validations.ts (Zod schemas)
+        Note right of API: └── types/
+        Note right of API:     ├── project.ts
+        Note right of API:     ├── database.ts
+        Note right of API:     └── api.ts
+
+        alt API запрос к проектам
+            B->>API: POST /api/projects
+            API->>DB_CLIENT: Создание проекта
+            API->>WS_CLIENT: HTTP вызов WebSocket сервера
+            API-->>B: Ответ с данными проекта
+        end
+        
+        alt WebSocket взаимодействие
+            WS_CLIENT->>API: WebSocket событие
+            API->>APP: Обновление состояния
+            APP-->>B: UI обновляется
+        end
+    end
+
+    %% === АУТЕНТИФИКАЦИЯ И АВТОРИЗАЦИЯ ===
+    rect rgb(255, 245, 245)
+        Note over AUTH: 🔐 СИСТЕМА АУТЕНТИФИКАЦИИ
+        
+        Note left of AUTH: SUPABASE AUTH ИНТЕГРАЦИЯ
+        Note left of AUTH: ├── Регистрация пользователей
+        Note left of AUTH: ├── Email/Password вход
+        Note left of AUTH: ├── OAuth провайдеры (опционально)
+        Note left of AUTH: ├── JWT токены
+        Note left of AUTH: └── Row Level Security (RLS)
+
+        Note right of AUTH: AUTH MIDDLEWARE
+        Note right of AUTH: ├── Route protection
+        Note right of AUTH: ├── Server-side auth проверки
+        Note right of AUTH: ├── Client-side auth состояние
+        Note right of AUTH: └── Redirect логика
+
+        alt Регистрация пользователя
+            U->>B: Заполнение формы регистрации
+            B->>AUTH: supabase.auth.signUp()
+            AUTH->>AUTH: Создание пользователя
+            AUTH-->>B: Подтверждение регистрации
+            B-->>U: Redirect на dashboard
+        end
+        
+        alt Вход в систему
+            U->>B: Email + Password
+            B->>AUTH: supabase.auth.signInWithPassword()
+            AUTH->>AUTH: Проверка учетных данных
+            AUTH-->>B: JWT токен + user session
+            B-->>U: Redirect на dashboard
+        end
+        
+        alt Защищенные маршруты
+            U->>B: Переход на /project/[id]
+            B->>AUTH: Проверка session
+            alt Авторизован
+                AUTH-->>B: Valid user session
+                B-->>U: Доступ к странице
+            else Не авторизован
+                AUTH-->>B: No session
+                B-->>U: Redirect на /login
+            end
+        end
+    end
+
+    %% === СОСТОЯНИЕ И КОНТЕКСТ ===
+    rect rgb(250, 240, 255)
+        Note over APP: 🗄️ УПРАВЛЕНИЕ СОСТОЯНИЕМ
+        
+        Note left of APP: REACT CONTEXT PROVIDERS
+        Note left of APP: ├── WebSocketProvider
+        Note left of APP: │   ├── WebSocket соединение
+        Note left of APP: │   ├── Real-time события
+        Note left of APP: │   └── Reconnection логика
+        Note left of APP: ├── ProjectProvider
+        Note left of APP: │   ├── Текущий проект
+        Note left of APP: │   ├── Project settings
+        Note left of APP: │   └── Navigation state
+        Note left of APP: ├── QueryProvider (TanStack Query)
+        Note left of APP: │   ├── Server state кеширование
+        Note left of APP: │   ├── Background refetching
+        Note left of APP: │   └── Optimistic updates
+        Note left of APP: └── ThemeProvider
+        Note left of APP:     ├── Light/Dark theme
+        Note left of APP:     └── System preference
+
+        Note right of APP: ЛОКАЛЬНОЕ СОСТОЯНИЕ
+        Note right of APP: ├── useState для компонентов
+        Note right of APP: ├── useReducer для сложной логики
+        Note right of APP: ├── Custom hooks для переиспользования
+        Note right of APP: └── LocalStorage для персистентности
+
+        alt WebSocket подключение
+            APP->>WS_CLIENT: Инициализация WebSocket
+            WS_CLIENT->>WS_CLIENT: Подключение к серверу
+            WS_CLIENT->>APP: Обновление connection status
+            APP-->>B: UI показывает статус подключения
+        end
+        
+        alt Real-time обновления
+            WS_CLIENT->>APP: WebSocket событие
+            APP->>APP: Обновление состояния
+            APP-->>B: UI компоненты re-render
+        end
+    end
+
+    %% === КОМПОНЕНТЫ И UI ===
+    rect rgb(245, 250, 255)
+        Note over APP: 🎨 UI КОМПОНЕНТЫ И ДИЗАЙН-СИСТЕМА
+        
+        Note left of APP: SHADCN/UI КОМПОНЕНТЫ
+        Note left of APP: ├── Primitive components
+        Note left of APP: │   ├── Button, Input, Card
+        Note left of APP: │   ├── Dialog, Sheet, Popover
+        Note left of APP: │   └── Table, Tabs, Progress
+        Note left of APP: ├── Composite components
+        Note left of APP: │   ├── Command, Multiselect
+        Note left of APP: │   ├── Timeline, Chart
+        Note left of APP: │   └── Sidebar, Navigation
+        Note left of APP: └── Custom extensions
+        Note left of APP:     ├── Banner, Mockup
+        Note left of APP:     ├── HeroPill, Tag
+        Note left of APP:     └── CircleProgress
+
+        Note right of APP: СТРАНИЦЫ И МАКЕТЫ
+        Note right of APP: ├── RootLayout (глобальный)
+        Note right of APP: │   ├── Header с навигацией
+        Note right of APP: │   ├── Main content area
+        Note right of APP: │   └── Footer
+        Note right of APP: ├── AuthLayout (аутентификация)
+        Note right of APP: ├── DashboardLayout (проекты)
+        Note right of APP: └── ProjectLayout (проект)
+        Note right of APP:     ├── ProjectNavigation
+        Note right of APP:     ├── Breadcrumbs
+        Note right of APP:     └── Content area
+
+        alt Навигация по проекту
+            U->>B: Клик на вкладку Overview
+            B->>APP: Обновление активного route
+            APP->>APP: Условное отображение компонентов
+            APP-->>B: Новый контент без reload
+        end
+        
+        alt Responsive дизайн
+            B->>APP: Изменение размера экрана
+            APP->>APP: Tailwind responsive classes
+            APP-->>B: Адаптивный layout
+        end
+    end
+
+    %% === ПРОИЗВОДИТЕЛЬНОСТЬ И ОПТИМИЗАЦИЯ ===
+    rect rgb(255, 250, 245)
+        Note over APP: ⚡ ПРОИЗВОДИТЕЛЬНОСТЬ И ОПТИМИЗАЦИЯ
+        
+        Note left of APP: NEXT.JS ОПТИМИЗАЦИИ
+        Note left of APP: ├── App Router (новая архитектура)
+        Note left of APP: ├── Server Components по умолчанию
+        Note left of APP: ├── Client Components только при необходимости
+        Note left of APP: ├── Automatic code splitting
+        Note left of APP: ├── Image optimization
+        Note left of APP: └── Bundle analyzer
+
+        Note right of APP: REACT ОПТИМИЗАЦИИ
+        Note right of APP: ├── React.memo для тяжелых компонентов
+        Note right of APP: ├── useMemo для вычислений
+        Note right of APP: ├── useCallback для стабильных функций
+        Note right of APP: ├── Lazy loading компонентов
+        Note right of APP: └── Virtual scrolling для списков
+
+        Note over APP: КЕШИРОВАНИЕ И ДАННЫЕ
+        Note over APP: ├── TanStack Query для server state
+        Note over APP: ├── SWR паттерн для real-time данных
+        Note over APP: ├── Browser cache для статики
+        Note over APP: └── Memory cache для WebSocket состояния
+
+        alt Оптимизированная загрузка
+            U->>B: Переход на новую страницу
+            B->>APP: Next.js prefetching
+            APP->>API: Background data fetching
+            APP-->>B: Мгновенная навигация
+        end
+        
+        alt Кеширование данных
+            APP->>API: Запрос данных проекта
+            API-->>APP: Данные + cache headers
+            APP->>APP: TanStack Query кеширование
+            APP-->>B: Быстрый повторный доступ
+        end
+    end
+
+    %% === DEVELOPMENT И DEPLOYMENT ===
+    rect rgb(250, 255, 250)
+        Note over APP: 🚀 DEVELOPMENT & DEPLOYMENT
+        
+        Note left of APP: DEVELOPMENT STACK
+        Note left of APP: ├── Next.js 15 (App Router)
+        Note left of APP: ├── React 18 (Server Components)
+        Note left of APP: ├── TypeScript (строгая типизация)
+        Note left of APP: ├── Tailwind CSS (utility-first)
+        Note left of APP: ├── ESLint + Prettier (code quality)
+        Note left of APP: └── Turbo (monorepo build tool)
+
+        Note right of APP: DEPLOYMENT & CI/CD
+        Note right of APP: ├── Vercel deployment (рекомендуется)
+        Note right of APP: ├── Environment variables
+        Note right of APP: ├── Build optimization
+        Note right of APP: ├── Edge runtime для API routes
+        Note right of APP: └── CDN для статических ресурсов
+
+        Note over APP: ENVIRONMENT VARIABLES
+        Note over APP: ├── NEXT_PUBLIC_SUPABASE_URL
+        Note over APP: ├── NEXT_PUBLIC_SUPABASE_ANON_KEY
+        Note over APP: ├── NEXT_PUBLIC_WEBSOCKET_URL
+        Note over APP: ├── DATABASE_URL
+        Note over APP: └── GITHUB_APP_PRIVATE_KEY
+
+        alt Development workflow
+            U->>B: npm run dev
+            B->>APP: Next.js dev server
+            APP->>APP: Hot Module Replacement
+            APP-->>B: Live reload при изменениях
+        end
+        
+        alt Production build
+            APP->>APP: npm run build
+            APP->>APP: Static optimization
+            APP->>APP: Bundle analysis
+            APP-->>B: Optimized production build
+        end
+    end

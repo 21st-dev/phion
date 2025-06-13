@@ -1,0 +1,424 @@
+sequenceDiagram
+    participant WEB as 🌐 Web App
+    participant STORAGE_CLIENT as 💾 Storage Client
+    participant R2_API as ☁️ R2 API
+    participant R2_BUCKET as 🪣 R2 Bucket
+    participant CDN as 🌍 Cloudflare CDN
+    participant ADMIN as 👨‍💼 Admin Interface
+    participant TOOLBAR as 🛠️ Toolbar System
+
+    Note over WEB,TOOLBAR: ☁️ STORAGE (Cloudflare R2) - ДЕТАЛЬНАЯ АРХИТЕКТУРА
+
+    %% === R2 STORAGE СТРУКТУРА ===
+    rect rgb(250, 245, 255)
+        Note over R2_BUCKET: 🪣 R2 BUCKET СТРУКТУРА
+        
+        Note left of R2_BUCKET: ОСНОВНАЯ СТРУКТУРА BUCKET
+        Note left of R2_BUCKET: ├── vybcel-storage/
+        Note left of R2_BUCKET: │   ├── toolbar-versions/
+        Note left of R2_BUCKET: │   │   ├── 0.1.0/
+        Note left of R2_BUCKET: │   │   │   ├── stable/
+        Note left of R2_BUCKET: │   │   │   │   ├── toolbar.zip
+        Note left of R2_BUCKET: │   │   │   │   └── metadata.json
+        Note left of R2_BUCKET: │   │   │   ├── beta/
+        Note left of R2_BUCKET: │   │   │   │   ├── toolbar.zip
+        Note left of R2_BUCKET: │   │   │   │   └── metadata.json
+        Note left of R2_BUCKET: │   │   │   └── dev/
+        Note left of R2_BUCKET: │   │   │       ├── toolbar.zip
+        Note left of R2_BUCKET: │   │   │       └── metadata.json
+        Note left of R2_BUCKET: │   │   ├── 0.2.0/
+        Note left of R2_BUCKET: │   │   └── latest/
+        Note left of R2_BUCKET: │   │       ├── metadata.json
+        Note left of R2_BUCKET: │   │       └── channels.json
+        Note left of R2_BUCKET: │   ├── project-templates/
+        Note left of R2_BUCKET: │   │   ├── vite-react/
+        Note left of R2_BUCKET: │   │   │   ├── template.zip
+        Note left of R2_BUCKET: │   │   │   └── template-metadata.json
+        Note left of R2_BUCKET: │   │   └── future-templates/
+        Note left of R2_BUCKET: │   ├── project-backups/
+        Note left of R2_BUCKET: │   │   └── {projectId}/
+        Note left of R2_BUCKET: │   │       ├── snapshots/
+        Note left of R2_BUCKET: │   │       └── incremental/
+        Note left of R2_BUCKET: │   └── checksums/
+        Note left of R2_BUCKET: │       ├── toolbar/
+        Note left of R2_BUCKET: │       └── templates/
+
+        Note right of R2_BUCKET: METADATA СТРУКТУРЫ
+        Note right of R2_BUCKET: ├── toolbar metadata.json:
+        Note right of R2_BUCKET: │   ├── version (semver)
+        Note right of R2_BUCKET: │   ├── releaseNotes (string)
+        Note right of R2_BUCKET: │   ├── forceUpdate (boolean)
+        Note right of R2_BUCKET: │   ├── minClientVersion (semver)
+        Note right of R2_BUCKET: │   ├── fileSize (bytes)
+        Note right of R2_BUCKET: │   ├── checksum (SHA-256)
+        Note right of R2_BUCKET: │   ├── uploadedAt (ISO timestamp)
+        Note right of R2_BUCKET: │   └── downloadCount (number)
+        Note right of R2_BUCKET: ├── channels.json:
+        Note right of R2_BUCKET: │   ├── stable (latest stable version)
+        Note right of R2_BUCKET: │   ├── beta (latest beta version)
+        Note right of R2_BUCKET: │   ├── dev (latest dev version)
+        Note right of R2_BUCKET: │   └── lastUpdated (timestamp)
+        Note right of R2_BUCKET: └── template-metadata.json:
+        Note right of R2_BUCKET:     ├── name, description
+        Note right of R2_BUCKET:     ├── version, dependencies
+        Note right of R2_BUCKET:     ├── category, tags
+        Note right of R2_BUCKET:     └── compatibility info
+    end
+
+    %% === STORAGE CLIENT АРХИТЕКТУРА ===
+    rect rgb(240, 248, 255)
+        Note over STORAGE_CLIENT: 💾 STORAGE CLIENT АРХИТЕКТУРА
+        
+        Note left of STORAGE_CLIENT: CLIENT КОНФИГУРАЦИЯ
+        Note left of STORAGE_CLIENT: ├── packages/storage/
+        Note left of STORAGE_CLIENT: │   ├── src/
+        Note left of STORAGE_CLIENT: │   │   ├── client.ts (R2 client)
+        Note left of STORAGE_CLIENT: │   │   ├── types.ts (TypeScript types)
+        Note left of STORAGE_CLIENT: │   │   ├── managers/
+        Note left of STORAGE_CLIENT: │   │   │   ├── ToolbarManager.ts
+        Note left of STORAGE_CLIENT: │   │   │   ├── TemplateManager.ts
+        Note left of STORAGE_CLIENT: │   │   │   └── BackupManager.ts
+        Note left of STORAGE_CLIENT: │   │   ├── utils/
+        Note left of STORAGE_CLIENT: │   │   │   ├── upload.ts
+        Note left of STORAGE_CLIENT: │   │   │   ├── download.ts
+        Note left of STORAGE_CLIENT: │   │   │   ├── checksum.ts
+        Note left of STORAGE_CLIENT: │   │   │   └── compression.ts
+        Note left of STORAGE_CLIENT: │   │   └── errors/
+        Note left of STORAGE_CLIENT: │   │       └── StorageError.ts
+        Note left of STORAGE_CLIENT: │   └── package.json
+
+        Note right of STORAGE_CLIENT: AWS S3 COMPATIBLE API
+        Note right of STORAGE_CLIENT: ├── @aws-sdk/client-s3
+        Note right of STORAGE_CLIENT: ├── Endpoint: R2_ENDPOINT
+        Note right of STORAGE_CLIENT: ├── Credentials: ACCESS_KEY + SECRET
+        Note right of STORAGE_CLIENT: ├── Region: auto (Cloudflare manages)
+        Note right of STORAGE_CLIENT: ├── Signature V4 authentication
+        Note right of STORAGE_CLIENT: └── HTTPS only connections
+
+        Note over STORAGE_CLIENT: ОСНОВНЫЕ ОПЕРАЦИИ
+        Note over STORAGE_CLIENT: ├── putObject() - загрузка файлов
+        Note over STORAGE_CLIENT: ├── getObject() - скачивание файлов
+        Note over STORAGE_CLIENT: ├── deleteObject() - удаление файлов
+        Note over STORAGE_CLIENT: ├── listObjects() - листинг файлов
+        Note over STORAGE_CLIENT: ├── headObject() - метаданные файла
+        Note over STORAGE_CLIENT: └── copyObject() - копирование файлов
+
+        alt Инициализация клиента
+            WEB->>STORAGE_CLIENT: createR2Client(config)
+            STORAGE_CLIENT->>STORAGE_CLIENT: S3Client с R2 endpoint
+            STORAGE_CLIENT->>R2_API: Test connection
+            R2_API-->>STORAGE_CLIENT: Connection verified
+            STORAGE_CLIENT-->>WEB: Ready client instance
+        end
+        
+        alt Upload операция
+            WEB->>STORAGE_CLIENT: uploadFile(key, buffer, metadata)
+            STORAGE_CLIENT->>STORAGE_CLIENT: Validate file размер/тип
+            STORAGE_CLIENT->>STORAGE_CLIENT: Generate checksum
+            STORAGE_CLIENT->>R2_API: putObject с метаданными
+            R2_API-->>STORAGE_CLIENT: Upload success + ETag
+            STORAGE_CLIENT-->>WEB: File uploaded successfully
+        end
+    end
+
+    %% === TOOLBAR VERSION MANAGEMENT ===
+    rect rgb(255, 250, 240)
+        Note over TOOLBAR: 🛠️ TOOLBAR VERSION MANAGEMENT
+        
+        Note left of TOOLBAR: TOOLBAR MANAGER ОПЕРАЦИИ
+        Note left of TOOLBAR: ├── uploadVersion(version, channel, zipBuffer)
+        Note left of TOOLBAR: ├── getLatestVersion(channel)
+        Note left of TOOLBAR: ├── downloadVersion(version, channel)
+        Note left of TOOLBAR: ├── updateChannels(channelMap)
+        Note left of TOOLBAR: ├── deleteVersion(version)
+        Note left of TOOLBAR: └── getVersionHistory()
+
+        Note right of TOOLBAR: VERSION LIFECYCLE
+        Note right of TOOLBAR: ├── Upload → Validation → Storage
+        Note right of TOOLBAR: ├── Checksum generation → Metadata creation
+        Note right of TOOLBAR: ├── Channel assignment → Index update
+        Note right of TOOLBAR: ├── Download tracking → Usage metrics
+        Note right of TOOLBAR: └── Cleanup → Old version removal
+
+        alt Upload новой версии toolbar
+            ADMIN->>STORAGE_CLIENT: ToolbarManager.uploadVersion()
+            STORAGE_CLIENT->>STORAGE_CLIENT: Validate ZIP structure
+            STORAGE_CLIENT->>STORAGE_CLIENT: Generate SHA-256 checksum
+            STORAGE_CLIENT->>R2_API: Upload ZIP to /toolbar-versions/{version}/{channel}/
+            R2_API->>R2_BUCKET: Store toolbar.zip
+            STORAGE_CLIENT->>R2_API: Upload metadata.json
+            R2_API->>R2_BUCKET: Store metadata
+            STORAGE_CLIENT->>STORAGE_CLIENT: Update channels.json
+            STORAGE_CLIENT->>R2_API: Update /latest/channels.json
+            STORAGE_CLIENT-->>ADMIN: Version uploaded successfully
+        end
+        
+        alt Проверка обновлений
+            TOOLBAR->>STORAGE_CLIENT: ToolbarManager.getLatestVersion(channel)
+            STORAGE_CLIENT->>R2_API: GET /latest/channels.json
+            R2_API->>R2_BUCKET: Retrieve channels info
+            R2_BUCKET-->>R2_API: Current channel versions
+            R2_API-->>STORAGE_CLIENT: Channel version data
+            STORAGE_CLIENT->>STORAGE_CLIENT: Compare с current version
+            STORAGE_CLIENT-->>TOOLBAR: {hasUpdate, version, downloadUrl}
+        end
+        
+        alt Download toolbar версии
+            TOOLBAR->>STORAGE_CLIENT: ToolbarManager.downloadVersion()
+            STORAGE_CLIENT->>R2_API: GET /toolbar-versions/{version}/{channel}/toolbar.zip
+            R2_API->>R2_BUCKET: Retrieve ZIP file
+            R2_BUCKET-->>R2_API: ZIP buffer
+            R2_API-->>STORAGE_CLIENT: File data
+            STORAGE_CLIENT->>STORAGE_CLIENT: Verify checksum
+            STORAGE_CLIENT-->>TOOLBAR: Validated ZIP buffer
+        end
+    end
+
+    %% === TEMPLATE MANAGEMENT ===
+    rect rgb(250, 255, 245)
+        Note over STORAGE_CLIENT: 📄 TEMPLATE MANAGEMENT
+        
+        Note left of STORAGE_CLIENT: TEMPLATE MANAGER ОПЕРАЦИИ  
+        Note left of STORAGE_CLIENT: ├── uploadTemplate(name, zipBuffer, metadata)
+        Note left of STORAGE_CLIENT: ├── getTemplate(name)
+        Note left of STORAGE_CLIENT: ├── downloadTemplate(name)
+        Note left of STORAGE_CLIENT: ├── updateTemplateMetadata(name, metadata)
+        Note left of STORAGE_CLIENT: ├── deleteTemplate(name)
+        Note left of STORAGE_CLIENT: └── listAvailableTemplates()
+
+        Note right of STORAGE_CLIENT: TEMPLATE СТРУКТУРА
+        Note right of STORAGE_CLIENT: ├── Template ZIP contents:
+        Note right of STORAGE_CLIENT: │   ├── src/ (source files)
+        Note right of STORAGE_CLIENT: │   ├── public/ (static assets)
+        Note right of STORAGE_CLIENT: │   ├── package.json (dependencies)
+        Note right of STORAGE_CLIENT: │   ├── vite.config.ts (build config)
+        Note right of STORAGE_CLIENT: │   ├── vybcel.config.json (project config)
+        Note right of STORAGE_CLIENT: │   └── README.md (documentation)
+        Note right of STORAGE_CLIENT: ├── Metadata fields:
+        Note right of STORAGE_CLIENT: │   ├── name, description, version
+        Note right of STORAGE_CLIENT: │   ├── category, tags, difficulty
+        Note right of STORAGE_CLIENT: │   ├── dependencies, compatibility
+        Note right of STORAGE_CLIENT: │   └── preview images, demo URL
+
+        alt Upload нового template
+            WEB->>STORAGE_CLIENT: TemplateManager.uploadTemplate()
+            STORAGE_CLIENT->>STORAGE_CLIENT: Validate template structure
+            STORAGE_CLIENT->>STORAGE_CLIENT: Extract package.json dependencies
+            STORAGE_CLIENT->>R2_API: Upload template.zip
+            R2_API->>R2_BUCKET: Store в /project-templates/{name}/
+            STORAGE_CLIENT->>R2_API: Upload template-metadata.json
+            STORAGE_CLIENT-->>WEB: Template uploaded
+        end
+        
+        alt Download template для проекта
+            WEB->>STORAGE_CLIENT: TemplateManager.downloadTemplate('vite-react')
+            STORAGE_CLIENT->>R2_API: GET /project-templates/vite-react/template.zip
+            R2_API->>R2_BUCKET: Retrieve template
+            R2_BUCKET-->>R2_API: Template ZIP buffer
+            R2_API-->>STORAGE_CLIENT: File data
+            STORAGE_CLIENT->>STORAGE_CLIENT: Template customization (PROJECT_ID injection)
+            STORAGE_CLIENT-->>WEB: Customized project ZIP
+        end
+    end
+
+    %% === BACKUP MANAGEMENT ===
+    rect rgb(255, 245, 250)
+        Note over STORAGE_CLIENT: 💾 BACKUP MANAGEMENT
+        
+        Note left of STORAGE_CLIENT: BACKUP MANAGER ОПЕРАЦИИ
+        Note left of STORAGE_CLIENT: ├── createSnapshot(projectId, files)
+        Note left of STORAGE_CLIENT: ├── createIncremental(projectId, changes)
+        Note left of STORAGE_CLIENT: ├── restoreSnapshot(projectId, snapshotId)
+        Note left of STORAGE_CLIENT: ├── listSnapshots(projectId)
+        Note left of STORAGE_CLIENT: ├── deleteSnapshot(projectId, snapshotId)
+        Note left of STORAGE_CLIENT: └── cleanupOldBackups(projectId, retentionDays)
+
+        Note right of STORAGE_CLIENT: BACKUP ТИПЫ
+        Note right of STORAGE_CLIENT: ├── Full Snapshots:
+        Note right of STORAGE_CLIENT: │   ├── Полное состояние проекта
+        Note right of STORAGE_CLIENT: │   ├── Все файлы в одном ZIP
+        Note right of STORAGE_CLIENT: │   ├── Создается при major changes
+        Note right of STORAGE_CLIENT: │   └── Retention: 30 дней
+        Note right of STORAGE_CLIENT: ├── Incremental Backups:
+        Note right of STORAGE_CLIENT: │   ├── Только измененные файлы
+        Note right of STORAGE_CLIENT: │   ├── Delta от последнего snapshot
+        Note right of STORAGE_CLIENT: │   ├── Создается автоматически
+        Note right of STORAGE_CLIENT: │   └── Retention: 7 дней
+        Note right of STORAGE_CLIENT: └── Emergency Backups:
+        Note right of STORAGE_CLIENT:     ├── Перед destructive operations
+        Note right of STORAGE_CLIENT:     ├── Critical state preservation
+        Note right of STORAGE_CLIENT:     └── Manual cleanup required
+
+        alt Создание snapshot backup
+            WEB->>STORAGE_CLIENT: BackupManager.createSnapshot(projectId)
+            STORAGE_CLIENT->>STORAGE_CLIENT: Collect all project files
+            STORAGE_CLIENT->>STORAGE_CLIENT: Create ZIP archive
+            STORAGE_CLIENT->>STORAGE_CLIENT: Generate snapshot metadata
+            STORAGE_CLIENT->>R2_API: Upload snapshot
+            R2_API->>R2_BUCKET: Store в /project-backups/{projectId}/snapshots/
+            STORAGE_CLIENT-->>WEB: Snapshot created successfully
+        end
+        
+        alt Cleanup старых backups
+            STORAGE_CLIENT->>STORAGE_CLIENT: BackupManager.cleanupOldBackups()
+            STORAGE_CLIENT->>R2_API: List old snapshots
+            R2_API-->>STORAGE_CLIENT: Snapshots older than retention
+            STORAGE_CLIENT->>R2_API: Batch delete old snapshots
+            R2_API->>R2_BUCKET: Remove expired backups
+            STORAGE_CLIENT->>STORAGE_CLIENT: Update backup index
+        end
+    end
+
+    %% === CDN ИНТЕГРАЦИЯ ===
+    rect rgb(245, 255, 245)
+        Note over CDN: 🌍 CLOUDFLARE CDN ИНТЕГРАЦИЯ
+        
+        Note left of CDN: CDN КОНФИГУРАЦИЯ
+        Note left of CDN: ├── Global edge locations (300+)
+        Note left of CDN: ├── Automatic caching headers
+        Note left of CDN: ├── Brotli/Gzip compression
+        Note left of CDN: ├── HTTP/2 и HTTP/3 support
+        Note left of CDN: ├── Custom cache rules
+        Note left of CDN: ├── Purge API для cache invalidation
+        Note left of CDN: └── Analytics и metrics
+
+        Note right of CDN: CACHING СТРАТЕГИЯ
+        Note right of CDN: ├── Static assets (toolbar, templates):
+        Note right of CDN: │   ├── Cache TTL: 1 hour
+        Note right of CDN: │   ├── Browser cache: 24 hours
+        Note right of CDN: │   └── Auto-purge при updates
+        Note right of CDN: ├── Metadata files:
+        Note right of CDN: │   ├── Cache TTL: 5 minutes
+        Note right of CDN: │   ├── Revalidation strategy
+        Note right of CDN: │   └── ETag-based freshness
+        Note right of CDN: └── Download URLs:
+        Note right of CDN:     ├── Signed URLs с expiration
+        Note right of CDN:     ├── Geographic optimization
+        Note right of CDN:     └── Bandwidth throttling
+
+        alt CDN cache invalidation
+            STORAGE_CLIENT->>CDN: New version uploaded
+            CDN->>CDN: Detect file change (ETag)
+            CDN->>CDN: Purge cache для affected paths
+            CDN->>CDN: Warm cache на popular edges
+            CDN-->>STORAGE_CLIENT: Cache updated globally
+        end
+        
+        alt Optimized download
+            TOOLBAR->>CDN: Request toolbar update
+            CDN->>CDN: Route to nearest edge
+            CDN->>CDN: Serve от cache если available
+            alt Cache miss
+                CDN->>R2_BUCKET: Fetch от origin
+                R2_BUCKET-->>CDN: File data
+                CDN->>CDN: Cache для future requests
+            end
+            CDN-->>TOOLBAR: Optimized delivery
+        end
+    end
+
+    %% === АДМИНИСТРИРОВАНИЕ ===
+    rect rgb(255, 255, 245)
+        Note over ADMIN: 👨‍💼 АДМИНИСТРИРОВАНИЕ И МОНИТОРИНГ
+        
+        Note left of ADMIN: ADMIN ОПЕРАЦИИ
+        Note left of ADMIN: ├── Storage usage monitoring
+        Note left of ADMIN: ├── Upload/download metrics
+        Note left of ADMIN: ├── Cost optimization
+        Note left of ADMIN: ├── Bandwidth tracking
+        Note left of ADMIN: ├── Error rate monitoring
+        Note left of ADMIN: ├── Performance analytics
+        Note left of ADMIN: └── Automated cleanup jobs
+
+        Note right of ADMIN: МОНИТОРИНГ МЕТРИКИ
+        Note right of ADMIN: ├── Storage utilization (GB)
+        Note right of ADMIN: ├── Request count (operations/day)
+        Note right of ADMIN: ├── Bandwidth usage (GB/month)
+        Note right of ADMIN: ├── Error rates (4xx/5xx)
+        Note right of ADMIN: ├── Cache hit ratio (%)
+        Note right of ADMIN: ├── Geographic distribution
+        Note right of ADMIN: └── Cost per operation
+
+        alt Daily maintenance
+            ADMIN->>STORAGE_CLIENT: Scheduled cleanup job
+            STORAGE_CLIENT->>STORAGE_CLIENT: Analyze storage usage
+            STORAGE_CLIENT->>STORAGE_CLIENT: Identify orphaned files
+            STORAGE_CLIENT->>R2_API: Batch delete unused files
+            STORAGE_CLIENT->>STORAGE_CLIENT: Update storage statistics
+            STORAGE_CLIENT-->>ADMIN: Cleanup report
+        end
+    end
+
+    %% === БЕЗОПАСНОСТЬ И ДОСТУП ===
+    rect rgb(255, 245, 245)
+        Note over R2_API: 🔒 БЕЗОПАСНОСТЬ И КОНТРОЛЬ ДОСТУПА
+        
+        Note left of R2_API: ACCESS CONTROL
+        Note left of R2_API: ├── IAM policies (Cloudflare)
+        Note left of R2_API: ├── API token scoping
+        Note left of R2_API: ├── Bucket-level permissions
+        Note left of R2_API: ├── Object-level access control
+        Note left of R2_API: ├── CORS configuration
+        Note left of R2_API: ├── Referrer restrictions
+        Note left of R2_API: └── Rate limiting
+
+        Note right of R2_API: DATA PROTECTION
+        Note right of R2_API: ├── Encryption at rest (AES-256)
+        Note right of R2_API: ├── Encryption in transit (TLS 1.3)
+        Note right of R2_API: ├── Signed URLs для controlled access
+        Note right of R2_API: ├── Checksum validation
+        Note right of R2_API: ├── Version immutability
+        Note right of R2_API: ├── Audit logging
+        Note right of R2_API: └── Geographic data residency
+
+        alt Secure file upload
+            ADMIN->>STORAGE_CLIENT: Upload sensitive file
+            STORAGE_CLIENT->>STORAGE_CLIENT: Generate checksum
+            STORAGE_CLIENT->>STORAGE_CLIENT: Encrypt metadata
+            STORAGE_CLIENT->>R2_API: Secure upload with signature
+            R2_API->>R2_BUCKET: Store with encryption
+            R2_API-->>STORAGE_CLIENT: Upload verified
+        end
+        
+        alt Access audit
+            R2_API->>R2_API: Log all access operations
+            R2_API->>R2_API: Monitor unusual patterns
+            R2_API->>ADMIN: Security alerts если needed
+        end
+    end
+
+    %% === PERFORMANCE OPTIMIZATION ===
+    rect rgb(250, 250, 255)
+        Note over STORAGE_CLIENT: ⚡ PERFORMANCE OPTIMIZATION
+        
+        Note left of STORAGE_CLIENT: UPLOAD OPTIMIZATION
+        Note left of STORAGE_CLIENT: ├── Multipart uploads для больших файлов
+        Note left of STORAGE_CLIENT: ├── Parallel uploads (chunking)
+        Note left of STORAGE_CLIENT: ├── Compression before upload
+        Note left of STORAGE_CLIENT: ├── Deduplication checks
+        Note left of STORAGE_CLIENT: ├── Retry mechanisms
+        Note left of STORAGE_CLIENT: └── Progress tracking
+
+        Note right of STORAGE_CLIENT: DOWNLOAD OPTIMIZATION  
+        Note right of STORAGE_CLIENT: ├── Range requests support
+        Note right of STORAGE_CLIENT: ├── Streaming downloads
+        Note right of STORAGE_CLIENT: ├── Client-side caching
+        Note right of STORAGE_CLIENT: ├── Parallel chunk downloads
+        Note right of STORAGE_CLIENT: ├── Resume capability
+        Note right of STORAGE_CLIENT: └── Bandwidth adaptive delivery
+
+        alt Optimized large file upload
+            WEB->>STORAGE_CLIENT: Upload large ZIP (>100MB)
+            STORAGE_CLIENT->>STORAGE_CLIENT: Split в chunks (10MB each)
+            
+            loop Для каждого chunk
+                STORAGE_CLIENT->>R2_API: Upload chunk part
+                R2_API-->>STORAGE_CLIENT: Part ETag
+            end
+            
+            STORAGE_CLIENT->>R2_API: Complete multipart upload
+            R2_API->>R2_BUCKET: Assemble final object
+            R2_API-->>STORAGE_CLIENT: Upload completed
+        end
+    end
+</rewritten_file>

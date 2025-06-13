@@ -1,0 +1,424 @@
+sequenceDiagram
+    participant USER as 👤 User
+    participant BROWSER as 🌐 Browser
+    participant TOOLBAR as 🛠️ Toolbar UI
+    participant UPDATER as 🔄 Update Manager
+    participant VITE_PLUGIN as ⚡ Vite Plugin
+    participant WS_CLIENT as 🔄 WS Client
+    participant WS_SERVER as 🔄 WebSocket Server
+    participant R2 as ☁️ R2 Storage
+    participant ADMIN as 👨‍💼 Admin Interface
+
+    Note over USER,ADMIN: 🛠️ TOOLBAR SYSTEM - ДЕТАЛЬНАЯ АРХИТЕКТУРА
+
+    %% === СТРУКТУРА TOOLBAR СИСТЕМЫ ===
+    rect rgb(245, 245, 255)
+        Note over TOOLBAR: 📁 СТРУКТУРА TOOLBAR СИСТЕМЫ
+        
+        Note left of TOOLBAR: packages/vite-plugin-vybcel/
+        Note left of TOOLBAR: ├── src/
+        Note left of TOOLBAR: │   ├── index.ts (plugin entry)
+        Note left of TOOLBAR: │   ├── plugin.ts (vite plugin)
+        Note left of TOOLBAR: │   ├── toolbar/
+        Note left of TOOLBAR: │   │   ├── ToolbarContainer.tsx
+        Note left of TOOLBAR: │   │   ├── StatusIndicator.tsx
+        Note left of TOOLBAR: │   │   ├── ActionButtons.tsx
+        Note left of TOOLBAR: │   │   ├── NotificationToast.tsx
+        Note left of TOOLBAR: │   │   └── ProgressBar.tsx
+        Note left of TOOLBAR: │   ├── core/
+        Note left of TOOLBAR: │   │   ├── UpdateManager.ts
+        Note left of TOOLBAR: │   │   ├── WebSocketClient.ts
+        Note left of TOOLBAR: │   │   ├── StateManager.ts
+        Note left of TOOLBAR: │   │   └── HotReloader.ts
+        Note left of TOOLBAR: │   ├── utils/
+        Note left of TOOLBAR: │   │   ├── checksum.ts
+        Note left of TOOLBAR: │   │   ├── download.ts
+        Note left of TOOLBAR: │   │   └── logger.ts
+        Note left of TOOLBAR: │   └── types/
+        Note left of TOOLBAR: │       ├── toolbar.ts
+        Note left of TOOLBAR: │       └── update.ts
+        Note left of TOOLBAR: └── package.json
+
+        Note right of TOOLBAR: КОМПОНЕНТЫ И ЗАВИСИМОСТИ
+        Note right of TOOLBAR: ├── React 18 (UI компоненты)
+        Note right of TOOLBAR: ├── Tailwind CSS (стилизация)
+        Note right of TOOLBAR: ├── Framer Motion (анимации)
+        Note right of TOOLBAR: ├── Socket.IO Client (WebSocket)
+        Note right of TOOLBAR: ├── Vite Plugin API (интеграция)
+        Note right of TOOLBAR: ├── Crypto-js (checksum validation)
+        Note right of TOOLBAR: └── LocalStorage API (настройки)
+    end
+
+    %% === VITE PLUGIN ИНТЕГРАЦИЯ ===
+    rect rgb(240, 248, 255)
+        Note over VITE_PLUGIN: ⚡ VITE PLUGIN ИНТЕГРАЦИЯ
+        
+        Note left of VITE_PLUGIN: PLUGIN ХУКИ И МЕТОДЫ
+        Note left of VITE_PLUGIN: ├── configResolved() - получение конфига
+        Note left of VITE_PLUGIN: ├── configureServer() - dev server setup
+        Note left of VITE_PLUGIN: ├── transformIndexHtml() - HTML injection
+        Note left of VITE_PLUGIN: ├── generateBundle() - build-time injection
+        Note left of VITE_PLUGIN: └── closeBundle() - cleanup
+
+        Note right of VITE_PLUGIN: АВТОМАТИЧЕСКОЕ ВНЕДРЕНИЕ
+        Note right of VITE_PLUGIN: ├── Чтение vybcel.config.json
+        Note right of VITE_PLUGIN: ├── Injection toolbar script в HTML
+        Note right of VITE_PLUGIN: ├── HMR интеграция для hot updates
+        Note right of VITE_PLUGIN: ├── CSS injection для стилей
+        Note right of VITE_PLUGIN: └── Environment variables injection
+
+        alt Инициализация plugin
+            VITE_PLUGIN->>VITE_PLUGIN: configResolved() hook
+            VITE_PLUGIN->>VITE_PLUGIN: Чтение vybcel.config.json
+            VITE_PLUGIN->>VITE_PLUGIN: Определение PROJECT_ID
+            VITE_PLUGIN->>VITE_PLUGIN: Настройка toolbar options
+        end
+        
+        alt HTML injection
+            VITE_PLUGIN->>VITE_PLUGIN: transformIndexHtml() hook
+            VITE_PLUGIN->>VITE_PLUGIN: Создание toolbar script tag
+            VITE_PLUGIN->>VITE_PLUGIN: Injection в <head> или <body>
+            VITE_PLUGIN->>BROWSER: HTML с встроенным toolbar
+        end
+        
+        alt Hot Module Replacement
+            VITE_PLUGIN->>VITE_PLUGIN: HMR update event
+            VITE_PLUGIN->>TOOLBAR: Перезагрузка toolbar компонентов
+            VITE_PLUGIN->>BROWSER: Обновление без full reload
+        end
+    end
+
+    %% === TOOLBAR UI КОМПОНЕНТЫ ===
+    rect rgb(255, 250, 245)
+        Note over TOOLBAR: 🎨 TOOLBAR UI КОМПОНЕНТЫ
+        
+        Note left of TOOLBAR: ОСНОВНЫЕ КОМПОНЕНТЫ
+        Note left of TOOLBAR: ├── ToolbarContainer
+        Note left of TOOLBAR: │   ├── Главный контейнер
+        Note left of TOOLBAR: │   ├── Позиционирование (fixed)
+        Note left of TOOLBAR: │   ├── z-index management
+        Note left of TOOLBAR: │   └── Responsive design
+        Note left of TOOLBAR: ├── StatusIndicator
+        Note left of TOOLBAR: │   ├── Connection status
+        Note left of TOOLBAR: │   ├── Pending changes count
+        Note left of TOOLBAR: │   ├── Deploy status
+        Note left of TOOLBAR: │   └── Loading states
+        Note left of TOOLBAR: ├── ActionButtons
+        Note left of TOOLBAR: │   ├── Save All Changes
+        Note left of TOOLBAR: │   ├── Discard All Changes
+        Note left of TOOLBAR: │   ├── Force Reload
+        Note left of TOOLBAR: │   └── Settings Menu
+        Note left of TOOLBAR: └── NotificationToast
+        Note left of TOOLBAR:     ├── Success messages
+        Note left of TOOLBAR:     ├── Error messages
+        Note left of TOOLBAR:     ├── Update notifications
+        Note left of TOOLBAR:     └── Auto-dismiss timers
+
+        Note right of TOOLBAR: СТИЛИ И АНИМАЦИИ
+        Note right of TOOLBAR: ├── Tailwind CSS utilities
+        Note right of TOOLBAR: ├── Custom CSS variables
+        Note right of TOOLBAR: ├── Framer Motion animations
+        Note right of TOOLBAR: ├── Hover states
+        Note right of TOOLBAR: ├── Loading spinners
+        Note right of TOOLBAR: └── Smooth transitions
+
+        alt Отображение toolbar
+            BROWSER->>TOOLBAR: DOM load complete
+            TOOLBAR->>TOOLBAR: ToolbarContainer render
+            TOOLBAR->>TOOLBAR: Чтение состояния из localStorage
+            TOOLBAR->>WS_CLIENT: Инициализация WebSocket
+            TOOLBAR-->>BROWSER: Toolbar UI visible
+        end
+        
+        alt Пользовательское взаимодействие
+            USER->>TOOLBAR: Клик на Save All Changes
+            TOOLBAR->>TOOLBAR: Обновление UI состояния
+            TOOLBAR->>WS_CLIENT: emit('save_all_changes')
+            TOOLBAR->>TOOLBAR: Показ loading spinner
+        end
+    end
+
+    %% === UPDATE MANAGER ===
+    rect rgb(250, 255, 245)
+        Note over UPDATER: 🔄 UPDATE MANAGER
+        
+        Note left of UPDATER: ПРОВЕРКА ОБНОВЛЕНИЙ
+        Note left of UPDATER: ├── Автопроверка каждые 5 минут
+        Note left of UPDATER: ├── Manual check (Ctrl+Shift+U)
+        Note left of UPDATER: ├── WebSocket push notifications
+        Note left of UPDATER: ├── Version comparison (semver)
+        Note left of UPDATER: └── Channel management (stable/beta/dev)
+
+        Note right of UPDATER: ПРОЦЕСС ОБНОВЛЕНИЯ
+        Note right of UPDATER: ├── Download новой версии
+        Note right of UPDATER: ├── Checksum validation
+        Note right of UPDATER: ├── Backup текущей версии
+        Note right of UPDATER: ├── Hot Module Replacement
+        Note right of UPDATER: ├── State preservation
+        Note right of UPDATER: └── Rollback при ошибках
+
+        alt Автоматическая проверка
+            UPDATER->>UPDATER: setInterval(5 минут)
+            UPDATER->>R2: GET /api/toolbar/check
+            R2-->>UPDATER: {hasUpdate: true, version: "0.2.1"}
+            UPDATER->>UPDATER: Сравнение версий
+            UPDATER->>TOOLBAR: Показ уведомления об обновлении
+        end
+        
+        alt Скачивание и применение обновления
+            UPDATER->>R2: Download новой версии toolbar
+            R2-->>UPDATER: ZIP файл с новым кодом
+            UPDATER->>UPDATER: Checksum validation
+            UPDATER->>UPDATER: Backup current version
+            UPDATER->>VITE_PLUGIN: Hot Module Replacement
+            UPDATER->>TOOLBAR: UI уведомление о успехе
+        end
+        
+        alt WebSocket push обновление
+            WS_SERVER->>WS_CLIENT: emit('toolbar_update_available')
+            WS_CLIENT->>UPDATER: Немедленная проверка
+            UPDATER->>R2: Скачивание критического обновления
+            UPDATER->>TOOLBAR: Принудительное обновление
+        end
+    end
+
+    %% === WEBSOCKET ИНТЕГРАЦИЯ ===
+    rect rgb(255, 245, 250)
+        Note over WS_CLIENT: 🔄 WEBSOCKET CLIENT ИНТЕГРАЦИЯ
+        
+        Note left of WS_CLIENT: ПОДКЛЮЧЕНИЕ И СОБЫТИЯ
+        Note left of WS_CLIENT: ├── Автоматическое подключение при загрузке
+        Note left of WS_CLIENT: ├── Аутентификация с PROJECT_ID
+        Note left of WS_CLIENT: ├── Heartbeat/keepalive
+        Note left of WS_CLIENT: ├── Reconnection logic
+        Note left of WS_CLIENT: └── Error handling
+
+        Note right of WS_CLIENT: TOOLBAR SPECIFIC СОБЫТИЯ
+        Note right of WS_CLIENT: ОТПРАВЛЯЕМЫЕ:
+        Note right of WS_CLIENT: ├── toolbar_connected
+        Note right of WS_CLIENT: ├── save_all_changes
+        Note right of WS_CLIENT: ├── discard_all_changes
+        Note right of WS_CLIENT: └── toolbar_status_update
+        Note right of WS_CLIENT: ПОЛУЧАЕМЫЕ:
+        Note right of WS_CLIENT: ├── toolbar_update_available
+        Note right of WS_CLIENT: ├── pending_changes_updated
+        Note right of WS_CLIENT: ├── deploy_status_update
+        Note right of WS_CLIENT: └── commit_created
+
+        alt Подключение toolbar к серверу
+            TOOLBAR->>WS_CLIENT: Инициализация подключения
+            WS_CLIENT->>WS_SERVER: WebSocket connection
+            WS_CLIENT->>WS_SERVER: emit('toolbar_connected', {projectId})
+            WS_SERVER-->>WS_CLIENT: emit('authenticated')
+            WS_CLIENT->>TOOLBAR: Connection established
+        end
+        
+        alt Real-time синхронизация состояния
+            WS_SERVER->>WS_CLIENT: emit('pending_changes_updated', {count: 3})
+            WS_CLIENT->>TOOLBAR: Обновление counter в UI
+            TOOLBAR->>TOOLBAR: Анимация counter изменения
+        end
+    end
+
+    %% === R2 STORAGE ИНТЕГРАЦИЯ ===
+    rect rgb(250, 245, 255)
+        Note over R2: ☁️ R2 STORAGE ДЛЯ TOOLBAR ВЕРСИЙ
+        
+        Note left of R2: СТРУКТУРА ХРАНИЛИЩА
+        Note left of R2: ├── toolbar-versions/
+        Note left of R2: │   ├── 0.1.0/
+        Note left of R2: │   │   ├── stable/toolbar.zip
+        Note left of R2: │   │   ├── beta/toolbar.zip
+        Note left of R2: │   │   └── dev/toolbar.zip
+        Note left of R2: │   ├── 0.2.0/
+        Note left of R2: │   └── latest/
+        Note left of R2: │       └── metadata.json
+        Note left of R2: └── checksums/
+        Note left of R2:     └── {version}-{channel}.sha256
+
+        Note right of R2: ОПЕРАЦИИ С ВЕРСИЯМИ
+        Note right of R2: ├── Upload новых версий
+        Note right of R2: ├── Download по версии/каналу
+        Note right of R2: ├── Metadata management
+        Note right of R2: ├── Checksum validation
+        Note right of R2: └── Cleanup старых версий
+
+        Note over R2: METADATA СТРУКТУРА
+        Note over R2: {
+        Note over R2:   "latestVersion": "0.2.1",
+        Note over R2:   "channels": {
+        Note over R2:     "stable": "0.2.0",
+        Note over R2:     "beta": "0.2.1",
+        Note over R2:     "dev": "0.3.0-alpha"
+        Note over R2:   },
+        Note over R2:   "forceUpdate": false,
+        Note over R2:   "releaseNotes": "Bug fixes..."
+        Note over R2: }
+
+        alt Проверка обновлений
+            UPDATER->>R2: GET /toolbar-versions/latest/metadata.json
+            R2-->>UPDATER: Metadata с версиями каналов
+            UPDATER->>UPDATER: Сравнение с текущей версией
+            UPDATER->>UPDATER: Определение необходимости обновления
+        end
+        
+        alt Скачивание новой версии
+            UPDATER->>R2: GET /toolbar-versions/0.2.1/stable/toolbar.zip
+            R2-->>UPDATER: ZIP архив с новым кодом
+            UPDATER->>R2: GET /checksums/0.2.1-stable.sha256
+            R2-->>UPDATER: Checksum для валидации
+            UPDATER->>UPDATER: Валидация целостности
+        end
+    end
+
+    %% === ADMIN INTERFACE ===
+    rect rgb(255, 255, 240)
+        Note over ADMIN: 👨‍💼 ADMIN INTERFACE
+        
+        Note left of ADMIN: WEB ADMIN ПАНЕЛЬ
+        Note left of ADMIN: ├── /admin/toolbar страница
+        Note left of ADMIN: ├── Upload новых версий
+        Note left of ADMIN: ├── Управление каналами
+        Note left of ADMIN: ├── Push notifications
+        Note left of ADMIN: ├── Статистика обновлений
+        Note left of ADMIN: └── Rollback механизм
+
+        Note right of ADMIN: ФУНКЦИИ УПРАВЛЕНИЯ
+        Note right of ADMIN: ├── Drag & Drop file upload
+        Note right of ADMIN: ├── Version numbering (semver)
+        Note right of ADMIN: ├── Release notes editor
+        Note right of ADMIN: ├── Channel assignment
+        Note right of ADMIN: ├── Force update flags
+        Note right of ADMIN: └── Broadcast to active users
+
+        alt Загрузка новой версии
+            USER->>ADMIN: Drag & drop ZIP файла
+            ADMIN->>ADMIN: Валидация файла
+            ADMIN->>R2: Upload в R2 storage
+            ADMIN->>ADMIN: Генерация checksum
+            ADMIN->>R2: Обновление metadata.json
+        end
+        
+        alt Рассылка обновления
+            USER->>ADMIN: Клик "Broadcast Update"
+            ADMIN->>WS_SERVER: POST /api/toolbar/broadcast
+            WS_SERVER->>WS_CLIENT: emit('toolbar_update_available')
+            WS_CLIENT->>UPDATER: Принудительная проверка
+            UPDATER->>TOOLBAR: Автообновление
+        end
+    end
+
+    %% === HOT MODULE REPLACEMENT ===
+    rect rgb(245, 255, 245)
+        Note over TOOLBAR: 🔥 HOT MODULE REPLACEMENT
+        
+        Note left of TOOLBAR: HMR МЕХАНИЗМ
+        Note left of TOOLBAR: ├── Vite HMR API integration
+        Note left of TOOLBAR: ├── Module replacement без reload
+        Note left of TOOLBAR: ├── State preservation
+        Note left of TOOLBAR: ├── Component tree update
+        Note left of TOOLBAR: └── CSS hot reload
+
+        Note right of TOOLBAR: ПРОЦЕСС ОБНОВЛЕНИЯ
+        Note right of TOOLBAR: ├── Получение новых модулей
+        Note right of TOOLBAR: ├── Сохранение текущего состояния
+        Note right of TOOLBAR: ├── Замена модулей в runtime
+        Note right of TOOLBAR: ├── Восстановление состояния
+        Note right of TOOLBAR: └── Re-render компонентов
+
+        alt HMR обновление
+            UPDATER->>VITE_PLUGIN: Новые модули готовы
+            VITE_PLUGIN->>TOOLBAR: HMR update event
+            TOOLBAR->>TOOLBAR: Сохранение состояния
+            TOOLBAR->>TOOLBAR: Замена компонентов
+            TOOLBAR->>TOOLBAR: Восстановление состояния
+            TOOLBAR-->>USER: Seamless update без reload
+        end
+    end
+
+    %% === КОНФИГУРАЦИЯ И НАСТРОЙКИ ===
+    rect rgb(255, 250, 240)
+        Note over TOOLBAR: ⚙️ КОНФИГУРАЦИЯ И НАСТРОЙКИ
+        
+        Note left of TOOLBAR: ПОЛЬЗОВАТЕЛЬСКИЕ НАСТРОЙКИ
+        Note left of TOOLBAR: ├── Позиция toolbar (corners)
+        Note left of TOOLBAR: ├── Тема оформления (light/dark)
+        Note left of TOOLBAR: ├── Автообновления (on/off)
+        Note left of TOOLBAR: ├── Уведомления (types)
+        Note left of TOOLBAR: ├── Горячие клавиши
+        Note left of TOOLBAR: └── Channel preference
+
+        Note right of TOOLBAR: ПРОЕКТНЫЕ НАСТРОЙКИ
+        Note right of TOOLBAR: ├── vybcel.config.json
+        Note right of TOOLBAR: │   ├── projectId
+        Note right of TOOLBAR: │   ├── serverUrl
+        Note right of TOOLBAR: │   ├── updateChannel
+        Note right of TOOLBAR: │   └── toolbarOptions
+        Note right of TOOLBAR: ├── LocalStorage preferences
+        Note right of TOOLBAR: └── Environment variables
+
+        alt Изменение настроек
+            USER->>TOOLBAR: Открытие settings menu
+            TOOLBAR->>TOOLBAR: Отображение настроек
+            USER->>TOOLBAR: Изменение position/theme
+            TOOLBAR->>TOOLBAR: Сохранение в localStorage
+            TOOLBAR->>TOOLBAR: Применение изменений
+        end
+    end
+
+    %% === ПРОИЗВОДИТЕЛЬНОСТЬ И ОПТИМИЗАЦИЯ ===
+    rect rgb(250, 250, 255)
+        Note over TOOLBAR: ⚡ ПРОИЗВОДИТЕЛЬНОСТЬ И ОПТИМИЗАЦИЯ
+        
+        Note left of TOOLBAR: ОПТИМИЗАЦИИ
+        Note left of TOOLBAR: ├── Lazy loading компонентов
+        Note left of TOOLBAR: ├── Debounced user interactions
+        Note left of TOOLBAR: ├── Minimal re-renders
+        Note left of TOOLBAR: ├── Efficient state management
+        Note left of TOOLBAR: ├── CSS containment
+        Note left of TOOLBAR: └── Bundle size optimization
+
+        Note right of TOOLBAR: МОНИТОРИНГ
+        Note right of TOOLBAR: ├── Performance metrics
+        Note right of TOOLBAR: ├── Update success rate
+        Note right of TOOLBAR: ├── Error tracking
+        Note right of TOOLBAR: ├── User engagement
+        Note right of TOOLBAR: └── Network efficiency
+
+        alt Performance monitoring
+            TOOLBAR->>TOOLBAR: performance.mark('start')
+            TOOLBAR->>UPDATER: Check for updates
+            TOOLBAR->>TOOLBAR: performance.mark('end')
+            TOOLBAR->>TOOLBAR: performance.measure('update-check')
+        end
+    end
+
+    %% === БЕЗОПАСНОСТЬ ===
+    rect rgb(255, 245, 245)
+        Note over TOOLBAR: 🔒 БЕЗОПАСНОСТЬ И ВАЛИДАЦИЯ
+        
+        Note left of TOOLBAR: БЕЗОПАСНОСТЬ ОБНОВЛЕНИЙ
+        Note left of TOOLBAR: ├── Checksum validation (SHA-256)
+        Note left of TOOLBAR: ├── Source verification
+        Note left of TOOLBAR: ├── HTTPS only downloads
+        Note left of TOOLBAR: ├── Sandboxed execution
+        Note left of TOOLBAR: └── Rollback при ошибках
+
+        Note right of TOOLBAR: ЗАЩИТА ОТ АТАК
+        Note right of TOOLBAR: ├── CSP (Content Security Policy)
+        Note right of TOOLBAR: ├── XSS protection
+        Note right of TOOLBAR: ├── Code injection prevention
+        Note right of TOOLBAR: ├── Secure WebSocket (WSS)
+        Note right of TOOLBAR: └── Rate limiting
+
+        alt Валидация обновления
+            UPDATER->>R2: Download update + checksum
+            UPDATER->>UPDATER: SHA-256 verification
+            alt Valid checksum
+                UPDATER->>TOOLBAR: Применение обновления
+            else Invalid checksum
+                UPDATER->>TOOLBAR: Ошибка + rollback
+                UPDATER->>ADMIN: Report security issue
+            end
+        end
+    end

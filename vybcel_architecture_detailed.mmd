@@ -1,0 +1,388 @@
+sequenceDiagram
+    participant U as 👤 User
+    participant B as 🌐 Web App
+    participant V as 💻 Editor
+    participant TB as 🛠️ Toolbar
+    participant WS as 🔄 WebSocket
+    participant DA as 📡 Dev Agent
+    participant DB as 🗃️ Database
+    participant R2 as ☁️ R2 Storage
+    participant GH as 🐙 GitHub
+    participant N as 🔥 Netlify
+
+    Note over U,N: 🚀 VYBCEL DETAILED ARCHITECTURE - Компонентные схемы
+
+    %% === 1. WEB APP (Next.js) АРХИТЕКТУРА ===
+    rect rgb(240, 248, 255)
+        Note over B: 🌐 WEB APP (Next.js) - Порт 3004
+        
+        Note left of B: СТРУКТУРА ПРИЛОЖЕНИЯ
+        Note left of B: ├── app/
+        Note left of B: │   ├── (auth)/ - Аутентификация
+        Note left of B: │   ├── dashboard/ - Главная страница
+        Note left of B: │   ├── project/[id]/ - Страницы проекта
+        Note left of B: │   │   ├── overview/ - Обзор проекта
+        Note left of B: │   │   ├── onboarding/ - Настройка
+        Note left of B: │   │   └── settings/ - Настройки
+        Note left of B: │   ├── admin/ - Админ панель
+        Note left of B: │   └── api/ - API эндпоинты
+        Note left of B: ├── components/
+        Note left of B: │   ├── ui/ - shadcn/ui компоненты
+        Note left of B: │   ├── project/ - Компоненты проекта
+        Note left of B: │   └── layout/ - Компоненты макета
+        Note left of B: └── lib/ - Утилиты и хуки
+
+        Note right of B: API ROUTES СТРУКТУРА
+        Note right of B: /api/projects/ - Управление проектами
+        Note right of B: │ ├── POST / - Создание проекта
+        Note right of B: │ ├── GET /[id] - Получение проекта
+        Note right of B: │ ├── DELETE /[id] - Удаление проекта
+        Note right of B: │ └── GET /[id]/download - Скачивание
+        Note right of B: /api/toolbar/ - Управление toolbar
+        Note right of B: │ ├── GET /check - Проверка обновлений
+        Note right of B: │ ├── POST /upload - Загрузка версий
+        Note right of B: │ └── POST /broadcast - Рассылка обновлений
+        Note right of B: /api/webhooks/ - Внешние вебхуки
+        Note right of B: │ ├── POST /netlify - Netlify события
+        Note right of B: │ └── POST /github - GitHub события
+
+        Note over B: КОМПОНЕНТЫ И СОСТОЯНИЕ
+        Note over B: - ProjectProvider (контекст проекта)
+        Note over B: - WebSocketProvider (WebSocket соединение)
+        Note over B: - ThemeProvider (темы приложения)
+        Note over B: - TanStack Query (кеширование данных)
+        Note over B: - Zustand/useState (локальное состояние)
+        
+        alt Пользователь создает проект
+            U->>B: POST /api/projects
+            B->>DB: Создание записи проекта
+            B->>WS: Вызов создания GitHub репо
+            B-->>U: Redirect на onboarding
+        end
+        
+        alt Real-time обновления
+            WS->>B: WebSocket события
+            B->>B: Обновление состояния
+            B-->>U: UI обновляется без reload
+        end
+    end
+
+    %% === 2. WEBSOCKET SERVER АРХИТЕКТУРА ===
+    rect rgb(245, 255, 245)
+        Note over WS: 🔄 WEBSOCKET SERVER (Express + Socket.IO) - Порт 8080
+        
+        Note left of WS: СТРУКТУРА СЕРВЕРА
+        Note left of WS: ├── src/
+        Note left of WS: │   ├── index.ts - Главный файл сервера
+        Note left of WS: │   ├── services/
+        Note left of WS: │   │   ├── github.ts - GitHub интеграция
+        Note left of WS: │   │   ├── netlify.ts - Netlify интеграция
+        Note left of WS: │   │   └── project.ts - Управление проектами
+        Note left of WS: │   ├── handlers/
+        Note left of WS: │   │   ├── auth.ts - Аутентификация
+        Note left of WS: │   │   ├── files.ts - Обработка файлов
+        Note left of WS: │   │   └── commits.ts - Работа с коммитами
+        Note left of WS: │   └── utils/
+        Note left of WS: │       ├── git.ts - Git операции
+        Note left of WS: │       └── validation.ts - Валидация
+
+        Note right of WS: WEBSOCKET СОБЫТИЯ
+        Note right of WS: ВХОДЯЩИЕ СОБЫТИЯ:
+        Note right of WS: ├── authenticate - Аутентификация клиента
+        Note right of WS: ├── file_change - Изменение файла
+        Note right of WS: ├── save_all_changes - Сохранение всех изменений
+        Note right of WS: ├── discard_all_changes - Отмена изменений
+        Note right of WS: └── toolbar_connected - Подключение toolbar
+        Note right of WS: ИСХОДЯЩИЕ СОБЫТИЯ:
+        Note right of WS: ├── authenticated - Подтверждение авторизации
+        Note right of WS: ├── file_change_staged - Файл в staging
+        Note right of WS: ├── commit_created - Коммит создан
+        Note right of WS: ├── deploy_status_update - Статус деплоя
+        Note right of WS: └── toolbar_update_available - Обновление toolbar
+
+        Note over WS: КОМНАТЫ И СОЕДИНЕНИЯ
+        Note over WS: - project_{projectId} - Комната проекта
+        Note over WS: - admin_toolbar - Админ комната
+        Note over WS: - connectedAgents Map - Активные агенты
+        Note over WS: - Memory store для состояния соединений
+
+        alt Создание GitHub репозитория
+            B->>WS: POST /api/projects/create-repository
+            WS->>GH: GitHub App API
+            WS->>DB: Сохранение данных репо
+            WS-->>B: Результат создания
+        end
+        
+        alt Обработка изменений файлов
+            DA->>WS: WebSocket file_change
+            WS->>DB: Сохранение в pending_changes
+            WS->>B: Уведомление клиентов
+        end
+        
+        alt Создание коммита
+            B->>WS: save_all_changes
+            WS->>GH: Создание коммита
+            WS->>DB: Очистка pending_changes
+            WS->>N: Триггер автодеплоя
+        end
+    end
+
+    %% === 3. DEV AGENT АРХИТЕКТУРА ===
+    rect rgb(255, 250, 240)
+        Note over DA: 📡 DEV AGENT (Node.js) - Локальный агент
+        
+        Note left of DA: СТРУКТУРА АГЕНТА
+        Note left of DA: ├── src/
+        Note left of DA: │   ├── index.ts - Главный файл агента
+        Note left of DA: │   ├── watcher.ts - File watcher (chokidar)
+        Note left of DA: │   ├── websocket.ts - WebSocket клиент
+        Note left of DA: │   ├── git.ts - Git операции
+        Note left of DA: │   └── config.ts - Конфигурация
+        Note left of DA: ├── vybcel.config.json - Конфиг проекта
+        Note left of DA: └── package.json - NPM скрипты
+
+        Note right of DA: ОСНОВНЫЕ ФУНКЦИИ
+        Note right of DA: ├── File Watching - chokidar следит за файлами
+        Note right of DA: ├── WebSocket Client - соединение с сервером
+        Note right of DA: ├── Git Integration - локальные git операции
+        Note right of DA: ├── Auto Reconnection - переподключение при сбоях
+        Note right of DA: └── Project Detection - определение PROJECT_ID
+
+        Note over DA: ЖИЗНЕННЫЙ ЦИКЛ АГЕНТА
+        Note over DA: 1. Чтение vybcel.config.json
+        Note over DA: 2. Подключение к WebSocket серверу
+        Note over DA: 3. Аутентификация с PROJECT_ID
+        Note over DA: 4. Запуск file watcher на проект
+        Note over DA: 5. Отправка изменений в real-time
+
+        alt Запуск агента
+            U->>DA: pnpm sync
+            DA->>DA: Инициализация конфигурации
+            DA->>WS: WebSocket подключение
+            DA->>DA: Запуск file watcher
+        end
+        
+        alt Изменение файла
+            V->>DA: Файл сохранен (chokidar event)
+            DA->>DA: Чтение содержимого файла
+            DA->>WS: WebSocket file_change
+        end
+        
+        alt Git операции
+            WS->>DA: discard_local_changes
+            DA->>DA: git reset --hard HEAD
+            DA->>WS: Подтверждение операции
+        end
+    end
+
+    %% === 4. DATABASE (Supabase) АРХИТЕКТУРА ===
+    rect rgb(250, 240, 255)
+        Note over DB: 🗃️ DATABASE (Supabase PostgreSQL)
+        
+        Note left of DB: ТАБЛИЦЫ И СХЕМА
+        Note left of DB: ├── auth.users - Пользователи (Supabase Auth)
+        Note left of DB: ├── public.projects - Проекты пользователей
+        Note left of DB: │   ├── id (uuid, primary)
+        Note left of DB: │   ├── user_id (uuid, foreign)
+        Note left of DB: │   ├── name, description
+        Note left of DB: │   ├── github_repo_url, github_repo_name
+        Note left of DB: │   ├── netlify_site_id, netlify_url
+        Note left of DB: │   └── deploy_status, created_at
+        Note left of DB: ├── public.file_history - История файлов
+        Note left of DB: ├── public.commit_history - История коммитов
+        Note left of DB: └── public.pending_changes - Staging area
+
+        Note right of DB: ROW LEVEL SECURITY (RLS)
+        Note right of DB: ├── projects - Доступ по user_id
+        Note right of DB: ├── file_history - Через project ownership
+        Note right of DB: ├── commit_history - Через project ownership
+        Note right of DB: └── pending_changes - Через project ownership
+
+        Note over DB: QUERIES И ОПЕРАЦИИ
+        Note over DB: ├── ProjectQueries.ts - CRUD операции проектов
+        Note over DB: ├── FileHistoryQueries.ts - История изменений
+        Note over DB: ├── CommitHistoryQueries.ts - История коммитов
+        Note over DB: └── PendingChangesQueries.ts - Staging operations
+
+        alt Создание проекта
+            B->>DB: ProjectQueries.createProject
+            DB->>DB: INSERT INTO projects
+            DB-->>B: Новый проект с ID
+        end
+        
+        alt Сохранение изменений
+            WS->>DB: PendingChangesQueries.upsertPendingChange
+            DB->>DB: UPSERT INTO pending_changes
+        end
+        
+        alt Создание коммита
+            WS->>DB: CommitHistoryQueries.createCommitHistory
+            DB->>DB: INSERT INTO commit_history
+            WS->>DB: PendingChangesQueries.clearAllPendingChanges
+            DB->>DB: DELETE FROM pending_changes
+        end
+    end
+
+    %% === 5. STORAGE (Cloudflare R2) АРХИТЕКТУРА ===
+    rect rgb(255, 245, 250)
+        Note over R2: ☁️ STORAGE (Cloudflare R2)
+        
+        Note left of R2: СТРУКТУРА ХРАНИЛИЩА
+        Note left of R2: ├── toolbar-versions/ - Версии toolbar
+        Note left of R2: │   ├── {version}/
+        Note left of R2: │   │   ├── stable/
+        Note left of R2: │   │   ├── beta/
+        Note left of R2: │   │   └── dev/
+        Note left of R2: │   │   └── metadata.json - Мета информация
+        Note left of R2: │   └── project-templates/ - Шаблоны проектов
+        Note left of R2: │   └── vite-react/
+        Note left of R2: └── project-files/ - Файлы проектов (резерв)
+
+        Note right of R2: ОПЕРАЦИИ С R2
+        Note right of R2: ├── PUT объекты - Загрузка файлов
+        Note right of R2: ├── GET объекты - Скачивание файлов
+        Note right of R2: ├── LIST объекты - Листинг версий
+        Note right of R2: └── DELETE объекты - Удаление старых версий
+
+        Note over R2: TOOLBAR VERSION MANAGEMENT
+        Note over R2: ├── Семантическое версионирование (semver)
+        Note over R2: ├── Каналы распространения (stable/beta/dev)
+        Note over R2: ├── Checksum validation для безопасности
+        Note over R2: └── Metadata с release notes
+
+        alt Деплой новой версии toolbar
+            B->>R2: R2ToolbarManager.uploadVersion
+            R2->>R2: Сохранение ZIP с версией
+            R2->>R2: Обновление metadata.json
+            R2-->>B: Подтверждение загрузки
+        end
+        
+        alt Проверка обновлений
+            TB->>R2: Проверка metadata.json
+            R2-->>TB: Информация о версиях
+            TB->>R2: Скачивание новой версии
+            R2-->>TB: ZIP файл обновления
+        end
+    end
+
+    %% === 6. TOOLBAR SYSTEM АРХИТЕКТУРА ===
+    rect rgb(245, 245, 255)
+        Note over TB: 🛠️ TOOLBAR SYSTEM - Автообновляемый интерфейс
+        
+        Note left of TB: КОМПОНЕНТЫ TOOLBAR
+        Note left of TB: ├── vite-plugin-vybcel/ - Vite плагин
+        Note left of TB: │   ├── Инжектирование toolbar в проект
+        Note left of TB: │   ├── Hot Module Replacement
+        Note left of TB: │   └── Конфигурация проекта
+        Note left of TB: ├── toolbar-ui/ - React компоненты
+        Note left of TB: │   ├── ToolbarContainer - Главный контейнер
+        Note left of TB: │   ├── StatusIndicator - Индикаторы статуса
+        Note left of TB: │   ├── ActionButtons - Кнопки действий
+        Note left of TB: │   └── NotificationToast - Уведомления
+        Note left of TB: └── toolbar-core/ - Основная логика
+        Note left of TB:     ├── UpdateManager - Управление обновлениями
+        Note left of TB:     ├── WebSocketClient - WS соединение
+        Note left of TB:     └── StateManager - Состояние toolbar
+
+        Note right of TB: ЦИКЛ ОБНОВЛЕНИЙ
+        Note right of TB: 1. Автопроверка каждые 5 минут
+        Note right of TB: 2. WebSocket push уведомления
+        Note right of TB: 3. Ручная проверка (Ctrl+Shift+U)
+        Note right of TB: 4. Скачивание и валидация
+        Note right of TB: 5. Hot Module Replacement
+        Note right of TB: 6. Уведомление пользователя
+
+        Note over TB: ИНТЕГРАЦИЯ С ПРОЕКТОМ
+        Note over TB: ├── Автоматическое внедрение через Vite
+        Note over TB: ├── Плавающий интерфейс (не мешает коду)
+        Note over TB: ├── Горячие клавиши для управления
+        Note over TB: └── Синхронизация с состоянием проекта
+
+        alt Автопроверка обновлений
+            TB->>TB: setInterval 5 минут
+            TB->>B: GET /api/toolbar/check
+            B->>R2: Проверка новых версий
+            R2-->>B: Информация о версиях
+            B-->>TB: hasUpdate флаг
+            TB->>TB: Автообновление если доступно
+        end
+        
+        alt WebSocket push обновление
+            B->>WS: POST /api/toolbar/broadcast
+            WS->>TB: toolbar_update_available
+            TB->>TB: Немедленное обновление
+            TB->>TB: Уведомление пользователя
+        end
+    end
+
+    %% === 7. EXTERNAL SERVICES ИНТЕГРАЦИЯ ===
+    rect rgb(240, 255, 240)
+        Note over GH,N: 🔗 EXTERNAL SERVICES - Внешние сервисы
+        
+        Note over GH: 🐙 GITHUB INTEGRATION
+        Note left of GH: GitHub App "Vybcel Bot"
+        Note left of GH: ├── App ID: 1390062
+        Note left of GH: ├── Installation ID: 70719351
+        Note left of GH: ├── Organization: vybcel
+        Note left of GH: └── Permissions: repo, contents, metadata
+        
+        Note over GH: GitHub API Operations:
+        Note over GH: ├── Создание приватных репозиториев
+        Note over GH: ├── Управление содержимым файлов
+        Note over GH: ├── Создание коммитов и веток
+        Note over GH: └── Настройка webhooks
+
+        Note over N: 🔥 NETLIFY INTEGRATION
+        Note right of N: Netlify API Operations:
+        Note right of N: ├── Создание сайтов программно
+        Note right of N: ├── Настройка GitHub интеграции
+        Note right of N: ├── Конфигурация build settings
+        Note right of N: ├── Управление deploy keys
+        Note right of N: └── Webhook уведомления
+
+        Note over N: Автодеплой процесс:
+        Note over N: 1. GitHub webhook → Netlify
+        Note over N: 2. Git clone приватного репо
+        Note over N: 3. pnpm install && pnpm build
+        Note over N: 4. Deploy на CDN
+        Note over N: 5. Webhook в WebSocket сервер
+
+        alt GitHub операции
+            WS->>GH: GitHub App API
+            GH->>GH: Создание/обновление репо
+            GH-->>WS: Результат операции
+        end
+        
+        alt Netlify деплой
+            GH->>N: Webhook о новом коммите
+            N->>N: Автоматический build
+            N->>WS: Webhook о статусе деплоя
+            WS->>B: Обновление UI статуса
+        end
+    end
+
+    %% === 8. ДАННЫЕ И ПОТОКИ ===
+    rect rgb(248, 248, 248)
+        Note over U,N: 📊 DATA FLOWS & INTEGRATIONS
+        
+        Note over U,N: ОСНОВНЫЕ ПОТОКИ ДАННЫХ:
+        Note over U,N: 1. User Actions → Web App → WebSocket → External Services
+        Note over U,N: 2. File Changes → Dev Agent → WebSocket → Database
+        Note over U,N: 3. Real-time Updates → WebSocket → Web App → User
+        Note over U,N: 4. Toolbar Updates → R2 Storage → Toolbar → User
+        Note over U,N: 5. Deploy Status → Netlify → WebSocket → All Clients
+
+        Note over U,N: БЕЗОПАСНОСТЬ И АУТЕНТИФИКАЦИЯ:
+        Note over U,N: ├── Supabase RLS для изоляции данных
+        Note over U,N: ├── GitHub App токены (без логина пользователя)
+        Note over U,N: ├── JWT токены для WebSocket соединений
+        Note over U,N: ├── Checksum validation для toolbar обновлений
+        Note over U,N: └── CORS и rate limiting для API
+
+        Note over U,N: МАСШТАБИРУЕМОСТЬ:
+        Note over U,N: ├── WebSocket rooms для изоляции проектов
+        Note over U,N: ├── Database connection pooling
+        Note over U,N: ├── CDN для статических ресурсов
+        Note over U,N: ├── Horizontal scaling WebSocket серверов
+        Note over U,N: └── R2 для глобального распределения файлов
+    end
