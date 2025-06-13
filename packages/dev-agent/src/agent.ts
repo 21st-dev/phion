@@ -310,11 +310,22 @@ export class VybcelAgent {
   private async connectWebSocket(): Promise<void> {
     return new Promise((resolve) => {
       this.socket = io(this.config.wsUrl, {
-        transports: ["websocket"],
-        timeout: 10000,
+        transports: ["websocket", "polling"], // Support both transports for reliability
+        timeout: 30000, // 30 seconds - increased from 10 seconds for production
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000, // Max 10 seconds between attempts
+        randomizationFactor: 0.5, // Add jitter to reconnection attempts
+        
+        // 🚀 PRODUCTION SETTINGS - match server configuration
+        upgrade: true,
+        rememberUpgrade: true,
+        
+        // Enable connection state recovery
+        auth: {
+          projectId: this.config.projectId, // Include projectId in handshake
+        }
       });
 
       this.socket.on("connect", () => {
@@ -408,10 +419,27 @@ export class VybcelAgent {
       console.log(`❌ Disconnected: ${reason}`);
       this.isConnected = false;
 
-      setTimeout(() => {
-        console.log("🔄 Attempting to reconnect...");
-        this.socket?.connect();
-      }, 5000);
+      // 📊 ENHANCED DISCONNECT HANDLING - match web client logic
+      const serverInitiated = ['io server disconnect', 'server namespace disconnect'];
+      const networkIssues = ['ping timeout', 'transport close', 'transport error'];
+      const clientInitiated = ['io client disconnect', 'client namespace disconnect'];
+      
+      if (serverInitiated.includes(reason)) {
+        console.log('🔄 Server-initiated disconnect, will attempt reconnection');
+      } else if (networkIssues.includes(reason)) {
+        console.log('⚠️ Network issue detected, checking connection quality');
+      } else if (clientInitiated.includes(reason)) {
+        console.log('👋 Client-initiated disconnect, normal closure');
+        return; // Don't attempt automatic reconnection for intentional disconnects
+      }
+
+      // Only reconnect for unexpected disconnects
+      if (!clientInitiated.includes(reason)) {
+        setTimeout(() => {
+          console.log("🔄 Attempting to reconnect...");
+          this.socket?.connect();
+        }, 5000);
+      }
     });
 
     this.socket.on("connect_error", (error: Error) => {

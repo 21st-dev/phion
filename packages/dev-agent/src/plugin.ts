@@ -53,7 +53,7 @@ const findToolbarBundle = () => {
 export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
   const {
     configPath = 'vybcel.config.json',
-    websocketUrl = 'ws://localhost:8080',
+    websocketUrl = 'wss://api.vybcel.com',
     autoUpdate = true,
     updateEndpoint = DEFAULT_UPDATE_ENDPOINT
   } = options

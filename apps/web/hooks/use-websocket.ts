@@ -90,13 +90,24 @@ export function useWebSocket({
 
     // Создаем новое подключение
     const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080', {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Support both transports for reliability
       autoConnect: true,
-      timeout: 5000,
+      timeout: 30000, // 30 seconds - increased from 5 seconds for production
       reconnection: true,
       reconnectionAttempts: maxReconnectAttempts,
       reconnectionDelay: 2000,
-      forceNew: true, // Принудительно создаем новое подключение
+      reconnectionDelayMax: 10000, // Max 10 seconds between attempts
+      randomizationFactor: 0.5, // Add jitter to reconnection attempts
+      forceNew: false, // Allow connection reuse
+      
+      // 🚀 PRODUCTION SETTINGS - match server configuration
+      upgrade: true,
+      rememberUpgrade: true,
+      
+      // Enable connection state recovery
+      auth: {
+        projectId, // Include projectId in handshake for better routing
+      }
     });
 
     newSocket.on('connect', () => {
@@ -123,13 +134,34 @@ export function useWebSocket({
       setIsConnected(false);
       isConnecting.current = false;
       
-      // Автоматическое переподключение только при неожиданном отключении
-      if (reason === 'io server disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
+      // 📊 ENHANCED DISCONNECT HANDLING with reason analysis
+      const serverInitiated = ['io server disconnect', 'server namespace disconnect'];
+      const networkIssues = ['ping timeout', 'transport close', 'transport error'];
+      const clientInitiated = ['io client disconnect', 'client namespace disconnect'];
+      
+      if (serverInitiated.includes(reason)) {
+        console.log('🔄 [WebSocket] Server-initiated disconnect, will attempt reconnection');
+        setConnectionError('Server disconnected, reconnecting...');
+      } else if (networkIssues.includes(reason)) {
+        console.log('⚠️ [WebSocket] Network issue detected, checking connection quality');
+        setConnectionError('Connection issue detected, reconnecting...');
+      } else if (clientInitiated.includes(reason)) {
+        console.log('👋 [WebSocket] Client-initiated disconnect, normal closure');
+        setConnectionError(null);
+        return; // Don't attempt reconnection for intentional disconnects
+      }
+      
+      // Smart reconnection logic - only for unexpected disconnects
+      if (!clientInitiated.includes(reason) && reconnectAttempts.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000); // Exponential backoff, max 10s
         setTimeout(() => {
           reconnectAttempts.current++;
-          console.log(`🔄 [WebSocket] Reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
+          console.log(`🔄 [WebSocket] Reconnection attempt ${reconnectAttempts.current}/${maxReconnectAttempts} (delay: ${delay}ms)`);
           newSocket.connect();
-        }, 1000 * reconnectAttempts.current);
+        }, delay);
+      } else if (reconnectAttempts.current >= maxReconnectAttempts) {
+        console.error('❌ [WebSocket] Max reconnection attempts reached');
+        setConnectionError('Unable to reconnect. Please refresh the page.');
       }
     });
 

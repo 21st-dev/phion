@@ -38,7 +38,128 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+  // 🚀 PRODUCTION CONFIGURATION
+  pingTimeout: 60000, // 60 seconds - время ожидания ответа на ping
+  pingInterval: 25000, // 25 seconds - интервал отправки ping
+  upgradeTimeout: 30000, // 30 seconds - время на upgrade to websocket
+  allowUpgrades: true,
+  transports: ['websocket', 'polling'], // Support both for reliability
+  
+  // Engine.IO configuration for production
+  maxHttpBufferSize: 1e6, // 1MB max message size
+  allowEIO3: false, // Disable legacy Engine.IO v3
+  
+  // Connection management
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+    skipMiddlewares: true,
+  },
+  
+  // Adapter configuration for scaling (if needed)
+  cleanupEmptyChildNamespaces: true,
 });
+
+// 🔄 CONNECTION MONITORING & MANAGEMENT
+const connectionMonitor = {
+  // Track connection attempts per IP to prevent spam
+  connectionAttempts: new Map<string, { count: number; lastAttempt: number }>(),
+  
+  // Track active connections per project to prevent storms
+  activeConnections: new Map<string, Set<string>>(), // projectId -> socketIds
+  
+  // Connection rate limiting
+  isRateLimited(ip: string): boolean {
+    const now = Date.now();
+    const attempts = this.connectionAttempts.get(ip);
+    
+    if (!attempts) {
+      this.connectionAttempts.set(ip, { count: 1, lastAttempt: now });
+      return false;
+    }
+    
+    // Reset counter if last attempt was more than 1 minute ago
+    if (now - attempts.lastAttempt > 60000) {
+      this.connectionAttempts.set(ip, { count: 1, lastAttempt: now });
+      return false;
+    }
+    
+    // Allow max 10 connections per minute per IP
+    if (attempts.count >= 10) {
+      console.log(`⚠️ Rate limit exceeded for IP ${ip} (${attempts.count} attempts)`);
+      return true;
+    }
+    
+    attempts.count++;
+    attempts.lastAttempt = now;
+    return false;
+  },
+  
+  // Add connection to project monitoring
+  addConnection(projectId: string, socketId: string): void {
+    if (!this.activeConnections.has(projectId)) {
+      this.activeConnections.set(projectId, new Set());
+    }
+    this.activeConnections.get(projectId)!.add(socketId);
+    
+    const connectionCount = this.activeConnections.get(projectId)!.size;
+    if (connectionCount > 5) {
+      console.log(`⚠️ High connection count for project ${projectId}: ${connectionCount} clients`);
+    }
+  },
+  
+  // Remove connection from monitoring
+  removeConnection(projectId: string, socketId: string): void {
+    const connections = this.activeConnections.get(projectId);
+    if (connections) {
+      connections.delete(socketId);
+      if (connections.size === 0) {
+        this.activeConnections.delete(projectId);
+      }
+    }
+  },
+  
+  // Get connection statistics
+  getStats(): { totalProjects: number; totalConnections: number; connectionsPerProject: Record<string, number> } {
+    const stats = {
+      totalProjects: this.activeConnections.size,
+      totalConnections: 0,
+      connectionsPerProject: {} as Record<string, number>
+    };
+    
+    for (const [projectId, connections] of this.activeConnections) {
+      const count = connections.size;
+      stats.totalConnections += count;
+      stats.connectionsPerProject[projectId] = count;
+    }
+    
+    return stats;
+  }
+};
+
+// 🩺 HEALTH CHECK: Log connection statistics every 2 minutes
+setInterval(() => {
+  const stats = connectionMonitor.getStats();
+  console.log(`📊 [HEALTH] Active connections: ${stats.totalConnections} across ${stats.totalProjects} projects`);
+  
+  // Log projects with high connection counts
+  for (const [projectId, count] of Object.entries(stats.connectionsPerProject)) {
+    if (count > 3) {
+      console.log(`⚠️ [HEALTH] Project ${projectId} has ${count} connections`);
+    }
+  }
+}, 120000); // Every 2 minutes
+
+// 🧹 CLEANUP: Remove old connection attempt records every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  const cutoff = 5 * 60 * 1000; // 5 minutes
+  
+  for (const [ip, attempts] of connectionMonitor.connectionAttempts) {
+    if (now - attempts.lastAttempt > cutoff) {
+      connectionMonitor.connectionAttempts.delete(ip);
+    }
+  }
+}, 300000); // Every 5 minutes
 
 const PORT = process.env.WEBSOCKET_PORT || 8080;
 
@@ -126,7 +247,23 @@ app.post('/api/deploy', async (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'websocket-server' });
+  const stats = connectionMonitor.getStats();
+  res.json({ 
+    status: 'ok', 
+    service: 'websocket-server',
+    uptime: process.uptime(),
+    connections: {
+      total: stats.totalConnections,
+      projects: stats.totalProjects,
+      perProject: stats.connectionsPerProject
+    },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      external: Math.round(process.memoryUsage().external / 1024 / 1024)
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ========= TOOLBAR UPDATE API ENDPOINTS =========
@@ -584,10 +721,31 @@ async function checkAndTriggerInitialDeploy(projectId: string): Promise<void> {
 const connectedAgents = new Map<string, Set<string>>(); // projectId -> Set<socketId>
 
 io.on('connection', (socket) => {
-  console.log(`✅ Client connected: ${socket.id}`);
+  // 🚨 RATE LIMITING: Check if this IP is being rate limited
+  const clientIp = socket.handshake.address || socket.conn.remoteAddress || 'unknown';
+  
+  if (connectionMonitor.isRateLimited(clientIp)) {
+    console.log(`🚫 [RATE_LIMIT] Connection from ${clientIp} blocked (rate limited)`);
+    socket.emit('error', { message: 'Rate limit exceeded. Please try again later.' });
+    socket.disconnect(true);
+    return;
+  }
+
+  console.log(`✅ Client connected: ${socket.id} from ${clientIp}`);
+  
+  // 🕐 CONNECTION TIMEOUT: Auto-disconnect if not authenticated within 30 seconds
+  const authTimeout = setTimeout(() => {
+    if (!socket.data.projectId) {
+      console.log(`⏰ [TIMEOUT] Socket ${socket.id} not authenticated within 30s, disconnecting`);
+      socket.emit('error', { message: 'Authentication timeout' });
+      socket.disconnect(true);
+    }
+  }, 30000);
 
   // Обработка аутентификации проекта
   socket.on('authenticate', (data) => {
+    clearTimeout(authTimeout); // Clear the auth timeout
+    
     const { projectId, token, clientType } = data;
     
     if (!projectId) {
@@ -597,6 +755,9 @@ io.on('connection', (socket) => {
     }
 
     console.log(`🔐 [AUTH] Socket ${socket.id} authenticating for project ${projectId} as ${clientType || 'web'}`);
+
+    // 📊 ADD TO CONNECTION MONITORING
+    connectionMonitor.addConnection(projectId, socket.id);
 
     // Присоединяем к комнате проекта
     socket.join(`project:${projectId}`);
@@ -970,7 +1131,27 @@ io.on('connection', (socket) => {
 
   // Обработка отключения
   socket.on('disconnect', (reason) => {
-    console.log(`❌ Client disconnected: ${socket.id} (${reason})`);
+    const disconnectTime = new Date().toISOString();
+    console.log(`❌ Client disconnected: ${socket.id} (${reason}) at ${disconnectTime}`);
+    
+    // 🗑️ REMOVE FROM CONNECTION MONITORING
+    if (socket.data.projectId) {
+      connectionMonitor.removeConnection(socket.data.projectId, socket.id);
+    }
+    
+    // 📊 LOG DISCONNECT PATTERNS for debugging
+    const disconnectReasons = {
+      'transport close': 'Network issue or server restart',
+      'client namespace disconnect': 'Client-initiated disconnect',
+      'server namespace disconnect': 'Server-initiated disconnect',
+      'ping timeout': 'Connection became unresponsive',
+      'transport error': 'Transport-level error'
+    };
+    
+    const reasonDescription = disconnectReasons[reason as keyof typeof disconnectReasons] || 'Unknown reason';
+    if (reason === 'ping timeout' || reason === 'transport error') {
+      console.log(`⚠️ [DISCONNECT_ANALYSIS] ${socket.id}: ${reasonDescription} - potential connection quality issue`);
+    }
     
     if (socket.data.projectId) {
       // Если это был агент - убираем из списка подключенных агентов
@@ -989,19 +1170,21 @@ io.on('connection', (socket) => {
         io.to(`project:${socket.data.projectId}`).emit('agent_disconnected', {
           projectId: socket.data.projectId,
           clientId: socket.id,
-          timestamp: new Date().toISOString()
+          timestamp: disconnectTime,
+          reason: reason
         });
         
         console.log(`📡 Emitted agent_disconnected event for project ${socket.data.projectId} to project room`);
         
         // Логируем отключение агента
-        console.log(`🔌 Agent disconnected: ${socket.id} from project ${socket.data.projectId}`);
+        console.log(`🔌 Agent disconnected: ${socket.id} from project ${socket.data.projectId} (${reasonDescription})`);
       }
       
       // Уведомляем других клиентов в комнате
       socket.to(`project:${socket.data.projectId}`).emit('client_disconnected', {
         clientId: socket.id,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        reason: reason
       });
     }
   });

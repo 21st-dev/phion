@@ -21,8 +21,20 @@ export class ToolbarWebSocketClient {
   connect(): Promise<boolean> {
     return new Promise((resolve) => {
       this.socket = io(this.websocketUrl, {
-        transports: ['websocket'],
-        timeout: 5000
+        transports: ['websocket', 'polling'],
+        timeout: 30000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+        randomizationFactor: 0.5,
+        
+        upgrade: true,
+        rememberUpgrade: true,
+        
+        auth: {
+          projectId: this.projectId,
+        }
       })
 
       this.socket.on('connect', () => {
@@ -47,14 +59,22 @@ export class ToolbarWebSocketClient {
         resolve(false)
       })
 
-      this.socket.on('disconnect', () => {
-        console.log('[Vybcel Toolbar] Disconnected from WebSocket server')
-        // ✅ Create NEW state object
+      this.socket.on('disconnect', (reason: string) => {
+        console.log(`[Vybcel Toolbar] Disconnected from WebSocket server: ${reason}`)
+        
+        // 📊 ENHANCED DISCONNECT HANDLING
+        const clientInitiated = ['io client disconnect', 'client namespace disconnect'];
+        
         this.state = {
           ...this.state,
           agentConnected: false
         }
         this.emit('stateChange', this.state)
+        
+        // Log disconnect reason for debugging
+        if (!clientInitiated.includes(reason)) {
+          console.log(`[Vybcel Toolbar] Unexpected disconnect: ${reason}`)
+        }
       })
     })
   }
@@ -71,17 +91,14 @@ export class ToolbarWebSocketClient {
   private setupEventListeners() {
     if (!this.socket) return
 
-    // Track processed file changes to avoid duplicates
     const processedFiles = new Set<string>()
 
     this.socket.on('file_change_staged', (data: { file?: string; filePath?: string; action: string; timestamp?: number }) => {
       console.log('[Vybcel Toolbar] File change staged:', data)
       
-      // Create unique key for this change
       const filePath = data.filePath || data.file || 'unknown'
       const changeKey = `${filePath}:${data.timestamp || Date.now()}`
       
-      // Skip if we already processed this exact change
       if (processedFiles.has(changeKey)) {
         console.log('[Vybcel Toolbar] Skipping duplicate file change:', changeKey)
         return
@@ -89,13 +106,11 @@ export class ToolbarWebSocketClient {
       
       processedFiles.add(changeKey)
       
-      // Clean old entries (keep only last 100)
       if (processedFiles.size > 100) {
         const entries = Array.from(processedFiles)
         entries.slice(0, 50).forEach(key => processedFiles.delete(key))
       }
       
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         pendingChanges: this.state.pendingChanges + 1
@@ -104,7 +119,6 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('commit_created', (data: { commitId: string; message: string }) => {
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         pendingChanges: 0
@@ -114,7 +128,6 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('deploy_status_update', (data: { status: string; url?: string }) => {
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         deployStatus: data.status as ToolbarState['deployStatus'],
@@ -125,7 +138,6 @@ export class ToolbarWebSocketClient {
 
     this.socket.on('save_success', () => {
       console.log('[Vybcel Toolbar] Save success')
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         pendingChanges: 0
@@ -136,7 +148,6 @@ export class ToolbarWebSocketClient {
 
     this.socket.on('discard_success', () => {
       console.log('[Vybcel Toolbar] Discard success')
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         pendingChanges: 0
@@ -147,13 +158,11 @@ export class ToolbarWebSocketClient {
 
     this.socket.on('toolbar_status', (status: ToolbarState) => {
       console.log('[Vybcel Toolbar] Status update:', status)
-      // ✅ Create NEW state object
       this.state = { ...this.state, ...status }
       this.emit('stateChange', this.state)
     })
 
     this.socket.on('agent_connected', () => {
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         agentConnected: true
@@ -162,7 +171,6 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('agent_disconnected', () => {
-      // ✅ Create NEW state object
       this.state = {
         ...this.state,
         agentConnected: false
@@ -170,7 +178,6 @@ export class ToolbarWebSocketClient {
       this.emit('stateChange', this.state)
     })
 
-    // Auto-update events
     this.socket.on('toolbar_update_available', (data: { 
       version: string; 
       forceUpdate?: boolean; 
@@ -193,7 +200,6 @@ export class ToolbarWebSocketClient {
       this.emit('reloadRequested', data)
     })
 
-    // Server maintenance events
     this.socket.on('server_maintenance', (data: {
       message: string;
       estimatedDuration?: number;
@@ -202,7 +208,6 @@ export class ToolbarWebSocketClient {
       this.emit('serverMaintenance', data)
     })
 
-    // Handle preview response from server
     this.socket.on('toolbar_preview_response', (data: {
       success: boolean;
       url?: string;
@@ -220,7 +225,6 @@ export class ToolbarWebSocketClient {
     }
   }
 
-  // Toolbar actions
   saveAll() {
     if (this.socket) {
       this.socket.emit('save_all_changes')
@@ -239,7 +243,6 @@ export class ToolbarWebSocketClient {
     }
   }
 
-  // NEW: Request preview via WebSocket (better for Cursor)
   requestPreview() {
     if (this.socket) {
       console.log('[Vybcel Toolbar] Requesting preview via WebSocket...')
@@ -247,7 +250,6 @@ export class ToolbarWebSocketClient {
     }
   }
 
-  // Update-related methods
   checkForUpdates() {
     if (this.socket) {
       this.socket.emit('toolbar_check_updates')
@@ -272,7 +274,6 @@ export class ToolbarWebSocketClient {
     }
   }
 
-  // State management
   getState(): ToolbarState {
     return { ...this.state }
   }
