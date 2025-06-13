@@ -1113,6 +1113,52 @@ io.on('connection', (socket) => {
     }
   });
 
+  // НОВЫЙ HANDLER: Открытие preview через WebSocket
+  socket.on('toolbar_open_preview', async (data) => {
+    const projectId = data?.projectId || socket.data.projectId;
+    
+    if (!projectId) {
+      socket.emit('error', { message: 'Missing projectId' });
+      return;
+    }
+
+    try {
+      console.log(`🌐 [TOOLBAR] Preview open request for project ${projectId}`);
+      
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      
+      // Получаем данные проекта
+      const project = await projectQueries.getProjectById(projectId);
+      if (!project) {
+        socket.emit('error', { message: 'Project not found' });
+        return;
+      }
+
+      if (!project.netlify_url) {
+        console.log(`❌ [TOOLBAR] No preview URL for project ${projectId}`);
+        socket.emit('toolbar_preview_response', {
+          success: false,
+          error: 'No preview URL available yet'
+        });
+        return;
+      }
+
+      console.log(`✅ [TOOLBAR] Preview URL for project ${projectId}: ${project.netlify_url}`);
+      
+      // Отправляем URL обратно в toolbar для обработки
+      socket.emit('toolbar_preview_response', {
+        success: true,
+        url: project.netlify_url,
+        projectId
+      });
+
+    } catch (error) {
+      console.error(`❌ [TOOLBAR] Error getting preview URL for project ${projectId}:`, error);
+      socket.emit('error', { message: 'Failed to get preview URL' });
+    }
+  });
+
   // ========= TOOLBAR AUTO-UPDATE HANDLERS =========
   
   // Проверка обновлений toolbar

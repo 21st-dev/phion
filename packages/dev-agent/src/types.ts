@@ -1,6 +1,7 @@
 export interface VybcelConfig {
   projectId: string
   websocketUrl?: string
+  debug?: boolean
   toolbar?: {
     enabled?: boolean
     position?: 'top' | 'bottom'

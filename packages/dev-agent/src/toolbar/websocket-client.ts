@@ -201,6 +201,17 @@ export class ToolbarWebSocketClient {
     }) => {
       this.emit('serverMaintenance', data)
     })
+
+    // Handle preview response from server
+    this.socket.on('toolbar_preview_response', (data: {
+      success: boolean;
+      url?: string;
+      error?: string;
+      projectId?: string;
+    }) => {
+      console.log('[Vybcel Toolbar] Preview response:', data)
+      this.emit('previewResponse', data)
+    })
   }
 
   private requestStatus() {
@@ -225,6 +236,14 @@ export class ToolbarWebSocketClient {
   openPreview() {
     if (this.state.netlifyUrl) {
       window.open(this.state.netlifyUrl, '_blank')
+    }
+  }
+
+  // NEW: Request preview via WebSocket (better for Cursor)
+  requestPreview() {
+    if (this.socket) {
+      console.log('[Vybcel Toolbar] Requesting preview via WebSocket...')
+      this.socket.emit('toolbar_open_preview')
     }
   }
 

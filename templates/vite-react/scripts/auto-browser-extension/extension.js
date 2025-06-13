@@ -4,10 +4,10 @@ const { exec, spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
-// Только дефолтный порт Vite
+// Default Vite port only
 const DEFAULT_VITE_PORT = 5173;
 
-// Флаг для отслеживания состояния автооткрытия
+// Flag to track auto-open state
 let hasAutoOpened = false;
 let serverCheckInterval = null;
 
@@ -33,7 +33,7 @@ function updateDebugMode() {
       const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
       DEBUG_MODE = config?.debug === true;
       AUTO_START_NEW_PROJECT = config?.autoStartOnNewProject === true;
-      AUTO_OPTIMIZE_WORKSPACE = config?.autoOptimizeWorkspace !== false; // По умолчанию true
+      AUTO_OPTIMIZE_WORKSPACE = config?.autoOptimizeWorkspace !== false; // Default true
       debugLog(
         `Config loaded: debug=${DEBUG_MODE}, autoStartOnNewProject=${AUTO_START_NEW_PROJECT}, autoOptimizeWorkspace=${AUTO_OPTIMIZE_WORKSPACE}`
       );
@@ -45,7 +45,7 @@ function updateDebugMode() {
 }
 
 /**
- * Проверяет, запускался ли уже проект в этой рабочей области
+ * Check if project has been started before in this workspace
  */
 function hasProjectBeenStarted(context) {
   const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -61,7 +61,7 @@ function hasProjectBeenStarted(context) {
 }
 
 /**
- * Отмечает проект как запущенный
+ * Mark project as started
  */
 function markProjectAsStarted(context) {
   const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -78,7 +78,7 @@ function markProjectAsStarted(context) {
 }
 
 /**
- * Сброс истории запущенных проектов (для тестирования)
+ * Reset started project history (for testing)
  */
 function resetProjectHistory(context) {
   context.globalState.update("vybcelStartedProjects", []);
@@ -87,14 +87,14 @@ function resetProjectHistory(context) {
 }
 
 /**
- * Убивает процессы на указанных портах
+ * Kill processes on specified ports
  */
 function killPortProcesses(ports) {
   return Promise.all(ports.map((port) => killPortProcess(port)));
 }
 
 /**
- * Убивает процесс на конкретном порту
+ * Kill process on specific port
  */
 function killPortProcess(port) {
   return new Promise((resolve) => {
@@ -116,7 +116,7 @@ function killPortProcess(port) {
 }
 
 /**
- * Проверяет что сайт работает на порту 5173
+ * Check if website is running on port 5173
  */
 function checkWebsiteServer() {
   return new Promise((resolve) => {
@@ -147,7 +147,7 @@ function checkWebsiteServer() {
 }
 
 /**
- * Автоматически обнаруживает запуск сервера и открывает браузер
+ * Auto-detect server startup and open browser
  */
 async function autoDetectAndOpen() {
   debugLog("Checking if Vite server is up...");
@@ -159,13 +159,13 @@ async function autoDetectAndOpen() {
     hasAutoOpened = true;
     debugLog("Vite server detected. Opening preview...");
 
-    // Останавливаем проверку
+    // Stop checking
     if (serverCheckInterval) {
       clearInterval(serverCheckInterval);
       serverCheckInterval = null;
     }
 
-    // Небольшая задержка для стабилизации сервера
+    // Small delay for server stabilization
     setTimeout(async () => {
       await openPreview();
     }, 2000);
@@ -173,16 +173,16 @@ async function autoDetectAndOpen() {
 }
 
 /**
- * Запускает мониторинг сервера
+ * Start server monitoring
  */
 function startServerMonitoring() {
   debugLog("Started server monitoring loop");
   console.log("🔍 Monitoring for Vite server startup...");
 
-  // Проверяем каждые 2 секунды
+  // Check every 2 seconds
   serverCheckInterval = setInterval(autoDetectAndOpen, 2000);
 
-  // Останавливаем через 60 секунд если сервер не найден
+  // Stop after 60 seconds if server not found
   setTimeout(() => {
     if (serverCheckInterval && !hasAutoOpened) {
       clearInterval(serverCheckInterval);
@@ -194,12 +194,12 @@ function startServerMonitoring() {
 }
 
 /**
- * Запускает проект командой pnpm start
+ * Start project with pnpm start command
  */
 async function startProject(context, isAutoStart = false) {
   debugLog(`Command: startProject triggered (auto: ${isAutoStart})`);
   try {
-    // Проверяем что мы в правильной папке проекта
+    // Check if we're in the right project folder
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
       vscode.window.showErrorMessage(
@@ -208,7 +208,7 @@ async function startProject(context, isAutoStart = false) {
       return;
     }
 
-    // Сбрасываем флаг автооткрытия
+    // Reset auto-open flag
     hasAutoOpened = false;
 
     const terminal = vscode.window.createTerminal({
@@ -216,23 +216,23 @@ async function startProject(context, isAutoStart = false) {
       cwd: workspaceFolders[0].uri.fsPath,
     });
 
-    // Показываем терминал и запускаем команду
+    // Show terminal and run command
     terminal.show();
     debugLog("Opening terminal and executing 'pnpm start'");
     terminal.sendText("pnpm start");
 
-    // Отмечаем проект как запущенный
+    // Mark project as started
     if (context) {
       markProjectAsStarted(context);
     }
 
-    // Запускаем мониторинг сервера
+    // Start server monitoring
     startServerMonitoring();
 
-    // Показываем уведомление
+    // Show notification
     const message = isAutoStart
-      ? "🚀 Auto-starting your project... Browser will open automatically."
-      : "🚀 Starting your project... Browser will open automatically.";
+      ? "🚀 Auto-starting your project..."
+      : "🚀 Starting your project...";
 
     vscode.window.showInformationMessage(message);
   } catch (error) {
@@ -243,14 +243,14 @@ async function startProject(context, isAutoStart = false) {
 }
 
 /**
- * Открывает Simple Browser для предпросмотра сайта
+ * Open Simple Browser for website preview
  */
 async function openPreview() {
   const url = `http://localhost:${DEFAULT_VITE_PORT}`;
   debugLog(`Attempting to open preview at ${url}`);
 
   try {
-    // Сначала проверяем что сервер активен
+    // First check if server is active
     const isServerActive = await checkWebsiteServer();
 
     if (!isServerActive) {
@@ -260,38 +260,38 @@ async function openPreview() {
       return false;
     }
 
-    // Открываем Simple Browser
+    // Open Simple Browser
     await vscode.commands.executeCommand("simpleBrowser.show", url);
     console.log(`🌐 Opened preview: ${url}`);
 
-    // Автоматически настраиваем рабочее пространство (если включено)
+    // Auto-optimize workspace (if enabled)
     if (AUTO_OPTIMIZE_WORKSPACE) {
       setTimeout(async () => {
         try {
           debugLog("Setting up optimal workspace layout...");
 
-          // 1. Закрываем боковую панель (Explorer)
+          // 1. Close sidebar (Explorer)
           await vscode.commands.executeCommand("workbench.action.closeSidebar");
           debugLog("Closed Explorer sidebar");
 
-          // 2. Закрываем терминал
+          // 2. Close terminal
           await vscode.commands.executeCommand("workbench.action.closePanel");
           debugLog("Closed bottom panel (terminal)");
 
-          // 3. Открываем AI чат (фокус и новый сеанс)
-          await vscode.commands.executeCommand("workbench.view.chat");
-          await vscode.commands.executeCommand("workbench.action.chat.new");
-          debugLog("Opened AI chat view (new session)");
+          // 3. Open AI chat (using correct Cursor commands)
+          await vscode.commands.executeCommand("cursor.openChat");
+          await vscode.commands.executeCommand("cursor.newChat");
+          debugLog("Opened Cursor AI chat (new session)");
 
           console.log("✨ Workspace optimized for development");
         } catch (error) {
           debugLog(`Workspace setup error: ${error.message}`);
-          // Не показываем ошибку пользователю, это не критично
+          // Don't show error to user, it's not critical
         }
-      }, 1500); // Небольшая задержка для стабильности
+      }, 1500); // Small delay for stability
     }
 
-    // Показываем уведомление
+    // Show notification
     vscode.window.showInformationMessage(
       `🚀 Website preview opened: ${url}`,
       "Hide"
@@ -302,7 +302,7 @@ async function openPreview() {
     debugLog(`openPreview error: ${error.message}`);
     console.error("Failed to open preview:", error);
 
-    // Fallback: показываем уведомление с инструкцией
+    // Fallback: show notification with instruction
     const action = await vscode.window.showWarningMessage(
       `Could not open preview. Try again?`,
       "Copy URL",
@@ -321,11 +321,11 @@ async function openPreview() {
 }
 
 /**
- * Команда для очистки портов и открытия предпросмотра
+ * Command to clear ports and open preview
  */
 async function clearPortsAndOpenPreview() {
   try {
-    // Показываем прогресс
+    // Show progress
     vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -338,7 +338,7 @@ async function clearPortsAndOpenPreview() {
           message: "Clearing connection issues...",
         });
 
-        // Убиваем процессы на портах Vite
+        // Kill processes on Vite ports
         await killPortProcesses([5173, 5174, 5175, 4173]);
 
         progress.report({
@@ -346,12 +346,12 @@ async function clearPortsAndOpenPreview() {
           message: "Waiting for system to update...",
         });
 
-        // Ждем немного чтобы порты освободились
+        // Wait a bit for ports to be freed
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         progress.report({ increment: 80, message: "Opening your website..." });
 
-        // Открываем предпросмотр
+        // Open preview
         await openPreview();
 
         progress.report({ increment: 100, message: "Done!" });
@@ -365,7 +365,7 @@ async function clearPortsAndOpenPreview() {
 }
 
 /**
- * Команда для исправления проблем с подключением
+ * Command to fix connection issues
  */
 async function fixConnectionCommand() {
   try {
@@ -396,7 +396,7 @@ async function fixConnectionCommand() {
 }
 
 /**
- * Проверяет если это Vybcel проект
+ * Check if this is a Vybcel project
  */
 function isVybcelProject() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -406,7 +406,7 @@ function isVybcelProject() {
   const vybcelConfigPath = path.join(rootPath, "vybcel.config.json");
   const packageJsonPath = path.join(rootPath, "package.json");
 
-  // Проверяем наличие vybcel.config.json или vybcel в package.json
+  // Check for vybcel.config.json or vybcel in package.json
   if (fs.existsSync(vybcelConfigPath)) {
     return true;
   }
@@ -426,18 +426,18 @@ function isVybcelProject() {
 }
 
 /**
- * Активация расширения
+ * Extension activation
  */
 function activate(context) {
   updateDebugMode();
   debugLog("Extension activated (debug mode ON)");
   console.log("🚀 Vybcel extension activated");
 
-  // Проверяем если это Vybcel проект и запускаем мониторинг
+  // Check if this is a Vybcel project and start monitoring
   if (isVybcelProject()) {
     debugLog("🎯 Vybcel project detected!");
 
-    // Сначала проверяем, не запущен ли уже сервер
+    // First check if server is already running
     checkWebsiteServer().then((isServerActive) => {
       if (isServerActive && !hasAutoOpened) {
         debugLog("Existing server detected on startup - opening preview");
@@ -448,14 +448,14 @@ function activate(context) {
         return;
       }
 
-      // Проверяем, нужно ли автоматически запускать новый проект
+      // Check if we need to auto-start new project
       if (AUTO_START_NEW_PROJECT && !hasProjectBeenStarted(context)) {
         debugLog("New project detected - auto-starting...");
         vscode.window.showInformationMessage(
           "🎉 New Vybcel project detected! Auto-starting..."
         );
 
-        // Запускаем проект автоматически с небольшой задержкой
+        // Auto-start project with small delay
         setTimeout(() => {
           startProject(context, true);
         }, 2000);
@@ -463,7 +463,7 @@ function activate(context) {
         debugLog(
           "Project already started before or auto-start disabled - only monitoring"
         );
-        // Просто запускаем мониторинг сервера
+        // Just start server monitoring
         setTimeout(() => {
           startServerMonitoring();
         }, 3000);
@@ -473,7 +473,7 @@ function activate(context) {
     debugLog("Not a Vybcel project - extension inactive");
   }
 
-  // Регистрируем команды
+  // Register commands
   const startProjectCommand = vscode.commands.registerCommand(
     "vybcel.startProject",
     () => startProject(context, false)
@@ -499,6 +499,7 @@ function activate(context) {
     () => resetProjectHistory(context)
   );
 
+  // Add to subscriptions
   context.subscriptions.push(
     startProjectCommand,
     openPreviewCommand,
@@ -506,21 +507,17 @@ function activate(context) {
     fixConnectionCommand,
     resetHistoryCommand
   );
-
-  // Тихая активация - не показываем сообщение пользователю
 }
 
 /**
- * Деактивация расширения
+ * Extension deactivation
  */
 function deactivate() {
-  console.log("🛑 Vybcel extension deactivated");
-
-  // Очищаем интервал при деактивации
   if (serverCheckInterval) {
     clearInterval(serverCheckInterval);
     serverCheckInterval = null;
   }
+  console.log("👋 Vybcel extension deactivated");
 }
 
 module.exports = {

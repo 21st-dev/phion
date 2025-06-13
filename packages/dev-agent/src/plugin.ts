@@ -155,7 +155,8 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
             position: config?.toolbar?.position || 'top',
             version: PLUGIN_VERSION,
             autoUpdate: config?.toolbar?.autoUpdate !== false,
-            updateChannel: config?.toolbar?.updateChannel || 'stable'
+            updateChannel: config?.toolbar?.updateChannel || 'stable',
+            debug: config?.debug || false
           }
           
           res.writeHead(200, { 'Content-Type': 'application/javascript' })

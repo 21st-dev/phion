@@ -181,11 +181,38 @@ Your project automatically creates a live website that you can share:
 - Change text, colors, and layout
 - Add new components one at a time
 
-### 2. Use AI Help
+### 2. Use AI Help in Cursor
 
-- Cursor has built-in AI assistance
-- Ask it to help you add features
-- It can explain any code you don't understand
+**🎯 Quick Start: Press `Cmd+I` to open AI chat**
+
+For the best development experience:
+
+**💡 Planning Features:**
+
+- Open a new tab in Cursor
+- Switch to **Ask mode** with **OpenAI O3** model
+- Ask for a feature plan with todo list
+- Get detailed implementation steps
+
+**🚀 Writing Code:**
+
+- In the same chat, switch to **Agent mode** with **Claude** model
+- Start implementing the planned features
+- Let the agent write and edit code for you
+
+**Example workflow:**
+
+```
+1. New Tab → Ask + OpenAI O3: "Plan a user login system with todo list"
+2. Same Tab → Agent + Claude: "Implement the login form component"
+3. Let the agent write the code automatically
+```
+
+**Quick AI shortcuts:**
+
+- `Cmd+I` - Open AI chat
+- `Cmd+K` - Inline code suggestions
+- `Cmd+L` - Chat with your code
 
 ### 3. Save Often
 

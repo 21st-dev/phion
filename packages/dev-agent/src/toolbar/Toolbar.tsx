@@ -26,6 +26,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [projectName, setProjectName] = useState("Project");
   const [isSimpleBrowser, setIsSimpleBrowser] = useState(false);
+  const [debugMessage, setDebugMessage] = useState<string>("");
+
+  // Get version from global config
+  const version =
+    ((window as any).VYBCEL_CONFIG?.version as string) || "unknown";
+  const isDebugMode =
+    ((window as any).VYBCEL_CONFIG?.debug as boolean) || false;
 
   useEffect(() => {
     const connectToServer = async () => {
@@ -34,6 +41,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     };
 
     connectToServer();
+
+    if (isDebugMode) {
+      // Force show version on load - use dynamic version
+      showDebugMessage(`Vybcel v${version} loaded`);
+
+      // Also force show detection result immediately
+      setTimeout(() => {
+        const userAgent = navigator.userAgent;
+        const isInCursor =
+          userAgent.includes("Cursor") ||
+          userAgent.includes("vscode") ||
+          !!(window as any).acquireVsCodeApi;
+        showDebugMessage(
+          `Browser: ${isInCursor ? "Cursor detected" : "Regular browser"}`
+        );
+      }, 1000);
+
+      // Test debug messages work
+      setTimeout(() => {
+        showDebugMessage("Debug system working! Click preview to test APIs");
+      }, 2000);
+    }
 
     const handleStateChange = (newState: ToolbarState) => {
       console.log("[Vybcel Toolbar] State change:", newState);
@@ -56,16 +85,151 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     client.on("saveSuccess", handleSaveSuccess);
     client.on("discardSuccess", handleDiscardSuccess);
 
+    // Handle preview response from server
+    const handlePreviewResponse = (data: {
+      success: boolean;
+      url?: string;
+      error?: string;
+    }) => {
+      console.log("[Vybcel Toolbar] Preview response received:", data);
+
+      if (data.success && data.url) {
+        showDebugMessage("Got URL, trying to open...");
+
+        // Try multiple methods to open external URL in Cursor
+        let opened = false;
+
+        try {
+          if (isSimpleBrowser) {
+            // Method 1: Try VS Code command palette approach
+            if ((window as any).acquireVsCodeApi) {
+              const vscode = (window as any).acquireVsCodeApi();
+
+              // Try different VS Code commands
+              const commands = [
+                { command: "vscode.open", text: data.url },
+                { command: "vscode.env.openExternal", arguments: [data.url] },
+                { command: "simpleBrowser.show", arguments: [data.url] },
+                {
+                  command: "vscode.openWith",
+                  arguments: [data.url, "vscode.open"],
+                },
+              ];
+
+              for (const cmd of commands) {
+                try {
+                  console.log(`[Vybcel Toolbar] Trying command:`, cmd);
+                  vscode.postMessage(cmd);
+                  showDebugMessage(`Tried: ${cmd.command}`);
+                  opened = true;
+                  break;
+                } catch (e) {
+                  console.log(
+                    `[Vybcel Toolbar] Command failed:`,
+                    cmd.command,
+                    e
+                  );
+                }
+              }
+            }
+
+            // Method 2: Try window.open with different targets
+            if (!opened) {
+              const targets = ["_blank", "_top", "_parent", ""];
+              for (const target of targets) {
+                try {
+                  const result = window.open(data.url, target);
+                  if (result) {
+                    showDebugMessage(
+                      `Opened with target: ${target || "default"}`
+                    );
+                    opened = true;
+                    break;
+                  }
+                } catch (e) {
+                  console.log(`[Vybcel Toolbar] Target failed:`, target, e);
+                }
+              }
+            }
+
+            // Method 3: Copy to clipboard as fallback
+            if (!opened) {
+              navigator.clipboard
+                .writeText(data.url)
+                .then(() => {
+                  showDebugMessage("URL copied to clipboard! Paste to open.");
+                })
+                .catch(() => {
+                  showDebugMessage(
+                    "Manual: " + data.url!.substring(0, 30) + "..."
+                  );
+                });
+            }
+          } else {
+            // Regular browser - simple approach
+            window.open(data.url, "_blank");
+            showDebugMessage("Opened in new tab");
+            opened = true;
+          }
+        } catch (error) {
+          console.error("[Vybcel Toolbar] All methods failed:", error);
+          showDebugMessage(`All methods failed. Manual: ${data.url}`);
+        }
+
+        if (!opened) {
+          showDebugMessage("Could not auto-open. Check logs for URL.");
+        }
+      } else {
+        showDebugMessage(data.error || "Preview not available");
+      }
+    };
+
+    client.on("previewResponse", handlePreviewResponse);
+
     // Detect Simple Browser in Cursor
     const detectSimpleBrowser = () => {
       const userAgent = navigator.userAgent;
+      console.log("[Vybcel Toolbar] User Agent:", userAgent);
+      console.log("[Vybcel Toolbar] Window location:", window.location.href);
+
+      const apis = {
+        acquireVsCodeApi: !!(window as any).acquireVsCodeApi,
+        vscode: !!(window as any).vscode,
+        cursor: !!(window as any).cursor,
+      };
+      console.log("[Vybcel Toolbar] Available APIs:", apis);
+
       const isInCursor =
         userAgent.includes("Cursor") ||
         userAgent.includes("vscode") ||
+        userAgent.includes("VSCode") ||
         window.location.href.includes("vscode-webview") ||
+        window.location.href.includes("vscode-webview-resource") ||
+        (window.location.href.includes("localhost") &&
+          (userAgent.includes("Electron") || userAgent.includes("Chrome"))) ||
         !!(window as any).acquireVsCodeApi ||
+        !!(window as any).vscode ||
         !!(window as any).cursor;
+
+      console.log(
+        "[Vybcel Toolbar] Simple Browser detection result:",
+        isInCursor
+      );
       setIsSimpleBrowser(isInCursor);
+
+      // Show visual feedback (only in debug mode)
+      if (isDebugMode) {
+        if (isInCursor) {
+          const availableApis = Object.entries(apis)
+            .filter(([_, available]) => available)
+            .map(([name]) => name);
+          showDebugMessage(
+            `Cursor detected! APIs: ${availableApis.join(", ") || "none"}`
+          );
+        } else {
+          showDebugMessage("Regular browser detected");
+        }
+      }
     };
 
     detectSimpleBrowser();
@@ -113,6 +277,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       client.off("stateChange", handleStateChange);
       client.off("saveSuccess", handleSaveSuccess);
       client.off("discardSuccess", handleDiscardSuccess);
+      client.off("previewResponse", handlePreviewResponse);
       document.removeEventListener("keydown", handleKeyDown);
       client.disconnect();
     };
@@ -173,31 +338,75 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   const handlePreview = () => {
-    if (state.netlifyUrl) {
-      if (isSimpleBrowser) {
-        // В Simple Browser пытаемся открыть во внешнем браузере
-        try {
-          // Попытка через VS Code API (если доступно)
-          const vscode = (window as any).acquireVsCodeApi?.();
-          if (vscode) {
-            vscode.postMessage({
-              command: "openExternal",
-              url: state.netlifyUrl,
-            });
-            return;
-          }
+    console.log(
+      "[Vybcel Toolbar] handlePreview called - using local HTTP server approach"
+    );
+    showDebugMessage("Requesting preview via local server...");
 
-          // Fallback: обычное открытие в новом окне
-          window.open(state.netlifyUrl, "_blank");
-        } catch (e) {
-          // Fallback на случай ошибки
-          window.open(state.netlifyUrl, "_blank");
+    // Try local HTTP server first (ports 3333 or 3334)
+    const tryOpenWithLocalServer = async (port: number) => {
+      try {
+        const response = await fetch(`http://localhost:${port}/open-url`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url: state.netlifyUrl }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            showDebugMessage("✅ Opened via local server!");
+            return true;
+          } else {
+            showDebugMessage("❌ Local server failed: " + result.message);
+            return false;
+          }
         }
-      } else {
-        // Обычное открытие в новом окне
-        window.open(state.netlifyUrl, "_blank");
+        return false;
+      } catch (error) {
+        showDebugMessage(
+          `❌ Port ${port} failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+        return false;
       }
-    }
+    };
+
+    // Try both possible ports
+    const openPreview = async () => {
+      if (!state.netlifyUrl) {
+        showDebugMessage("❌ No preview URL available");
+        return;
+      }
+
+      showDebugMessage("🔍 Trying local server port 3333...");
+      const port3333Success = await tryOpenWithLocalServer(3333);
+
+      if (!port3333Success) {
+        showDebugMessage("🔍 Trying local server port 3334...");
+        const port3334Success = await tryOpenWithLocalServer(3334);
+
+        if (!port3334Success) {
+          showDebugMessage("❌ Local server not available");
+          // Fallback to WebSocket approach
+          console.log("[Vybcel Toolbar] Falling back to WebSocket approach");
+          client.requestPreview();
+        }
+      }
+    };
+
+    openPreview();
+  };
+
+  // Show debug message in UI
+  const showDebugMessage = (message: string) => {
+    if (!isDebugMode) return; // Only show debug messages when debug mode is enabled
+
+    setDebugMessage(message);
+    setTimeout(() => setDebugMessage(""), 3000); // Clear after 3 seconds
   };
 
   if (!isConnected) {
@@ -228,6 +437,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         fontSize: "14px",
         flexShrink: 0,
+        position: "relative",
       }}
     >
       {/* Left side - Project name and status */}
@@ -241,7 +451,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             fontWeight: "500",
           }}
         >
-          {projectName}
+          {projectName}{" "}
+          <span style={{ fontSize: "10px", opacity: 0.7 }}>
+            v{version}
+            {isDebugMode && debugMessage && (
+              <span
+                style={{
+                  color: "#ff6b35",
+                  fontWeight: "bold",
+                  marginLeft: "8px",
+                  padding: "2px 4px",
+                  backgroundColor: "rgba(255, 107, 53, 0.1)",
+                  borderRadius: "3px",
+                }}
+              >
+                🔍 {debugMessage}
+              </span>
+            )}
+          </span>
         </div>
 
         {state.pendingChanges > 0 && (
