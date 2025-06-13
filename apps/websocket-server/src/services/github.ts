@@ -187,47 +187,54 @@ export class GitHubAppService {
    * Токен кэшируется и автоматически обновляется при истечении
    */
   async getInstallationToken(): Promise<string> {
-    // Проверяем кэш
-    if (this.tokenCache && this.tokenCache.expiresAt > new Date(Date.now() + 5 * 60 * 1000)) {
+    // Проверяем кэш (оставляем больше буфера - 10 минут до истечения)
+    if (this.tokenCache && this.tokenCache.expiresAt > new Date(Date.now() + 10 * 60 * 1000)) {
       console.log('🔄 Using cached installation token');
       return this.tokenCache.token;
     }
 
-    try {
-      const jwtToken = this.generateJWT();
-      
-      const response = await fetch(`${this.baseUrl}/app/installations/${this.installationId}/access_tokens`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${jwtToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Vybcel-Bot/1.0',
-        },
-      });
+    return this.withRetry(
+      async () => {
+        console.log('🔑 Generating new installation token...');
+        const jwtToken = this.generateJWT();
+        
+        const response = await fetch(`${this.baseUrl}/app/installations/${this.installationId}/access_tokens`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${jwtToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Vybcel-Bot/1.0',
+          },
+          // Add timeout for token generation
+          signal: AbortSignal.timeout(15000) // 15 second timeout
+        });
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to get installation token: ${response.status} ${error}`);
-      }
+        if (!response.ok) {
+          const error = await response.text();
+          const errorObj = new Error(`Failed to get installation token: ${response.status} ${error}`) as any;
+          errorObj.status = response.status;
+          throw errorObj;
+        }
 
-      const data = await response.json() as GitHubInstallationToken;
-      
-      // Кэшируем токен (он действует 60 минут, кэшируем на 55 минут)
-      this.tokenCache = {
-        token: data.token,
-        expiresAt: new Date(Date.now() + 55 * 60 * 1000)
-      };
+        const data = await response.json() as GitHubInstallationToken;
+        
+        // Кэшируем токен (он действует 60 минут, кэшируем на 50 минут для безопасности)
+        this.tokenCache = {
+          token: data.token,
+          expiresAt: new Date(Date.now() + 50 * 60 * 1000)
+        };
 
-      console.log('🔑 Generated new installation token', {
-        expiresAt: data.expires_at,
-        permissions: Object.keys(data.permissions)
-      });
+        console.log('✅ Generated new installation token', {
+          expiresAt: data.expires_at,
+          permissions: Object.keys(data.permissions || {}).length
+        });
 
-      return data.token;
-    } catch (error) {
-      console.error('❌ Failed to generate installation token', error);
-      throw error;
-    }
+        return data.token;
+      },
+      'getInstallationToken',
+      5, // Increased attempts for critical token generation
+      3000 // Longer initial delay
+    );
   }
 
   /**
@@ -259,38 +266,42 @@ export class GitHubAppService {
   async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
     const repoName = `vybcel-project-${projectId}`;
     
-    try {
-      const requestBody: CreateRepositoryRequest = {
-        name: repoName,
-        description: description || `Vybcel project ${projectId}`,
-        private: true,
-        auto_init: true, // GitHub автоматически создаст README и initial commit
-      };
+    return this.withRetry(
+      async () => {
+        const requestBody: CreateRepositoryRequest = {
+          name: repoName,
+          description: description || `Vybcel project ${projectId}`,
+          private: true,
+          auto_init: true, // GitHub автоматически создаст README и initial commit
+        };
 
-      const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}/repos`, {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
+        const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}/repos`, {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        });
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to create repository: ${response.status} ${error}`);
-      }
+        if (!response.ok) {
+          const error = await response.text();
+          const errorObj = new Error(`Failed to create repository: ${response.status} ${error}`) as any;
+          errorObj.status = response.status;
+          throw errorObj;
+        }
 
-      const repository = await response.json() as GitHubRepository;
-      
-      console.log('🎉 Created GitHub repository', {
-        projectId,
-        repoName: repository.name,
-        repoUrl: repository.html_url,
-        isPrivate: repository.private
-      });
+        const repository = await response.json() as GitHubRepository;
+        
+        console.log('🎉 Created GitHub repository', {
+          projectId,
+          repoName: repository.name,
+          repoUrl: repository.html_url,
+          isPrivate: repository.private
+        });
 
-      return repository;
-    } catch (error) {
-      console.error('❌ Failed to create GitHub repository', { projectId, error });
-      throw error;
-    }
+        return repository;
+      },
+      `createRepository(${projectId})`,
+      5, // Increased max attempts for critical operation
+      2000 // Longer initial delay
+    );
   }
 
   /**

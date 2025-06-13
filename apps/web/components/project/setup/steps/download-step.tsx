@@ -24,6 +24,7 @@ export function DownloadStep({
   const [isInitializing, setIsInitializing] = useState(
     project.deploy_status === "pending"
   );
+  const [downloadError, setDownloadError] = useState(false);
   const [initializationProgress, setInitializationProgress] = useState({
     progress: 0,
     stage: "",
@@ -95,75 +96,81 @@ export function DownloadStep({
     checkInitialStatus();
   }, [project.id]);
 
-  const tryAlternativeDownloads = (projectId: string, projectName: string) => {
-    console.log("🔄 [DownloadStep] Trying alternative download methods...");
-
-    // Способ 1: Создание невидимого iframe
-    try {
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = `/api/projects/${projectId}/download`;
-      document.body.appendChild(iframe);
-
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 3000);
-
-      console.log("✅ [DownloadStep] Iframe method triggered");
-    } catch (iframeError) {
-      console.warn("⚠️ [DownloadStep] Iframe method failed:", iframeError);
-    }
-
-    // Способ 2: Показываем пользователю уведомление через 1.5 секунды
-    setTimeout(() => {
-      const userWantsManual = confirm(
-        "🚨 Download Issue Detected\n\n" +
-          "The automatic download appears to be blocked by your browser.\n\n" +
-          "💡 Solutions:\n" +
-          "• Click OK to try direct download\n" +
-          "• Use the 'Direct Link' button on the page\n" +
-          "• Check if popup blocker is enabled\n\n" +
-          "Would you like to try downloading now?"
-      );
-
-      if (userWantsManual) {
-        // Попробуем несколько методов
-        try {
-          window.open(`/api/projects/${projectId}/download`, "_blank");
-        } catch (error) {
-          // Если window.open не работает, используем location
-          window.location.href = `/api/projects/${projectId}/download`;
-        }
-      }
-    }, 1500);
-  };
-
   const handleDownload = () => {
     if (isInitializing || isDownloading) return;
 
     setIsDownloading(true);
+    setDownloadError(false); // Reset any previous errors
 
     const url = `/api/projects/${project.id}/download`;
-    console.log(`🔽 [DownloadStep] Opening download URL: ${url}`);
+    console.log(`🔽 [DownloadStep] Starting download from: ${url}`);
 
-    // Open in a new tab to trigger browser-native download
-    const newTab = window.open(url, "_blank", "noopener,noreferrer");
+    // Use proper fetch + blob approach for reliable downloads
+    const downloadFile = async () => {
+      try {
+        const response = await fetch(url);
 
-    // Fallback: navigate current tab if popup blocked
-    if (!newTab) {
-      console.log("🔄 [DownloadStep] Popup blocked, trying same tab...");
-      window.location.href = url;
-    }
+        if (!response.ok) {
+          throw new Error(
+            `Download failed: ${response.status} ${response.statusText}`
+          );
+        }
 
-    // Reset downloading state after a short delay since we can't detect download completion
-    setTimeout(() => {
+        // Get the blob from response
+        const blob = await response.blob();
+
+        // Create download URL and trigger download
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = downloadUrl;
+
+        // Extract filename from Content-Disposition header or use default
+        const contentDisposition = response.headers.get("Content-Disposition");
+        let filename = `${project.name || "project"}-${project.id}.zip`;
+
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        downloadLink.download = filename;
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+
+        // Trigger download
+        downloadLink.click();
+
+        // Cleanup
+        setTimeout(() => {
+          window.URL.revokeObjectURL(downloadUrl);
+          document.body.removeChild(downloadLink);
+        }, 100);
+
+        console.log(
+          `✅ [DownloadStep] Download triggered successfully: ${filename}`
+        );
+        onDownload();
+      } catch (error) {
+        console.error("❌ [DownloadStep] Download error:", error);
+        setDownloadError(true);
+        throw error;
+      } finally {
+        // Reset downloading state after a short delay
+        setTimeout(() => {
+          setIsDownloading(false);
+          console.log("✅ [DownloadStep] Download state reset");
+        }, 2000);
+      }
+    };
+
+    // Execute the download
+    downloadFile().catch((error) => {
+      console.error("❌ [DownloadStep] Download failed:", error);
+      setDownloadError(true);
       setIsDownloading(false);
-      console.log("✅ [DownloadStep] Download state reset");
-    }, 2000);
-
-    onDownload();
+    });
   };
 
   const getDownloadButtonText = () => {
@@ -221,7 +228,7 @@ export function DownloadStep({
           </Button>
 
           <div className="flex-1">
-            {isCompleted && !isInitializing && (
+            {isCompleted && !isInitializing && !downloadError && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <svg
                   width="16"
@@ -237,7 +244,25 @@ export function DownloadStep({
               </div>
             )}
 
-            {!isInitializing && !isCompleted && (
+            {downloadError && (
+              <div className="flex items-center gap-2 text-sm text-red-600">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Download failed. Please try again or check browser settings.
+              </div>
+            )}
+
+            {!isInitializing && !isCompleted && !downloadError && (
               <div className="text-sm text-muted-foreground">
                 Download your project files to get started with local
                 development.

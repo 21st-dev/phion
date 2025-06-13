@@ -16,7 +16,7 @@ const getPluginVersion = (): string => {
     return packageJson.version
   } catch (error) {
     console.warn('[Vybcel] Could not read version from package.json, using fallback')
-    return '1.1.11' // Fallback version
+    return '1.1.15' // Fallback version
   }
 }
 
@@ -64,7 +64,7 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
   let lastUpdateCheck = 0
   
   // Cache toolbar updates for 10 minutes
-  const UPDATE_CACHE_DURATION = 10 * 60 * 1000
+  const UPDATE_CACHE_DURATION = 0; // ✅ Disabled to force latest version
 
   // Check for toolbar updates
   async function checkForUpdates(): Promise<UpdateCheckResponse | null> {

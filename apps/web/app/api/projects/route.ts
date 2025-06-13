@@ -209,52 +209,76 @@ async function initializeProjectInBackground(
     
     const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:8080';
     
-    // 1. Создаем GitHub репозиторий
+    // 1. Создаем GitHub репозиторий с retry логикой
     console.log(`🔄 [PROJECT_INIT_BG] Creating GitHub repository...`);
-    const repoResponse = await fetch(`${websocketServerUrl}/api/projects/create-repository`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        projectId,
-        projectName
-      })
-    });
+    const repoResponse = await retryWithBackoff(
+      async () => {
+        const response = await fetch(`${websocketServerUrl}/api/projects/create-repository`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            projectId,
+            projectName
+          }),
+          // Add timeout
+          signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
 
-    if (!repoResponse.ok) {
-      const errorText = await repoResponse.text();
-      console.error(`❌ [PROJECT_INIT_BG] GitHub repository creation failed:`, errorText);
-      throw new Error(`Repository creation failed: ${errorText}`);
-    }
+        if (!response.ok) {
+          const errorText = await response.text();
+          const error = new Error(`Repository creation failed: ${errorText}`) as any;
+          error.status = response.status;
+          throw error;
+        }
+
+        return response;
+      },
+      `GitHub repository creation for ${projectId}`,
+      5, // max attempts
+      2000 // base delay
+    );
 
     const repoData = await repoResponse.json();
     const repository = repoData.repository;
     
     console.log(`✅ [PROJECT_INIT_BG] GitHub repository created: ${repository.html_url}`);
 
-    // 2. Инициализируем шаблон
+    // 2. Инициализируем шаблон с retry логикой
     console.log(`🔄 [PROJECT_INIT_BG] Starting template upload...`);
-    const initResponse = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        projectId,
-        templateType,
-        projectName,
-        repositoryName: repository.name
-      })
-    });
+    const initResponse = await retryWithBackoff(
+      async () => {
+        const response = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            projectId,
+            templateType,
+            projectName,
+            repositoryName: repository.name
+          }),
+          // Add timeout
+          signal: AbortSignal.timeout(60000) // 60 second timeout for template upload
+        });
 
-    if (initResponse.ok) {
-      console.log(`✅ [PROJECT_INIT_BG] Template upload initiated for ${projectId}`);
-    } else {
-      const errorText = await initResponse.text();
-      console.error(`❌ [PROJECT_INIT_BG] Template upload failed:`, errorText);
-      throw new Error(`Template upload failed: ${errorText}`);
-    }
+        if (!response.ok) {
+          const errorText = await response.text();
+          const error = new Error(`Template upload failed: ${errorText}`) as any;
+          error.status = response.status;
+          throw error;
+        }
+
+        return response;
+      },
+      `Template upload for ${projectId}`,
+      3, // max attempts
+      5000 // base delay
+    );
+
+    console.log(`✅ [PROJECT_INIT_BG] Template upload initiated for ${projectId}`);
 
   } catch (error) {
     console.error(`❌ [PROJECT_INIT_BG] Background initialization failed for ${projectId}:`, error);
@@ -274,6 +298,75 @@ async function initializeProjectInBackground(
     // Rethrow для логирования в catch блоке выше
     throw error;
   }
+}
+
+/**
+ * Retry helper with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  context: string,
+  maxAttempts = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await operation();
+      if (attempt > 1) {
+        console.log(`✅ [RETRY] ${context} succeeded on attempt ${attempt}`);
+      }
+      return result;
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt === maxAttempts) {
+        console.error(`❌ [RETRY] ${context} failed after ${maxAttempts} attempts:`, lastError.message);
+        break;
+      }
+
+      // Check if error is retryable
+      const isRetryable = shouldRetryError(error);
+      if (!isRetryable) {
+        console.error(`❌ [RETRY] ${context} failed with non-retryable error:`, lastError.message);
+        break;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      console.log(`⚠️ [RETRY] ${context} attempt ${attempt} failed, retrying in ${Math.round(delay)}ms:`, lastError.message);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError!;
+}
+
+/**
+ * Determines if an error should trigger a retry
+ */
+function shouldRetryError(error: any): boolean {
+  // Retry on server errors (5xx)
+  if (error?.status >= 500) return true;
+  
+  // Retry on rate limiting
+  if (error?.status === 429) return true;
+  
+  // Don't retry on client errors (4xx except 429)
+  if (error?.status >= 400 && error?.status < 500) return false;
+
+  // Retry on network/timeout errors
+  if (error?.code === 'ENOTFOUND' || 
+      error?.code === 'ECONNRESET' || 
+      error?.code === 'ETIMEDOUT' ||
+      error?.name === 'AbortError' ||
+      error?.message?.includes('fetch failed') ||
+      error?.message?.includes('network') ||
+      error?.message?.includes('timeout')) {
+    return true;
+  }
+
+  return false;
 }
 
 // ✅ Функции generateTemplateFiles, collectTemplateFiles и uploadTemplateFilesInBackground
