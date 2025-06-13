@@ -1,7 +1,10 @@
 import { getSupabaseServerClient } from "./client";
-import { ProjectQueries } from "./queries/projects";
-import { FileHistoryQueries } from "./queries/file-history";
-import { CommitHistoryQueries } from "./queries/commit-history";
+import { 
+  ProjectQueries, 
+  FileHistoryQueries, 
+  CommitHistoryQueries,
+  PendingChangesQueries 
+} from "./queries";
 import { CreateProject, UpdateProject, CreateFileHistory } from "@shipvibes/shared";
 import { ProjectRow, FileHistoryRow, CommitHistoryRow } from "./types";
 
@@ -63,7 +66,6 @@ export const getLatestFileVersions = (projectId: string): Promise<FileHistoryRow
 export { ProjectQueries, FileHistoryQueries } from "./queries";
 
 // Import and initialize PendingChangesQueries
-import { PendingChangesQueries } from "./queries/pending-changes";
 const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient());
 
 // Export pending changes functions

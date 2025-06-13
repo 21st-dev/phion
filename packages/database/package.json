@@ -4,27 +4,28 @@
   "private": true,
   "description": "Supabase интеграция для Shipvibes",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./client": {
-      "types": "./dist/client.d.ts",
-      "import": "./dist/client.js",
-      "require": "./dist/client.js"
+      "import": "./dist/client.mjs",
+      "require": "./dist/client.js",
+      "types": "./dist/client.d.ts"
     },
     "./queries": {
-      "types": "./dist/queries/index.d.ts",
-      "import": "./dist/queries/index.js",
-      "require": "./dist/queries/index.js"
+      "import": "./dist/queries.mjs",
+      "require": "./dist/queries.js",
+      "types": "./dist/queries.d.ts"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
+    "tsup": "^8.0.1",
     "typescript": "^5.2.2"
   }
 }

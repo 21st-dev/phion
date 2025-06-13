@@ -4,29 +4,34 @@
   "private": true,
   "description": "Общие типы и утилиты для Shipvibes",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./types": {
-      "types": "./dist/types/index.d.ts",
-      "default": "./dist/types/index.js"
+      "import": "./dist/types.mjs",
+      "require": "./dist/types.js",
+      "types": "./dist/types.d.ts"
     },
     "./utils": {
-      "types": "./dist/utils/index.d.ts",
-      "default": "./dist/utils/index.js"
+      "import": "./dist/utils.mjs",
+      "require": "./dist/utils.js",
+      "types": "./dist/utils.d.ts"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
+    "tsup": "^8.0.1",
     "typescript": "^5.2.2"
   },
   "dependencies": {

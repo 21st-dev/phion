@@ -309,6 +309,9 @@ importers:
       '@types/node':
         specifier: ^20.8.0
         version: 20.8.0
+      tsup:
+        specifier: ^8.0.1
+        version: 8.0.1(typescript@5.2.2)
       typescript:
         specifier: ^5.2.2
         version: 5.2.2
@@ -362,6 +365,9 @@ importers:
       '@types/node':
         specifier: ^20.8.0
         version: 20.8.0
+      tsup:
+        specifier: ^8.0.1
+        version: 8.0.1(typescript@5.2.2)
       typescript:
         specifier: ^5.2.2
         version: 5.2.2
@@ -378,43 +384,6 @@ importers:
       typescript:
         specifier: ^5.3.0
         version: 5.3.2
-
-  packages/vite-plugin-vybcel:
-    dependencies:
-      motion:
-        specifier: ^12.17.0
-        version: 12.17.0(react-dom@18.2.0)(react@18.2.0)
-      react:
-        specifier: ^18.2.0
-        version: 18.2.0
-      react-dom:
-        specifier: ^18.2.0
-        version: 18.2.0(react@18.2.0)
-      socket.io-client:
-        specifier: ^4.7.5
-        version: 4.8.1
-    devDependencies:
-      '@types/node':
-        specifier: ^20.10.0
-        version: 20.11.24
-      '@types/react':
-        specifier: ^18.2.0
-        version: 18.2.0
-      '@types/react-dom':
-        specifier: ^18.2.0
-        version: 18.2.0
-      rollup:
-        specifier: ^4.9.0
-        version: 4.9.0
-      tsup:
-        specifier: ^8.0.1
-        version: 8.0.1(typescript@5.3.2)
-      typescript:
-        specifier: ^5.3.0
-        version: 5.3.2
-      vite:
-        specifier: ^5.0.0
-        version: 5.0.0(@types/node@20.11.24)
 
 packages:
 
@@ -4264,12 +4233,6 @@ packages:
     resolution: {integrity: sha512-49897Y0UiCGmxZqpC8Blrf6meL8QUla6eb+BBhn69dTXlmuOlzkfr7HHY/O8J25e1lTUMs+YYxSlVDAaGHCOLg==}
     dependencies:
       '@types/react': 18.2.0
-
-  /@types/react-dom@18.2.0:
-    resolution: {integrity: sha512-8yQrvS6sMpSwIovhPOwfyNf2Wz6v/B62LFSVYQ85+Rq3tLsBIG7rP5geMxaijTUxSkrO6RzN/IRuIAADYQsleA==}
-    dependencies:
-      '@types/react': 18.2.43
-    dev: true
 
   /@types/react-dom@18.2.17:
     resolution: {integrity: sha512-rvrT/M7Df5eykWFxn6MYt5Pem/Dbyc1N8Y0S9Mrkw2WFCRiqUgw9P7ul2NpwsXCSM1DVdENzdG9J5SreqfAIWg==}
@@ -8876,6 +8839,45 @@ packages:
 
   /tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
+  /tsup@8.0.1(typescript@5.2.2):
+    resolution: {integrity: sha512-hvW7gUSG96j53ZTSlT4j/KL0q1Q2l6TqGBFc6/mu/L46IoNWqLLUzLRLP1R8Q7xrJTmkDxxDoojV5uCVs1sVOg==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@microsoft/api-extractor': ^7.36.0
+      '@swc/core': ^1
+      postcss: ^8.4.12
+      typescript: '>=4.5.0'
+    peerDependenciesMeta:
+      '@microsoft/api-extractor':
+        optional: true
+      '@swc/core':
+        optional: true
+      postcss:
+        optional: true
+      typescript:
+        optional: true
+    dependencies:
+      bundle-require: 4.2.1(esbuild@0.19.12)
+      cac: 6.7.14
+      chokidar: 3.6.0
+      debug: 4.4.1
+      esbuild: 0.19.12
+      execa: 5.1.1
+      globby: 11.1.0
+      joycon: 3.1.1
+      postcss-load-config: 4.0.2(postcss@8.5.4)
+      resolve-from: 5.0.0
+      rollup: 4.9.0
+      source-map: 0.8.0-beta.0
+      sucrase: 3.35.0
+      tree-kill: 1.2.2
+      typescript: 5.2.2
+    transitivePeerDependencies:
+      - supports-color
+      - ts-node
+    dev: true
 
   /tsup@8.0.1(typescript@5.3.2):
     resolution: {integrity: sha512-hvW7gUSG96j53ZTSlT4j/KL0q1Q2l6TqGBFc6/mu/L46IoNWqLLUzLRLP1R8Q7xrJTmkDxxDoojV5uCVs1sVOg==}
