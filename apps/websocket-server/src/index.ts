@@ -746,7 +746,7 @@ io.on('connection', (socket) => {
   socket.on('authenticate', (data) => {
     clearTimeout(authTimeout); // Clear the auth timeout
     
-    const { projectId, token, clientType } = data;
+    const { projectId, token, clientType, connectionId } = data;
     
     if (!projectId) {
       console.log(`❌ [AUTH] Missing projectId from socket ${socket.id}`);
@@ -754,7 +754,18 @@ io.on('connection', (socket) => {
       return;
     }
 
-    console.log(`🔐 [AUTH] Socket ${socket.id} authenticating for project ${projectId} as ${clientType || 'web'}`);
+    console.log(`🔐 [AUTH] Socket ${socket.id} authenticating for project ${projectId} as ${clientType || 'web'} (connectionId: ${connectionId})`);
+
+    // 🚫 CHECK FOR DUPLICATE CONNECTIONS from same client
+    const existingConnections = connectionMonitor.activeConnections.get(projectId);
+    if (existingConnections && existingConnections.size >= 3) {
+      console.log(`⚠️ [AUTH] High connection count (${existingConnections.size}) for project ${projectId}, checking for duplicates`);
+      // Log existing connection IDs for debugging
+      const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`);
+      if (roomClients) {
+        console.log(`📊 [AUTH] Existing connections: ${Array.from(roomClients).join(', ')}`);
+      }
+    }
 
     // 📊 ADD TO CONNECTION MONITORING
     connectionMonitor.addConnection(projectId, socket.id);

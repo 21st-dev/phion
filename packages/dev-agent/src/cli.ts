@@ -50,23 +50,22 @@ function loadConfig(): AgentConfig {
   }
 
 // Проверка версии с оповещением об обновлениях
-async function checkForUpdates(wsUrl: string): Promise<void> {
+async function checkForUpdates(wsUrl: string, debug: boolean = false): Promise<void> {
   try {
     const currentVersion = getCurrentVersion();
     console.log(`📦 Vybcel v${currentVersion}`);
     
-    // Проверяем обновления
-    try {
-      const versionInfo = await checkVersionUpdates(wsUrl);
-      
-      if (versionInfo.hasUpdate && versionInfo.latest) {
-        console.log(`🆕 New version ${versionInfo.latest} available!`);
-        console.log("📥 Run 'pnpm update vybcel' to update");
-        console.log("");
-      }
-    } catch (updateCheckError) {
-      // Не показываем ошибки проверки обновлений пользователю
-      if (process.env.DEBUG) {
+    // Проверяем обновления только если debug режим или явно запрошено
+    if (debug) {
+      try {
+        const versionInfo = await checkVersionUpdates(wsUrl);
+        
+        if (versionInfo.hasUpdate && versionInfo.latest) {
+          console.log(`🆕 New version ${versionInfo.latest} available!`);
+          console.log("📥 Run 'pnpm update vybcel' to update");
+          console.log("");
+        }
+      } catch (updateCheckError) {
         console.debug("Update check failed:", updateCheckError);
       }
     }
@@ -78,7 +77,7 @@ async function checkForUpdates(wsUrl: string): Promise<void> {
 async function main() {
   try {
     const config = loadConfig();
-    await checkForUpdates(config.wsUrl);
+    await checkForUpdates(config.wsUrl, config.debug);
     const agent = new VybcelAgent(config);
 
     // Graceful shutdown

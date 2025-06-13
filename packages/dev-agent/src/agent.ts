@@ -369,7 +369,9 @@ export class VybcelAgent {
 
     // Добавляем логирование всех входящих событий для отладки
     this.socket.onAny((eventName, ...args) => {
-      console.log(`📡 [Agent] Received event: ${eventName}`, args.length > 0 ? args[0] : '');
+      if (this.config.debug) {
+        console.log(`📡 [Agent] Received event: ${eventName}`, args.length > 0 ? args[0] : '');
+      }
     });
 
     this.socket.on("file_saved", (data: FileSavedData) => {
@@ -397,8 +399,10 @@ export class VybcelAgent {
     });
 
     this.socket.on("update_local_files", async (data: UpdateFilesData) => {
-      console.log("📄 [AGENT] Received update_local_files command from server");
-      console.log("📄 Updating local files...");
+      if (this.config.debug) {
+        console.log("📄 [AGENT] Received update_local_files command from server");
+        console.log("📄 Updating local files...");
+      }
       await this.updateLocalFiles(data.files);
     });
 

@@ -16,7 +16,7 @@ const getPluginVersion = (): string => {
     return packageJson.version
   } catch (error) {
     console.warn('[Vybcel] Could not read version from package.json, using fallback')
-    return '1.1.15' // Fallback version
+    return '1.1.27' // Fallback version
   }
 }
 
@@ -41,7 +41,6 @@ const findToolbarBundle = () => {
   
   for (const location of locations) {
     if (existsSync(location)) {
-      console.log(`[Vybcel] Found toolbar bundle at: ${location}`)
       return location
     }
   }
@@ -89,7 +88,9 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
         return await response.json()
       }
     } catch (error) {
-      console.warn('[vybcel-plugin] Update check failed:', error)
+      if (config?.debug) {
+        console.warn('[vybcel-plugin] Update check failed:', error)
+      }
     }
 
     return null
@@ -158,11 +159,6 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
       // Serve the toolbar configuration
       server.middlewares.use('/vybcel/config.js', (req, res, next) => {
         try {
-          console.log(`[Vybcel] Creating toolbar config...`)
-          console.log(`[Vybcel] Config object:`, config)
-          console.log(`[Vybcel] config?.wsUrl:`, config?.wsUrl)
-          console.log(`[Vybcel] websocketUrl fallback:`, websocketUrl)
-          
           // Simply use the existing config 
           // (config was already read in configResolved hook)
           const toolbarConfig = {
@@ -175,8 +171,11 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
             debug: config?.debug || false
           }
           
-          console.log(`[Vybcel] Final toolbar config:`, toolbarConfig)
-          console.log(`[Vybcel] Toolbar config - wsUrl from config: ${config?.wsUrl}, fallback: ${websocketUrl}`)
+          if (config?.debug) {
+            console.log(`[Vybcel] Creating toolbar config...`)
+            console.log(`[Vybcel] Config object:`, config)
+            console.log(`[Vybcel] Final toolbar config:`, toolbarConfig)
+          }
           
           res.writeHead(200, { 'Content-Type': 'application/javascript' })
           res.end(`window.VYBCEL_CONFIG = ${JSON.stringify(toolbarConfig)};`)
@@ -198,7 +197,9 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
             if (config?.toolbar?.autoUpdate !== false) {
               const updateCheck = await checkForUpdates()
               if (updateCheck?.hasUpdate && updateCheck.latestVersion) {
-                console.log(`[Vybcel] Using latest toolbar from ${updateCheck.latestVersion.url}`)
+                if (config?.debug) {
+                  console.log(`[Vybcel] Using latest toolbar from ${updateCheck.latestVersion.url}`)
+                }
                 const updatedCode = await downloadToolbarUpdate(updateCheck.latestVersion)
                 if (updatedCode) {
                   toolbarCode = updatedCode
@@ -206,14 +207,18 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
               }
             }
           } catch (fetchError) {
-            console.log(`[Vybcel] Could not fetch remote toolbar: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`)
+            if (config?.debug) {
+              console.log(`[Vybcel] Could not fetch remote toolbar: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`)
+            }
           }
 
           // Fallback to local version
           if (!toolbarCode) {
             const toolbarPath = findToolbarBundle()
             if (toolbarPath) {
-              console.log(`[Vybcel] Using local toolbar from ${toolbarPath}`)
+              if (config?.debug) {
+                console.log(`[Vybcel] Using local toolbar from ${toolbarPath}`)
+              }
               toolbarCode = readFileSync(toolbarPath, 'utf-8')
             }
           }

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import type { ProjectRow } from "@shipvibes/database";
 
@@ -76,133 +82,147 @@ export function ProjectLayoutClient({
   } = useWebSocket({
     projectId: project.id,
 
-    onAgentConnected: (data) => {
+    onAgentConnected: useCallback((data) => {
       console.log("🟢 [ProjectLayout] Agent connected:", data);
       setAgentConnected(true);
       setLastUpdated(new Date());
-    },
+    }, []),
 
-    onAgentDisconnected: (data) => {
+    onAgentDisconnected: useCallback((data) => {
       console.log("🔴 [ProjectLayout] Agent disconnected:", data);
       setAgentConnected(false);
       setLastUpdated(new Date());
-    },
+    }, []),
 
-    onFileTracked: (data) => {
-      console.log("📝 [ProjectLayout] File tracked event received:", {
-        eventProjectId: data.projectId,
-        currentProjectId: project.id,
-        filePath: data.filePath,
-        action: data.action,
-        matches: data.projectId === project.id,
-      });
-      if (data.projectId === project.id) {
-        setPendingChanges((prev) => {
-          const existing = prev.find(
-            (change) => change.file_path === data.filePath
-          );
-
-          // Если файл удален, убираем его из pending changes
-          if (data.action === "deleted") {
-            return prev.filter((change) => change.file_path !== data.filePath);
-          }
-
-          if (existing) {
-            // Обновляем существующее изменение
-            return prev.map((change) =>
-              change.file_path === data.filePath
-                ? {
-                    ...change,
-                    action: data.action || "modified",
-                    file_size: data.content
-                      ? Buffer.byteLength(data.content, "utf8")
-                      : change.file_size || 0,
-                    updated_at: new Date().toISOString(),
-                  }
-                : change
-            );
-          } else {
-            // Добавляем новое изменение
-            return [
-              ...prev,
-              {
-                id: Math.random().toString(),
-                file_path: data.filePath,
-                action: data.action || "modified",
-                file_size: data.content
-                  ? Buffer.byteLength(data.content, "utf8")
-                  : 0,
-                updated_at: new Date().toISOString(),
-              },
-            ];
-          }
-        });
-        setLastUpdated(new Date());
-
-        // Логируем что pending changes были обновлены
-        console.log("📊 [ProjectLayout] Pending changes updated for file:", {
+    onFileTracked: useCallback(
+      (data) => {
+        console.log("📝 [ProjectLayout] File tracked event received:", {
+          eventProjectId: data.projectId,
+          currentProjectId: project.id,
           filePath: data.filePath,
           action: data.action,
+          matches: data.projectId === project.id,
         });
-      }
-    },
-    onSaveSuccess: (data) => {
-      console.log("💾 [ProjectLayout] Save success received:", data);
-      if (data.projectId === project.id) {
-        setIsSaving(false);
-        // Очищаем pending changes после успешного сохранения
-        setPendingChanges([]);
-        setLastUpdated(new Date());
-      }
-    },
-    onCommitCreated: (data) => {
-      console.log("📝 [ProjectLayout] Commit created:", data);
-      console.log("🎯 [ProjectLayout] onCommitCreated details:", {
-        eventProjectId: data.projectId,
-        currentProjectId: project.id,
-        matches: data.projectId === project.id,
-        hasCommit: !!data.commit,
-        commit: data.commit,
-      });
+        if (data.projectId === project.id) {
+          setPendingChanges((prev) => {
+            const existing = prev.find(
+              (change) => change.file_path === data.filePath
+            );
 
-      if (data.projectId === project.id && data.commit) {
-        console.log("✅ [ProjectLayout] Adding commit to history");
-        // Добавляем новый коммит в начало истории
-        setHistory((prev) => {
-          console.log("📊 [ProjectLayout] History before:", prev);
-          const newHistory = [data.commit, ...prev];
-          console.log("📊 [ProjectLayout] History after:", newHistory);
-          return newHistory;
-        });
-        setLastUpdated(new Date());
-      } else {
-        console.log(
-          "❌ [ProjectLayout] Commit not added - project mismatch or no commit data"
-        );
-      }
-    },
-    onDeployStatusUpdate: (data) => {
-      console.log("🚀 [ProjectLayout] Deploy status update:", data);
-      if (data.projectId === project.id) {
-        // Обновляем статус проекта в реальном времени
-        setProject((prev: ProjectRow) => ({
-          ...prev,
-          deploy_status: data.status,
-          netlify_url: data.url || prev.netlify_url,
-          updated_at: data.timestamp || new Date().toISOString(),
-        }));
-        setLastUpdated(new Date());
+            // Если файл удален, убираем его из pending changes
+            if (data.action === "deleted") {
+              return prev.filter(
+                (change) => change.file_path !== data.filePath
+              );
+            }
 
-        console.log("✅ [ProjectLayout] Project status updated:", {
-          newStatus: data.status,
-          url: data.url,
+            if (existing) {
+              // Обновляем существующее изменение
+              return prev.map((change) =>
+                change.file_path === data.filePath
+                  ? {
+                      ...change,
+                      action: data.action || "modified",
+                      file_size: data.content
+                        ? Buffer.byteLength(data.content, "utf8")
+                        : change.file_size || 0,
+                      updated_at: new Date().toISOString(),
+                    }
+                  : change
+              );
+            } else {
+              // Добавляем новое изменение
+              return [
+                ...prev,
+                {
+                  id: Math.random().toString(),
+                  file_path: data.filePath,
+                  action: data.action || "modified",
+                  file_size: data.content
+                    ? Buffer.byteLength(data.content, "utf8")
+                    : 0,
+                  updated_at: new Date().toISOString(),
+                },
+              ];
+            }
+          });
+          setLastUpdated(new Date());
+
+          // Логируем что pending changes были обновлены
+          console.log("📊 [ProjectLayout] Pending changes updated for file:", {
+            filePath: data.filePath,
+            action: data.action,
+          });
+        }
+      },
+      [project.id]
+    ),
+    onSaveSuccess: useCallback(
+      (data) => {
+        console.log("💾 [ProjectLayout] Save success received:", data);
+        if (data.projectId === project.id) {
+          setIsSaving(false);
+          // Очищаем pending changes после успешного сохранения
+          setPendingChanges([]);
+          setLastUpdated(new Date());
+        }
+      },
+      [project.id]
+    ),
+    onCommitCreated: useCallback(
+      (data) => {
+        console.log("📝 [ProjectLayout] Commit created:", data);
+        console.log("🎯 [ProjectLayout] onCommitCreated details:", {
+          eventProjectId: data.projectId,
+          currentProjectId: project.id,
+          matches: data.projectId === project.id,
+          hasCommit: !!data.commit,
+          commit: data.commit,
         });
-      }
-    },
-    onError: (error) => {
+
+        if (data.projectId === project.id && data.commit) {
+          console.log("✅ [ProjectLayout] Adding commit to history");
+          // Добавляем новый коммит в начало истории
+          setHistory((prev) => {
+            console.log("📊 [ProjectLayout] History before:", prev);
+            const newHistory = [data.commit, ...prev];
+            console.log("📊 [ProjectLayout] History after:", newHistory);
+            return newHistory;
+          });
+          setLastUpdated(new Date());
+        } else {
+          console.log(
+            "❌ [ProjectLayout] Commit not added - project mismatch or no commit data"
+          );
+        }
+      },
+      [project.id]
+    ),
+    onDeployStatusUpdate: useCallback(
+      (data) => {
+        console.log("🚀 [ProjectLayout] Deploy status update:", data);
+        if (data.projectId === project.id) {
+          // Обновляем статус проекта в реальном времени
+          setProject((prev: ProjectRow) => ({
+            ...prev,
+            deploy_status: data.status,
+            netlify_url: data.url || prev.netlify_url,
+            updated_at: data.timestamp || new Date().toISOString(),
+          }));
+          setLastUpdated(new Date());
+
+          console.log("✅ [ProjectLayout] Project status updated:", {
+            newStatus: data.status,
+            url: data.url,
+          });
+        }
+      },
+      [project.id]
+    ),
+    onError: useCallback((error) => {
       console.error("❌ [ProjectLayout] WebSocket error:", error);
       setIsSaving(false);
-    },
+    }, []),
   });
 
   const updateHistory = (newHistory: any[]) => {

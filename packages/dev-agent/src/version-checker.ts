@@ -1,5 +1,10 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface VersionInfo {
   current: string;
@@ -12,7 +17,7 @@ export interface VersionInfo {
  */
 export function getCurrentVersion(): string {
   try {
-    // Пробуем разные пути для package.json
+    // Пробуем разные пути для package.json в ES модулях
     const possiblePaths = [
       path.join(__dirname, '..', 'package.json'),  // Из dist/ в корень пакета
       path.join(__dirname, '..', '..', 'package.json'),  // Если dist в подпапке
@@ -34,10 +39,10 @@ export function getCurrentVersion(): string {
     }
     
     // Fallback версия
-    return '1.0.1';
+    return '1.1.27';
   } catch (error) {
     // Fallback версия
-    return '1.0.1';
+    return '1.1.27';
   }
 }
 
