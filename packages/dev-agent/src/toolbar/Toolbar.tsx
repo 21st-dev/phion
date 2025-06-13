@@ -37,7 +37,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
     const handleStateChange = (newState: ToolbarState) => {
       console.log("[Vybcel Toolbar] State change:", newState);
-      setState(newState);
+      setState((prevState) => {
+        console.log("[Vybcel Toolbar] Current state before update:", prevState);
+        console.log("[Vybcel Toolbar] setState called with:", newState);
+        return newState;
+      });
     };
 
     const handleSaveSuccess = () => {
@@ -114,17 +118,57 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     };
   }, [client]);
 
+  // Debug: Log every state change
+  useEffect(() => {
+    console.log("[Vybcel Toolbar] Component re-rendered with state:", {
+      pendingChanges: state.pendingChanges,
+      deployStatus: state.deployStatus,
+      agentConnected: state.agentConnected,
+      netlifyUrl: state.netlifyUrl,
+      isConnected,
+      isLoading,
+    });
+  }, [state, isConnected, isLoading]);
+
   const handleSave = () => {
+    console.log(
+      "[Vybcel Toolbar] handleSave called - pendingChanges:",
+      state.pendingChanges,
+      "isLoading:",
+      isLoading
+    );
     if (state.pendingChanges > 0 && !isLoading) {
+      console.log("[Vybcel Toolbar] Executing save...");
       setIsLoading(true);
       client.saveAll();
+    } else {
+      console.log(
+        "[Vybcel Toolbar] Save blocked - pendingChanges:",
+        state.pendingChanges,
+        "isLoading:",
+        isLoading
+      );
     }
   };
 
   const handleDiscard = () => {
+    console.log(
+      "[Vybcel Toolbar] handleDiscard called - pendingChanges:",
+      state.pendingChanges,
+      "isLoading:",
+      isLoading
+    );
     if (state.pendingChanges > 0 && !isLoading) {
+      console.log("[Vybcel Toolbar] Executing discard...");
       setIsLoading(true);
       client.discardAll();
+    } else {
+      console.log(
+        "[Vybcel Toolbar] Discard blocked - pendingChanges:",
+        state.pendingChanges,
+        "isLoading:",
+        isLoading
+      );
     }
   };
 
@@ -159,6 +203,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   if (!isConnected) {
     return null;
   }
+
+  // Debug: Log button states before render
+  console.log("[Vybcel Toolbar] Rendering buttons with:", {
+    pendingChanges: state.pendingChanges,
+    isLoading,
+    saveDisabled: state.pendingChanges === 0 || isLoading,
+    discardDisabled: state.pendingChanges === 0 || isLoading,
+    saveButtonColor:
+      state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
+    discardButtonColor:
+      state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
+  });
 
   return (
     <div
