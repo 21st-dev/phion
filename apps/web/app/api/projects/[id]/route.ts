@@ -26,7 +26,7 @@ async function deleteNetlifySite(siteId: string): Promise<void> {
   }
 }
 
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser(_request: NextRequest) {
   const cookieStore = await cookies();
   const supabase = createAuthServerClient({
     getAll() {
@@ -62,7 +62,7 @@ export async function GET(
   try {
     const { id } = await params;
     
-    const { user, supabase, error } = await getAuthenticatedUser(request);
+    const { supabase, error } = await getAuthenticatedUser(request);
     if (error || !supabase) {
       return NextResponse.json({ error }, { status: 401 });
     }
@@ -97,7 +97,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     
-    const { user, supabase, error } = await getAuthenticatedUser(request);
+    const { supabase, error } = await getAuthenticatedUser(request);
     if (error || !supabase) {
       return NextResponse.json({ error }, { status: 401 });
     }
@@ -124,7 +124,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     
-    const { user, supabase, error } = await getAuthenticatedUser(request);
+    const { supabase, error } = await getAuthenticatedUser(request);
     if (error || !supabase) {
       return NextResponse.json({ error }, { status: 401 });
     }

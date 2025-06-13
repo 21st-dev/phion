@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createProject, getUserProjects, updateProject } from "@shipvibes/database";
+import { createProject, getUserProjects } from "@shipvibes/database";
 import { createAuthServerClient } from "@shipvibes/database";
 import { cookies } from "next/headers";
 import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
@@ -10,7 +10,7 @@ if (process.env.NODE_ENV === 'development') {
   require('dotenv').config({ path: '.env.local' });
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const supabase = createAuthServerClient({
@@ -202,7 +202,7 @@ async function initializeProjectInBackground(
   projectId: string,
   projectName: string,
   templateType: string,
-  userId: string
+  _userId: string
 ): Promise<void> {
   try {
     console.log(`🚀 [PROJECT_INIT_BG] Starting background initialization for ${projectId}...`);
@@ -247,7 +247,7 @@ async function initializeProjectInBackground(
 
     // 2. Инициализируем шаблон с retry логикой
     console.log(`🔄 [PROJECT_INIT_BG] Starting template upload...`);
-    const initResponse = await retryWithBackoff(
+    await retryWithBackoff(
       async () => {
         const response = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
           method: 'POST',

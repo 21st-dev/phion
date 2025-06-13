@@ -27,7 +27,7 @@ export function PricingModal({
 }: PricingModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isYearly, setIsYearly] = useState(true); // Default to yearly
-  const { success, error: showError, info } = useToast();
+  const { error: showError, info } = useToast();
 
   const handleUpgrade = async () => {
     setIsLoading(true);
