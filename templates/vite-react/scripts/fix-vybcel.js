@@ -85,7 +85,7 @@ async function checkExtension() {
   const cursorExtensionsDir = join(homedir(), ".cursor", "extensions");
   const installedExtensionDir = join(
     cursorExtensionsDir,
-    "vybcel-auto-browser-0.0.3"
+    "vybcel-auto-browser-0.0.5"
   );
   const extensionInstalled = existsSync(installedExtensionDir);
 

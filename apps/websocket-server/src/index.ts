@@ -591,9 +591,12 @@ io.on('connection', (socket) => {
     const { projectId, token, clientType } = data;
     
     if (!projectId) {
+      console.log(`❌ [AUTH] Missing projectId from socket ${socket.id}`);
       socket.emit('error', { message: 'Project ID is required' });
       return;
     }
+
+    console.log(`🔐 [AUTH] Socket ${socket.id} authenticating for project ${projectId} as ${clientType || 'web'}`);
 
     // Присоединяем к комнате проекта
     socket.join(`project:${projectId}`);
@@ -601,6 +604,14 @@ io.on('connection', (socket) => {
     socket.data.clientType = clientType || 'web'; // По умолчанию web-клиент
     
     console.log(`🔐 Client ${socket.id} authenticated for project ${projectId} (type: ${socket.data.clientType})`);
+    
+    // Проверяем текущее состояние комнаты
+    const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`);
+    const clientCount = roomClients ? roomClients.size : 0;
+    const clientIds = roomClients ? Array.from(roomClients) : [];
+    
+    console.log(`📊 [AUTH] Project ${projectId} room now has ${clientCount} clients: ${clientIds.join(', ')}`);
+    
     socket.emit('authenticated', { success: true, projectId });
     
     // Если это агент - добавляем в список подключенных агентов
@@ -609,6 +620,8 @@ io.on('connection', (socket) => {
         connectedAgents.set(projectId, new Set());
       }
       connectedAgents.get(projectId)!.add(socket.id);
+      
+      console.log(`🤖 [AUTH] Agent ${socket.id} added to project ${projectId} agents list`);
       
       // Уведомляем всех клиентов В КОМНАТЕ ПРОЕКТА о подключении агента
       io.to(`project:${projectId}`).emit('agent_connected', {
@@ -777,11 +790,19 @@ io.on('connection', (socket) => {
       const commitMessage = data?.commitMessage;
       
       if (!projectId) {
+        console.log(`❌ [SAVE] Missing projectId from socket ${socket.id}`);
         socket.emit('error', { message: 'Missing projectId' });
         return;
       }
 
-      console.log(`💾 Saving all changes for project ${projectId}`);
+      console.log(`💾 [SAVE] Received save_all_changes for project ${projectId} from socket ${socket.id}`);
+      
+      // Проверяем сколько клиентов в комнате проекта
+      const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`);
+      const clientCount = roomClients ? roomClients.size : 0;
+      const clientIds = roomClients ? Array.from(roomClients) : [];
+      
+      console.log(`📡 [SAVE] Project room project:${projectId} has ${clientCount} clients: ${clientIds.join(', ')}`);
       
       const commitSha = await saveFullProjectSnapshot(projectId, commitMessage);
 
@@ -790,6 +811,8 @@ io.on('connection', (socket) => {
       const commitQueries = new CommitHistoryQueries(supabase);
       const latestCommit = await commitQueries.getLatestCommit(projectId);
 
+      console.log(`📡 [SAVE] Sending save_success to project:${projectId} room`);
+      
       // Уведомляем ВСЕХ клиентов в проекте о successful save
       io.to(`project:${projectId}`).emit('save_success', {
         projectId,
@@ -797,6 +820,8 @@ io.on('connection', (socket) => {
         timestamp: Date.now()
       });
 
+      console.log(`📡 [SAVE] Sending commit_created to project:${projectId} room`);
+      
       // Уведомляем всех клиентов о новом коммите
       io.to(`project:${projectId}`).emit('commit_created', {
         projectId,
@@ -805,13 +830,13 @@ io.on('connection', (socket) => {
       });
 
       // Триггерим деплой ТОЛЬКО после сохранения
-      console.log(`🚀 Triggering deploy after save for project ${projectId}`);
+      console.log(`🚀 [SAVE] Triggering deploy after save for project ${projectId}`);
       triggerDeploy(projectId, commitSha).catch(error => {
         console.error(`❌ Deploy failed for project ${projectId}:`, error);
       });
 
     } catch (error) {
-      console.error('❌ Error saving changes:', error);
+      console.error('❌ [SAVE] Error saving changes:', error);
       socket.emit('error', { message: 'Failed to save changes' });
     }
   });
@@ -823,24 +848,34 @@ io.on('connection', (socket) => {
       const projectId = data?.projectId || socket.data.projectId;
       
       if (!projectId) {
+        console.log(`❌ [DISCARD] Missing projectId from socket ${socket.id}`);
         socket.emit('error', { message: 'Missing projectId' });
         return;
       }
 
-      console.log(`🔄 Discarding all changes for project ${projectId}`);
+      console.log(`🔄 [DISCARD] Received discard_all_changes for project ${projectId} from socket ${socket.id}`);
       
       const supabase = getSupabaseServerClient();
       const pendingQueries = new PendingChangesQueries(supabase);
       
       // Очищаем pending changes в базе данных
+      console.log(`🗃️ [DISCARD] Clearing pending changes for project ${projectId}`);
       await pendingQueries.clearAllPendingChanges(projectId);
+      
+      // Проверяем сколько клиентов в комнате проекта
+      const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`);
+      const clientCount = roomClients ? roomClients.size : 0;
+      const clientIds = roomClients ? Array.from(roomClients) : [];
+      
+      console.log(`📡 [DISCARD] Sending discard_local_changes to project:${projectId} room (${clientCount} clients: ${clientIds.join(', ')})`);
       
       // Отправляем команду на откат локальному агенту
       io.to(`project:${projectId}`).emit('discard_local_changes', {
-        projectId
+        projectId,
+        timestamp: Date.now()
       });
       
-      console.log(`✅ Discard command sent for project ${projectId}`);
+      console.log(`✅ [DISCARD] Discard command sent for project ${projectId}`);
       
       // Уведомляем ВСЕХ клиентов в проекте об очистке pending changes
       io.to(`project:${projectId}`).emit('discard_success', {
@@ -848,8 +883,10 @@ io.on('connection', (socket) => {
         timestamp: Date.now()
       });
 
+      console.log(`✅ [DISCARD] Discard success event sent to all clients in project ${projectId}`);
+
     } catch (error) {
-      console.error('❌ Error discarding changes:', error);
+      console.error('❌ [DISCARD] Error discarding changes:', error);
       socket.emit('error', { message: 'Failed to discard changes' });
     }
   });

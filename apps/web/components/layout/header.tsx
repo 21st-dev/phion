@@ -103,7 +103,11 @@ export function Header({ user, project }: HeaderProps) {
 
             {user ? (
               <div className="flex items-center space-x-3">
-                <Avatar src={user.user_metadata?.avatar_url} size={32} />
+                <Avatar
+                  src={user.user_metadata?.avatar_url}
+                  name={user.user_metadata?.name || user.email}
+                  size={32}
+                />
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-gray-1000">
                     {user.user_metadata?.name || user.email}

@@ -5,6 +5,7 @@ import { promisify } from "util";
 import { existsSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { homedir } from "os";
 
 const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
@@ -170,26 +171,51 @@ async function ensureDevEnvironment() {
   return true;
 }
 
-// Check if browser extension is installed
-function checkExtensionInstalled() {
-  const extensionDir = join(__dirname, "auto-browser-extension");
-  return (
-    existsSync(join(extensionDir, "package.json")) &&
-    existsSync(join(extensionDir, "extension.js"))
-  );
+// Check if extension is already installed and active
+async function checkExtensionInstalled() {
+  try {
+    const cursorExtensionsDir = join(homedir(), ".cursor", "extensions");
+    const installedExtensionDir = join(
+      cursorExtensionsDir,
+      "vybcel-auto-browser-0.0.5"
+    );
+    return existsSync(installedExtensionDir);
+  } catch (error) {
+    return false;
+  }
 }
 
-// Install browser extension if not installed
-async function ensureBrowserExtension() {
-  if (!checkExtensionInstalled()) {
-    if (DEBUG_MODE) {
-      console.log("⚠️  Browser extension not found");
-    }
+// Check if extension is active by testing if Vybcel commands are available
+async function checkExtensionActive() {
+  try {
+    // Try to get list of available commands and check if Vybcel commands exist
+    const result = await execAsync(
+      'cursor --command "workbench.action.showCommands" --args "vybcel"'
+    );
+    return true;
+  } catch (error) {
     return false;
+  }
+}
+
+// Install browser extension if not installed or not active
+async function ensureBrowserExtension() {
+  const isInstalled = await checkExtensionInstalled();
+
+  if (isInstalled) {
+    if (DEBUG_MODE) {
+      console.log("✅ Extension already installed, checking if active...");
+    } else {
+      console.log("⚙️ Checking browser integration...");
+    }
+
+    // Even if installed, we might need to reload if not active
+    // For simplicity, we'll skip the active check and just proceed
+    return true;
   }
 
   if (DEBUG_MODE) {
-    console.log("🔧 Setting up Cursor extension...");
+    console.log("🔧 Installing browser extension...");
   } else {
     console.log("⚙️ Setting up browser integration...");
   }

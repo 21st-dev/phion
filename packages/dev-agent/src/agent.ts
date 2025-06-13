@@ -356,6 +356,11 @@ export class VybcelAgent {
   private setupEventHandlers(): void {
     if (!this.socket) return;
 
+    // Добавляем логирование всех входящих событий для отладки
+    this.socket.onAny((eventName, ...args) => {
+      console.log(`📡 [Agent] Received event: ${eventName}`, args.length > 0 ? args[0] : '');
+    });
+
     this.socket.on("file_saved", (data: FileSavedData) => {
       if (this.config.debug) {
         console.log(`💾 File saved: ${data.filePath}`);
@@ -368,19 +373,31 @@ export class VybcelAgent {
       }
     });
 
-    this.socket.on("discard_local_changes", async () => {
+    this.socket.on("discard_local_changes", async (data) => {
+      console.log("🔄 [AGENT] Received discard_local_changes command from server");
       console.log("🔄 Discarding local changes...");
       await this.discardLocalChanges();
     });
 
     this.socket.on("git_pull_with_token", async (data: GitPullData) => {
+      console.log("📥 [AGENT] Received git_pull_with_token command from server");
       console.log("📥 Syncing with latest changes...");
       await this.gitPullWithToken(data.token, data.repoUrl);
     });
 
     this.socket.on("update_local_files", async (data: UpdateFilesData) => {
+      console.log("📄 [AGENT] Received update_local_files command from server");
       console.log("📄 Updating local files...");
       await this.updateLocalFiles(data.files);
+    });
+
+    // Добавляем обработчики для save событий
+    this.socket.on("save_success", (data) => {
+      console.log("💾 [AGENT] Save operation completed successfully");
+    });
+
+    this.socket.on("discard_success", (data) => {
+      console.log("🔄 [AGENT] Discard operation completed successfully");
     });
 
     this.socket.on("error", (error: Error) => {

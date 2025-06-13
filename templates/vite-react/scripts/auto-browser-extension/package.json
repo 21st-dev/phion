@@ -2,7 +2,7 @@
   "name": "vybcel-dev-tools",
   "displayName": "Vybcel Dev Tools",
   "description": "Tools for Vybcel development: auto-open browser, optimize workspace, monitor server, clear ports",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "vybcel",
   "engines": {
     "vscode": "^1.81.0"

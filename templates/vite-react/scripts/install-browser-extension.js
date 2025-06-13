@@ -13,7 +13,9 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
 import { exec } from "child_process";
+import { promisify } from "util";
 
+const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -49,6 +51,60 @@ function copyDir(src, dest) {
   }
 }
 
+// Auto-reload Cursor window
+async function reloadCursorWindow() {
+  try {
+    console.log("🔄 Automatically reloading Cursor window...");
+
+    // Method 1: Try cursor command with reload
+    try {
+      await execAsync('cursor --command "workbench.action.reloadWindow"');
+      console.log("✅ Cursor window reloaded automatically!");
+      return true;
+    } catch (error) {
+      // Method 1 failed, try Method 2
+    }
+
+    // Method 2: Try with code command (if cursor not available)
+    try {
+      await execAsync('code --command "workbench.action.reloadWindow"');
+      console.log("✅ Window reloaded automatically!");
+      return true;
+    } catch (error) {
+      // Method 2 failed, try Method 3
+    }
+
+    // Method 3: macOS AppleScript approach
+    if (process.platform === "darwin") {
+      try {
+        const script = `
+          tell application "Cursor"
+            activate
+            delay 0.5
+            tell application "System Events"
+              keystroke "p" using {command down, shift down}
+              delay 0.5
+              type text "Developer: Reload Window"
+              delay 0.5
+              keystroke return
+            end tell
+          end tell
+        `;
+        await execAsync(`osascript -e '${script}'`);
+        console.log("✅ Cursor window reload triggered via AppleScript!");
+        return true;
+      } catch (error) {
+        // Method 3 failed
+      }
+    }
+
+    // All methods failed
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
 try {
   // Find Cursor extensions directory
   const homeDir = homedir();
@@ -65,7 +121,7 @@ try {
   // Create extension directory in Cursor extensions
   const targetExtensionDir = join(
     cursorExtensionsDir,
-    "vybcel-auto-browser-0.0.3"
+    "vybcel-auto-browser-0.0.5"
   );
 
   console.log("🔄 Copying extension to Cursor extensions directory...");
@@ -75,6 +131,8 @@ try {
   const oldVersionDirs = [
     join(cursorExtensionsDir, "vybcel-auto-browser-0.0.1"),
     join(cursorExtensionsDir, "vybcel-auto-browser-0.0.2"),
+    join(cursorExtensionsDir, "vybcel-auto-browser-0.0.3"),
+    join(cursorExtensionsDir, "vybcel-auto-browser-0.0.4"),
   ];
 
   for (const oldVersionDir of oldVersionDirs) {
@@ -88,34 +146,30 @@ try {
   copyDir(extensionDir, targetExtensionDir);
 
   console.log("✅ Extension installed successfully in Cursor!");
+
+  // Try automatic reload
+  const reloadSuccess = await reloadCursorWindow();
+
+  if (reloadSuccess) {
+    console.log("");
+    console.log("🎉 Extension is now active and ready to use!");
+    console.log("✨ Browser will auto-open when you run 'pnpm start'");
+  } else {
+    console.log("");
+    console.log("🔄 Please reload Cursor window manually:");
+    console.log("   1. Press Cmd+Shift+P (or Ctrl+Shift+P on Windows/Linux)");
+    console.log("   2. Type: 'Developer: Reload Window'");
+    console.log("   3. Press Enter");
+    console.log("");
+    console.log(
+      "🎉 After reload, the browser will auto-open when you run 'pnpm start'!"
+    );
+  }
+
   console.log("");
-  console.log(
-    "🔄 IMPORTANT: Please reload Cursor window to activate the extension:"
-  );
-  console.log("   1. Press Cmd+Shift+P (or Ctrl+Shift+P on Windows/Linux)");
-  console.log("   2. Type: 'Developer: Reload Window'");
-  console.log("   3. Press Enter");
-  console.log("");
-  console.log(
-    "🎉 After reload, the browser will auto-open when you run 'pnpm start'!"
-  );
-  console.log("");
-  console.log("💡 Manual usage:");
+  console.log("💡 Manual commands (if needed):");
   console.log("   • Cmd+Shift+P → 'Vybcel: Start Project'");
   console.log("   • Cmd+Shift+P → 'Vybcel: Open Preview'");
-  console.log("");
-
-  // Check if we can try to reload Cursor programmatically
-  console.log("🤖 Attempting to reload Cursor automatically...");
-
-  setTimeout(() => {
-    // Try to signal Cursor to reload (this might not work in all cases)
-    exec("osascript -e 'tell application \"Cursor\" to activate'", (err) => {
-      if (!err) {
-        console.log("✨ Cursor window focused - you can now manually reload!");
-      }
-    });
-  }, 1000);
 } catch (error) {
   console.log("❌ Failed to install extension:", error.message);
   console.log("");

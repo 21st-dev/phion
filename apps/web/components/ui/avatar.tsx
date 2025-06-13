@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Skeleton } from "./skeleton";
 import clsx from "clsx";
 
@@ -6,13 +6,30 @@ interface AvatarProps {
   placeholder?: boolean;
   size?: number;
   src?: string;
+  name?: string;
+  fallback?: string;
 }
+
+// Function to generate initials from name
+const getInitials = (name?: string) => {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
 
 export const Avatar = ({
   placeholder = false,
   size = 24,
   src,
+  name,
+  fallback,
 }: AvatarProps) => {
+  const [imageError, setImageError] = useState(false);
+
   if (placeholder) {
     return (
       <Skeleton
@@ -22,12 +39,28 @@ export const Avatar = ({
     );
   }
 
+  const showFallback = !src || imageError;
+
   return (
     <span
       className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
       style={{ width: size, height: size }}
     >
-      {src && <img src={src} alt="Avatar" className="w-full h-full" />}
+      {!showFallback ? (
+        <img
+          src={src}
+          alt="Avatar"
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <div
+          className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium"
+          style={{ fontSize: size * 0.4 }}
+        >
+          {fallback || getInitials(name)}
+        </div>
+      )}
     </span>
   );
 };
@@ -113,18 +146,29 @@ const BitbucketIcon = () => (
 );
 
 export const GitHubAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
+  const [imageError, setImageError] = useState(false);
+  const showFallback = !src || imageError;
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <span
         className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
         style={{ width: size, height: size }}
       >
-        {src && (
+        {!showFallback ? (
           <img
             src={src}
             alt={`Avatar for ${username}`}
-            className="w-full h-full"
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
+        ) : (
+          <div
+            className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium"
+            style={{ fontSize: size * 0.4 }}
+          >
+            {getInitials(username)}
+          </div>
         )}
       </span>
       <div className="absolute -left-[3px] -bottom-[5px] flex items-center justify-center rounded-full overflow-hidden bg-white border border-background">
@@ -135,18 +179,29 @@ export const GitHubAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
 };
 
 export const GitLabAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
+  const [imageError, setImageError] = useState(false);
+  const showFallback = !src || imageError;
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <span
         className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
         style={{ width: size, height: size }}
       >
-        {src && (
+        {!showFallback ? (
           <img
             src={src}
             alt={`Avatar for ${username}`}
-            className="w-full h-full"
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
+        ) : (
+          <div
+            className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium"
+            style={{ fontSize: size * 0.4 }}
+          >
+            {getInitials(username)}
+          </div>
         )}
       </span>
       <div className="absolute -left-[3px] -bottom-[5px] flex items-center justify-center rounded-full overflow-hidden bg-[#6b4fbb] border border-background">
@@ -161,18 +216,29 @@ export const BitbucketAvatar = ({
   size = 24,
   src,
 }: GitAvatarProps) => {
+  const [imageError, setImageError] = useState(false);
+  const showFallback = !src || imageError;
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <span
         className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
         style={{ width: size, height: size }}
       >
-        {src && (
+        {!showFallback ? (
           <img
             src={src}
             alt={`Avatar for ${username}`}
-            className="w-full h-full"
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
           />
+        ) : (
+          <div
+            className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium"
+            style={{ fontSize: size * 0.4 }}
+          >
+            {getInitials(username)}
+          </div>
         )}
       </span>
       <div className="absolute -left-[3px] -bottom-[5px] flex items-center justify-center rounded-full overflow-hidden bg-[#0052cc] border border-background">
@@ -191,6 +257,40 @@ interface AvatarGroupProps {
   limit?: number;
 }
 
+const AvatarGroupItem = ({
+  member,
+  size,
+}: {
+  member: { username?: string; src?: string };
+  size?: number;
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const showFallback = !member.src || imageError;
+
+  return (
+    <span
+      className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
+      style={{ width: size, height: size }}
+    >
+      {!showFallback ? (
+        <img
+          src={member.src}
+          alt={`Avatar for ${member.username}`}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <div
+          className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium"
+          style={{ fontSize: (size || 24) * 0.4 }}
+        >
+          {getInitials(member.username)}
+        </div>
+      )}
+    </span>
+  );
+};
+
 export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
   return (
     <div className="flex items-center">
@@ -202,18 +302,7 @@ export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
             style={{ zIndex: index + 1 }}
             aria-label={`Avatar for ${member.username}`}
           >
-            <span
-              className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
-              style={{ width: size, height: size }}
-            >
-              {member.src && (
-                <img
-                  src={member.src}
-                  alt={`Avatar for ${member.username}`}
-                  className="w-full h-full"
-                />
-              )}
-            </span>
+            <AvatarGroupItem member={member} size={size} />
           </span>
         )
       )}
@@ -223,16 +312,13 @@ export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
           style={{ zIndex: limit }}
           aria-label="1 more avatars in this group"
         >
-          <span
-            className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
-            style={{ width: size, height: size }}
-          >
-            <img
-              src="https://vercel.com/api/www/avatar?u=rauchg&s=64"
-              alt="1 more avatars in this group"
-              className="w-full h-full"
-            />
-          </span>
+          <AvatarGroupItem
+            member={{
+              username: "rauchg",
+              src: "https://vercel.com/api/www/avatar?u=rauchg&s=64",
+            }}
+            size={size}
+          />
         </span>
       )}
       {members.length > limit && (
