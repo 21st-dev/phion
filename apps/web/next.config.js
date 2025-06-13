@@ -15,6 +15,16 @@ const nextConfig = {
         "@ngrok/ngrok": "commonjs @ngrok/ngrok",
       });
     }
+
+    // Добавляем алиасы для правильной работы с Vercel + Turbo
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@": require("path").resolve(__dirname, "."),
+      "@/components": require("path").resolve(__dirname, "components"),
+      "@/lib": require("path").resolve(__dirname, "lib"),
+      "@/app": require("path").resolve(__dirname, "app"),
+    };
+
     return config;
   },
   // Настройки для работы с WebSocket
