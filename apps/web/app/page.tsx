@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/header";
 import { createAuthBrowserClient } from "@shipvibes/database";
 import type { User } from "@supabase/supabase-js";
 import { CreateProjectButton } from "@/components/create-project-button";
+import { Spinner } from "@/components/geist/spinner";
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -42,7 +43,12 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background-100 flex items-center justify-center">
-        <div>Loading...</div>
+        <div className="flex flex-col items-center justify-center text-center">
+          <Spinner size={32} />
+          <p className="mt-4 text-sm text-muted-foreground">
+            Loading your projects...
+          </p>
+        </div>
       </div>
     );
   }

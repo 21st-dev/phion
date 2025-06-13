@@ -49,7 +49,11 @@ export class ToolbarWebSocketClient {
 
       this.socket.on('disconnect', () => {
         console.log('[Vybcel Toolbar] Disconnected from WebSocket server')
-        this.state.agentConnected = false
+        // ✅ Create NEW state object
+        this.state = {
+          ...this.state,
+          agentConnected: false
+        }
         this.emit('stateChange', this.state)
       })
     })
@@ -67,49 +71,102 @@ export class ToolbarWebSocketClient {
   private setupEventListeners() {
     if (!this.socket) return
 
-    this.socket.on('file_change_staged', (data: { file: string; action: string }) => {
-      this.state.pendingChanges += 1
+    // Track processed file changes to avoid duplicates
+    const processedFiles = new Set<string>()
+
+    this.socket.on('file_change_staged', (data: { file?: string; filePath?: string; action: string; timestamp?: number }) => {
+      console.log('[Vybcel Toolbar] File change staged:', data)
+      
+      // Create unique key for this change
+      const filePath = data.filePath || data.file || 'unknown'
+      const changeKey = `${filePath}:${data.timestamp || Date.now()}`
+      
+      // Skip if we already processed this exact change
+      if (processedFiles.has(changeKey)) {
+        console.log('[Vybcel Toolbar] Skipping duplicate file change:', changeKey)
+        return
+      }
+      
+      processedFiles.add(changeKey)
+      
+      // Clean old entries (keep only last 100)
+      if (processedFiles.size > 100) {
+        const entries = Array.from(processedFiles)
+        entries.slice(0, 50).forEach(key => processedFiles.delete(key))
+      }
+      
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        pendingChanges: this.state.pendingChanges + 1
+      }
       this.emit('stateChange', this.state)
     })
 
     this.socket.on('commit_created', (data: { commitId: string; message: string }) => {
-      this.state.pendingChanges = 0
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        pendingChanges: 0
+      }
       this.emit('stateChange', this.state)
       this.emit('commitCreated', data)
     })
 
     this.socket.on('deploy_status_update', (data: { status: string; url?: string }) => {
-      this.state.deployStatus = data.status as ToolbarState['deployStatus']
-      if (data.url) {
-        this.state.netlifyUrl = data.url
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        deployStatus: data.status as ToolbarState['deployStatus'],
+        netlifyUrl: data.url || this.state.netlifyUrl
       }
       this.emit('stateChange', this.state)
     })
 
     this.socket.on('save_success', () => {
-      this.state.pendingChanges = 0
+      console.log('[Vybcel Toolbar] Save success')
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        pendingChanges: 0
+      }
       this.emit('stateChange', this.state)
       this.emit('saveSuccess')
     })
 
     this.socket.on('discard_success', () => {
-      this.state.pendingChanges = 0
+      console.log('[Vybcel Toolbar] Discard success')
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        pendingChanges: 0
+      }
       this.emit('stateChange', this.state)
       this.emit('discardSuccess')
     })
 
     this.socket.on('toolbar_status', (status: ToolbarState) => {
+      console.log('[Vybcel Toolbar] Status update:', status)
+      // ✅ Create NEW state object
       this.state = { ...this.state, ...status }
       this.emit('stateChange', this.state)
     })
 
     this.socket.on('agent_connected', () => {
-      this.state.agentConnected = true
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        agentConnected: true
+      }
       this.emit('stateChange', this.state)
     })
 
     this.socket.on('agent_disconnected', () => {
-      this.state.agentConnected = false
+      // ✅ Create NEW state object
+      this.state = {
+        ...this.state,
+        agentConnected: false
+      }
       this.emit('stateChange', this.state)
     })
 
@@ -144,6 +201,17 @@ export class ToolbarWebSocketClient {
     }) => {
       this.emit('serverMaintenance', data)
     })
+
+    // Handle preview response from server
+    this.socket.on('toolbar_preview_response', (data: {
+      success: boolean;
+      url?: string;
+      error?: string;
+      projectId?: string;
+    }) => {
+      console.log('[Vybcel Toolbar] Preview response:', data)
+      this.emit('previewResponse', data)
+    })
   }
 
   private requestStatus() {
@@ -168,6 +236,14 @@ export class ToolbarWebSocketClient {
   openPreview() {
     if (this.state.netlifyUrl) {
       window.open(this.state.netlifyUrl, '_blank')
+    }
+  }
+
+  // NEW: Request preview via WebSocket (better for Cursor)
+  requestPreview() {
+    if (this.socket) {
+      console.log('[Vybcel Toolbar] Requesting preview via WebSocket...')
+      this.socket.emit('toolbar_open_preview')
     }
   }
 

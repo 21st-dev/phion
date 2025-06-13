@@ -5,7 +5,6 @@ import { useState } from "react";
 import { ThemeSwitcher } from "@/components/geist/theme-switcher";
 import { Avatar } from "@/components/geist/avatar";
 import { Button } from "@/components/geist/button";
-import { Badge } from "@/components/ui/badge";
 import { useSupabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useProjectLimits } from "@/hooks/use-project-limits";

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
-import { AlertTriangle, ExternalLink, Copy } from "lucide-react";
+import { ExternalLink, Copy } from "lucide-react";
 import { useProject } from "@/components/project/project-layout-client";
 import { useToast } from "@/hooks/use-toast";
 import { getStatusBadge } from "@/lib/deployment-utils";

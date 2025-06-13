@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createAuthBrowserClient } from "@shipvibes/database";
-import { Button } from "@/components/geist/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";

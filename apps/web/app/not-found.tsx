@@ -17,7 +17,7 @@ export default function NotFound() {
                 Page not found
               </h1>
               <p className="text-gray-700">
-                The page you are looking for doesn't exist.
+                The page you are looking for doesn&apos;t exist.
               </p>
             </div>
 

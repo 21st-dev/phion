@@ -269,145 +269,143 @@ async function saveFullProjectSnapshot(
   projectId: string, 
   commitMessage?: string
 ): Promise<string> {
-  console.log(`📸 Creating GitHub commit for project ${projectId}...`);
-  
-  const supabase = getSupabaseServerClient();
-  const pendingQueries = new PendingChangesQueries(supabase);
-  const projectQueries = new ProjectQueries(supabase);
-  const commitHistoryQueries = new CommitHistoryQueries(supabase);
-  
-  // Получаем все pending changes (изменения пользователя)
-  const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
-  
-  // Получаем данные проекта для GitHub операций
-  const project = await projectQueries.getProjectById(projectId);
-  if (!project || !project.github_repo_name) {
-    throw new Error(`Project ${projectId} not found or missing GitHub repo data`);
-  }
-  
-  // НОВАЯ ПРОВЕРКА: Если нет pending changes, возвращаем последний коммит SHA
-  if (pendingChanges.length === 0) {
-    const lastCommit = await commitHistoryQueries.getLatestCommit(projectId);
-    if (lastCommit?.github_commit_sha) {
-      console.log(`📄 No pending changes for project ${projectId}, reusing existing commit ${lastCommit.github_commit_sha}`);
-      return lastCommit.github_commit_sha;
-    }
-  }
-  
-  // Если нет pending changes, но нужно создать первый коммит
-  if (pendingChanges.length === 0) {
-    throw new Error(`No pending changes to commit for project ${projectId}`);
-  }
-
-  // 🆕 ПРОВЕРЯЕМ ЕСТЬ ЛИ NETLIFY САЙТ - если нет, создаем при первом коммите
-  const isFirstUserCommit = !project.netlify_site_id;
-  if (isFirstUserCommit) {
-    console.log(`🌐 [FIRST_COMMIT] Creating Netlify site for project ${projectId} (first user commit)...`);
+  try {
+    console.log(`💾 Starting full project snapshot for ${projectId}...`);
     
-    try {
-      // Импортируем Netlify сервис
-      const { NetlifyService } = await import('./services/netlify.js');
-      const netlifyService = new NetlifyService();
-      
-      // Создаем Netlify сайт с GitHub интеграцией
-      const netlifySite = await netlifyService.createSiteWithGitHub(
-        projectId,
-        project.name,
-        project.github_repo_name,
-        'vybcel'
-      );
+    // Получаем pending changes
+    const supabase = getSupabaseServerClient();
+    const pendingQueries = new PendingChangesQueries(supabase);
+    const projectQueries = new ProjectQueries(supabase);
+    const commitHistoryQueries = new CommitHistoryQueries(supabase);
+    
+    const pendingChanges = await pendingQueries.getAllPendingChanges(projectId);
+    console.log(`📋 Found ${pendingChanges.length} pending changes for project ${projectId}`);
+    
+    if (pendingChanges.length === 0) {
+      console.log(`⚠️ No pending changes found for project ${projectId}, nothing to save`);
+      throw new Error('No pending changes to save');
+    }
 
-      // Сохраняем netlify_site_id в базу данных
-      await projectQueries.updateProject(projectId, {
-        netlify_site_id: netlifySite.id,
-        deploy_status: "building" // Будет автоматически деплоиться после коммита
+    // Получаем данные проекта
+    const project = await projectQueries.getProjectById(projectId);
+    if (!project || !project.github_repo_name) {
+      throw new Error(`Project ${projectId} not found or missing GitHub repository`);
+    }
+
+    // Определяем сообщение коммита
+    const finalCommitMessage = commitMessage || `Save project changes (${pendingChanges.length} files)`;
+    console.log(`📄 Creating GitHub commit: ${finalCommitMessage}`);
+    
+    // 🎯 ИСПРАВЛЕНИЕ: Сначала создаем коммит с изменениями пользователя
+    const { githubAppService } = await import('./services/github.js');
+    
+    // Создаем коммит в GitHub для каждого измененного файла
+    const commits: string[] = [];
+    for (const change of pendingChanges) {
+      try {
+        if (change.action === 'deleted') {
+          // TODO: Implement file deletion in GitHub
+          console.log(`⚠️ File deletion not yet implemented: ${change.file_path}`);
+          continue;
+        }
+        
+        const result = await githubAppService.createOrUpdateFile(
+          project.github_repo_name!,
+          change.file_path,
+          change.content,
+          `Update ${change.file_path}`
+        );
+        
+        commits.push(result.commit.sha);
+        console.log(`✅ Updated file in GitHub: ${change.file_path} (${result.commit.sha})`);
+      } catch (error) {
+        console.error(`❌ Failed to update file ${change.file_path} in GitHub:`, error);
+        throw error;
+      }
+    }
+    
+    // Сохраняем информацию о коммите в базу данных
+    const mainCommitSha = commits[commits.length - 1]; // Последний коммит
+    await commitHistoryQueries.createCommitHistory({
+      project_id: projectId,
+      commit_message: finalCommitMessage,
+      github_commit_sha: mainCommitSha,
+      github_commit_url: `https://github.com/${project.github_owner}/${project.github_repo_name}/commit/${mainCommitSha}`,
+      files_count: pendingChanges.length
+    });
+
+    // 🎯 ТОЛЬКО ПОСЛЕ создания коммита проверяем нужно ли создать Netlify сайт
+    const isFirstUserCommit = !project.netlify_site_id;
+    if (isFirstUserCommit) {
+      console.log(`🌐 [FIRST_COMMIT] Creating Netlify site for project ${projectId} AFTER user commit...`);
+      
+      try {
+        // Импортируем Netlify сервис
+        const { NetlifyService } = await import('./services/netlify.js');
+        const netlifyService = new NetlifyService();
+        
+        // 🎯 Теперь создаем Netlify сайт - он сразу будет деплоить актуальный коммит с изменениями
+        const netlifySite = await netlifyService.createSiteWithGitHub(
+          projectId,
+          project.name,
+          project.github_repo_name,
+          'vybcel'
+        );
+
+        // Сохраняем netlify_site_id в базу данных
+        await projectQueries.updateProject(projectId, {
+          netlify_site_id: netlifySite.id,
+          deploy_status: "building" // Будет автоматически деплоиться актуальный коммит
+        });
+        
+        // Настраиваем webhooks для уведомлений о деплое
+        await netlifyService.setupWebhookForSite(netlifySite.id, projectId);
+        
+        console.log(`✅ [FIRST_COMMIT] Netlify site created: ${netlifySite.id} for project ${projectId} - will deploy latest commit ${mainCommitSha}`);
+      } catch (error) {
+        console.error(`❌ [FIRST_COMMIT] Failed to create Netlify site for project ${projectId}:`, error);
+        // Продолжаем выполнение - коммит уже создан, Netlify не критичен
+      }
+    }
+    
+    // Очищаем pending changes после успешного коммита
+    await pendingQueries.clearAllPendingChanges(projectId);
+    
+    // Логируем очистку pending changes
+    console.log(`🧹 Cleared ${pendingChanges.length} pending changes for project ${projectId}`);
+    
+    // Логируем создание коммита
+    console.log(`📝 Commit created: ${mainCommitSha} for project ${projectId} (${pendingChanges.length} files)`);
+    
+    // ДОБАВЛЯЕМ СИНХРОНИЗАЦИЮ С ЛОКАЛЬНЫМ АГЕНТОМ
+    // Согласно sequenceDiagram.ini строки 313-328
+    try {
+      console.log(`🔄 Syncing local agent with new commit ${mainCommitSha} for project ${projectId}`);
+      
+      // Создаем временный токен для git pull
+      const temporaryToken = await githubAppService.createTemporaryToken();
+      
+      // Отправляем команду git pull с токеном локальному агенту
+      io.to(`project:${projectId}`).emit('git_pull_with_token', {
+        projectId,
+        token: temporaryToken,
+        repoUrl: project.github_repo_url
       });
       
-      // Настраиваем webhooks для уведомлений о деплое
-      await netlifyService.setupWebhookForSite(netlifySite.id, projectId);
+      console.log(`✅ Git pull command sent to local agent for project ${projectId}`);
       
-      console.log(`✅ [FIRST_COMMIT] Netlify site created: ${netlifySite.id} for project ${projectId}`);
-    } catch (error) {
-      console.error(`❌ [FIRST_COMMIT] Failed to create Netlify site for project ${projectId}:`, error);
-      // Продолжаем с коммитом даже если Netlify не удался
+    } catch (syncError) {
+      console.error(`❌ Error syncing local agent for project ${projectId}:`, syncError);
+      // Не прерываем выполнение - коммит уже создан, синхронизация не критична
     }
+    
+    console.log(`✅ GitHub commit created: ${mainCommitSha} with ${pendingChanges.length} files${isFirstUserCommit ? ' (first user commit + Netlify site created)' : ''}`);
+    return mainCommitSha;
+    
+  } catch (error) {
+    console.error(`❌ Error in saveFullProjectSnapshot for project ${projectId}:`, error);
+    throw error;
   }
-
-  // Определяем сообщение коммита
-  const finalCommitMessage = commitMessage || `Save project changes (${pendingChanges.length} files)`;
-  console.log(`📄 Creating GitHub commit: ${finalCommitMessage}`);
-  
-  // Импортируем GitHub сервис
-  const { githubAppService } = await import('./services/github.js');
-  
-  // Создаем коммит в GitHub для каждого измененного файла
-  const commits: string[] = [];
-  for (const change of pendingChanges) {
-    try {
-      if (change.action === 'deleted') {
-        // TODO: Implement file deletion in GitHub
-        console.log(`⚠️ File deletion not yet implemented: ${change.file_path}`);
-        continue;
-      }
-      
-      const result = await githubAppService.createOrUpdateFile(
-        project.github_repo_name!,
-        change.file_path,
-        change.content,
-        `Update ${change.file_path}`
-      );
-      
-      commits.push(result.commit.sha);
-      console.log(`✅ Updated file in GitHub: ${change.file_path} (${result.commit.sha})`);
-    } catch (error) {
-      console.error(`❌ Failed to update file ${change.file_path} in GitHub:`, error);
-      throw error;
-    }
-  }
-  
-  // Сохраняем информацию о коммите в базу данных
-  const mainCommitSha = commits[commits.length - 1]; // Последний коммит
-     await commitHistoryQueries.createCommitHistory({
-     project_id: projectId,
-     commit_message: finalCommitMessage,
-     github_commit_sha: mainCommitSha,
-     github_commit_url: `https://github.com/${project.github_owner}/${project.github_repo_name}/commit/${mainCommitSha}`,
-     files_count: pendingChanges.length
-   });
-  
-  // Очищаем pending changes после успешного коммита
-  await pendingQueries.clearAllPendingChanges(projectId);
-  
-  // Логируем очистку pending changes
-  console.log(`🧹 Cleared ${pendingChanges.length} pending changes for project ${projectId}`);
-  
-  // Логируем создание коммита
-  console.log(`📝 Commit created: ${mainCommitSha} for project ${projectId} (${pendingChanges.length} files)`);
-  
-  // ДОБАВЛЯЕМ СИНХРОНИЗАЦИЮ С ЛОКАЛЬНЫМ АГЕНТОМ
-  // Согласно sequenceDiagram.ini строки 313-328
-  try {
-    console.log(`🔄 Syncing local agent with new commit ${mainCommitSha} for project ${projectId}`);
-    
-    // Создаем временный токен для git pull
-    const temporaryToken = await githubAppService.createTemporaryToken();
-    
-    // Отправляем команду git pull с токеном локальному агенту
-    io.to(`project:${projectId}`).emit('git_pull_with_token', {
-      projectId,
-      token: temporaryToken,
-      repoUrl: project.github_repo_url
-    });
-    
-    console.log(`✅ Git pull command sent to local agent for project ${projectId}`);
-    
-  } catch (syncError) {
-    console.error(`❌ Error syncing local agent for project ${projectId}:`, syncError);
-    // Не прерываем выполнение - коммит уже создан, синхронизация не критична
-  }
-  
-  console.log(`✅ GitHub commit created: ${mainCommitSha} with ${pendingChanges.length} files${isFirstUserCommit ? ' (first user commit + Netlify site created)' : ''}`);
-  return mainCommitSha;
 }
 
 async function triggerDeploy(projectId: string, commitSha: string): Promise<void> {
@@ -1115,6 +1113,52 @@ io.on('connection', (socket) => {
     }
   });
 
+  // НОВЫЙ HANDLER: Открытие preview через WebSocket
+  socket.on('toolbar_open_preview', async (data) => {
+    const projectId = data?.projectId || socket.data.projectId;
+    
+    if (!projectId) {
+      socket.emit('error', { message: 'Missing projectId' });
+      return;
+    }
+
+    try {
+      console.log(`🌐 [TOOLBAR] Preview open request for project ${projectId}`);
+      
+      const supabase = getSupabaseServerClient();
+      const projectQueries = new ProjectQueries(supabase);
+      
+      // Получаем данные проекта
+      const project = await projectQueries.getProjectById(projectId);
+      if (!project) {
+        socket.emit('error', { message: 'Project not found' });
+        return;
+      }
+
+      if (!project.netlify_url) {
+        console.log(`❌ [TOOLBAR] No preview URL for project ${projectId}`);
+        socket.emit('toolbar_preview_response', {
+          success: false,
+          error: 'No preview URL available yet'
+        });
+        return;
+      }
+
+      console.log(`✅ [TOOLBAR] Preview URL for project ${projectId}: ${project.netlify_url}`);
+      
+      // Отправляем URL обратно в toolbar для обработки
+      socket.emit('toolbar_preview_response', {
+        success: true,
+        url: project.netlify_url,
+        projectId
+      });
+
+    } catch (error) {
+      console.error(`❌ [TOOLBAR] Error getting preview URL for project ${projectId}:`, error);
+      socket.emit('error', { message: 'Failed to get preview URL' });
+    }
+  });
+
   // ========= TOOLBAR AUTO-UPDATE HANDLERS =========
   
   // Проверка обновлений toolbar
@@ -1315,12 +1359,13 @@ app.post('/webhooks/netlify', async (req, res) => {
 
     const project = projects[0];
     const projectId = project.id;
+    const currentStatus = project.deploy_status;
 
     // Определяем новый статус на основе состояния Netlify
     let newStatus: 'pending' | 'building' | 'ready' | 'failed' | 'cancelled';
     
     switch (state) {
-      case 'ready':        // успешный деплой (неизвестное событие или polling)
+      case 'ready':        // успешный деплой
         newStatus = 'ready';
         break;
       case 'failed':       // deploy_failed event
@@ -1339,7 +1384,43 @@ app.post('/webhooks/netlify', async (req, res) => {
         newStatus = 'building';
     }
 
-    console.log(`📊 Updating project ${projectId} deploy status: ${project.deploy_status} → ${newStatus}`);
+    // 🎯 ИСПРАВЛЕНИЕ: Предотвращаем деградацию статуса
+    // Если проект уже ready, не позволяем webhook'ам building его откатить
+    if (currentStatus === 'ready' && newStatus === 'building') {
+      console.log(`⚠️ Ignoring building status webhook for project ${projectId} - already ready (webhook delay)`);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Webhook ignored - preventing status degradation',
+        projectId,
+        currentStatus,
+        ignoredStatus: newStatus
+      });
+    }
+
+    // Если проект уже failed, не позволяем building его обновить (но ready может)
+    if (currentStatus === 'failed' && newStatus === 'building') {
+      console.log(`⚠️ Ignoring building status webhook for project ${projectId} - already failed`);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Webhook ignored - project already failed',
+        projectId,
+        currentStatus,
+        ignoredStatus: newStatus
+      });
+    }
+
+    // Если статус не изменился, тоже пропускаем
+    if (currentStatus === newStatus) {
+      console.log(`⚠️ Skipping webhook for project ${projectId} - status unchanged (${currentStatus})`);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Webhook ignored - status unchanged',
+        projectId,
+        status: currentStatus
+      });
+    }
+
+    console.log(`📊 Updating project ${projectId} deploy status: ${currentStatus} → ${newStatus}`);
 
     // Обновляем проект в базе данных
     const updateData: any = {
@@ -1356,7 +1437,7 @@ app.post('/webhooks/netlify', async (req, res) => {
     await projectQueries.updateProject(projectId, updateData);
 
     // Логируем изменение статуса деплоя
-    console.log(`🚀 Deploy status change for project ${projectId}: ${project.deploy_status || 'building'} -> ${newStatus}`);
+    console.log(`🚀 Deploy status change for project ${projectId}: ${currentStatus} -> ${newStatus}`);
 
     // Отправляем уведомление через WebSocket всем подключенным клиентам проекта
     io.to(`project:${projectId}`).emit('deploy_status_update', {
@@ -1374,7 +1455,7 @@ app.post('/webhooks/netlify', async (req, res) => {
       success: true, 
       message: 'Webhook processed successfully',
       projectId,
-      newStatus
+      statusChange: `${currentStatus} → ${newStatus}`
     });
 
   } catch (error) {
@@ -1705,6 +1786,10 @@ async function collectTemplateFiles(
             ? 'wss://api.vybcel.com'
             : 'ws://localhost:8080';
           content = content.replace(/__WS_URL__/g, wsUrl);
+          
+          // Заменяем DEBUG_MODE в зависимости от окружения
+          const debugMode = process.env.NODE_ENV === 'production' ? 'false' : 'true';
+          content = content.replace(/"__DEBUG_MODE__"/g, debugMode);
         }
         
         // Нормализуем пути (заменяем \ на /)

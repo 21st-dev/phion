@@ -26,7 +26,7 @@ async function deleteNetlifySite(siteId: string): Promise<void> {
   }
 }
 
-async function getAuthenticatedUser(request: NextRequest) {
+async function getAuthenticatedUser(_request: NextRequest) {
   const cookieStore = await cookies();
   const supabase = createAuthServerClient({
     getAll() {

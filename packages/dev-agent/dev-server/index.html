@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vybcel Toolbar Development</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    .demo-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .hero {
+      text-align: center;
+      padding: 60px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      margin-bottom: 40px;
+    }
+    
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+    
+    .hero p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #1f2937;
+    }
+    
+    .card p {
+      color: #6b7280;
+      margin-bottom: 1rem;
+    }
+    
+    .button {
+      display: inline-block;
+      background: #3b82f6;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    
+    .button:hover {
+      background: #2563eb;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin: 40px 0;
+    }
+    
+    .feature {
+      text-align: center;
+      padding: 30px;
+    }
+    
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      background: #f3f4f6;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 24px;
+    }
+    
+    .demo-toolbar-info {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      max-width: 300px;
+      z-index: 999997;
+    }
+    
+    .demo-toolbar-info h3 {
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    
+    .demo-toolbar-info ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    
+    .demo-toolbar-info li {
+      margin-bottom: 4px;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="demo-content">
+    <div class="card">
+      <h2>Welcome to Vybcel Development</h2>
+      <p>This page simulates a real project where you can test how the toolbar looks and behaves. The toolbar should appear at the top with a black border around the entire viewport.</p>
+      <a href="#" class="button">Get Started</a>
+    </div>
+
+    
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html> 

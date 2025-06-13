@@ -9,7 +9,7 @@ interface ThemeToggleProps {
   className?: string;
 }
 
-export function ThemeToggle({ className }: ThemeToggleProps) {
+export function ThemeToggle({ className: _className }: ThemeToggleProps) {
   const { setTheme, resolvedTheme } = useTheme();
 
   const toggleTheme = () => {

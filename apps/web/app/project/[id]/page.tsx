@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { createAuthServerClient, getProjectById } from "@shipvibes/database";
+import { getProjectById } from "@shipvibes/database";
 
 interface ProjectPageProps {
   params: Promise<{ id: string }>;
@@ -10,21 +9,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   const { id } = await params;
 
   // Получаем данные проекта для определения нужен ли онбординг
-  const cookieStore = await cookies();
-  const supabase = createAuthServerClient({
-    getAll() {
-      return cookieStore.getAll();
-    },
-    setAll(cookiesToSet) {
-      try {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
-        );
-      } catch {
-        // Игнорируем ошибки установки cookies
-      }
-    },
-  });
 
   try {
     const project = await getProjectById(id);
@@ -36,7 +20,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       // Онбординг пройден, идем на overview
       redirect(`/project/${id}/overview`);
     }
-  } catch (error) {
+  } catch {
     // Если проект не найден или ошибка, идем на overview (там будет 404)
     redirect(`/project/${id}/overview`);
   }

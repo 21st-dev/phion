@@ -21,12 +21,10 @@ export function DownloadStep({
   onInitializationComplete,
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStage, setDownloadStage] = useState<
-    "downloading" | "processing" | null
-  >(null);
   const [isInitializing, setIsInitializing] = useState(
     project.deploy_status === "pending"
   );
+  const [downloadError, setDownloadError] = useState(false);
   const [initializationProgress, setInitializationProgress] = useState({
     progress: 0,
     stage: "",
@@ -98,69 +96,87 @@ export function DownloadStep({
     checkInitialStatus();
   }, [project.id]);
 
-  const handleDownload = async () => {
-    // Проверяем актуальный статус перед скачиванием
-    if (isInitializing) {
-      console.log(
-        "⚠️ [DownloadStep] Download blocked - project still initializing"
-      );
-      return;
-    }
+  const handleDownload = () => {
+    if (isInitializing || isDownloading) return;
 
     setIsDownloading(true);
-    setDownloadStage("downloading");
+    setDownloadError(false); // Reset any previous errors
 
-    try {
-      // Создаем ссылку для скачивания
-      const downloadUrl = `/api/projects/${project.id}/download`;
+    const url = `/api/projects/${project.id}/download`;
+    console.log(`🔽 [DownloadStep] Starting download from: ${url}`);
 
-      // Используем fetch для мониторинга прогресса
-      const response = await fetch(downloadUrl);
+    // Use proper fetch + blob approach for reliable downloads
+    const downloadFile = async () => {
+      try {
+        const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(
+            `Download failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        // Get the blob from response
+        const blob = await response.blob();
+
+        // Create download URL and trigger download
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = downloadUrl;
+
+        // Extract filename from Content-Disposition header or use default
+        const contentDisposition = response.headers.get("Content-Disposition");
+        let filename = `${project.name || "project"}-${project.id}.zip`;
+
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        downloadLink.download = filename;
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+
+        // Trigger download
+        downloadLink.click();
+
+        // Cleanup
+        setTimeout(() => {
+          window.URL.revokeObjectURL(downloadUrl);
+          document.body.removeChild(downloadLink);
+        }, 100);
+
+        console.log(
+          `✅ [DownloadStep] Download triggered successfully: ${filename}`
+        );
+        onDownload();
+      } catch (error) {
+        console.error("❌ [DownloadStep] Download error:", error);
+        setDownloadError(true);
+        throw error;
+      } finally {
+        // Reset downloading state after a short delay
+        setTimeout(() => {
+          setIsDownloading(false);
+          console.log("✅ [DownloadStep] Download state reset");
+        }, 2000);
       }
+    };
 
-      // Переключаемся на этап обработки
-      setDownloadStage("processing");
-
-      // Получаем blob
-      const blob = await response.blob();
-
-      // Создаем ссылку для скачивания
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${project.name}-${project.id}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      // Вызываем callback
-      onDownload();
-    } catch (error) {
-      console.error("Download error:", error);
-      // В случае ошибки все равно пытаемся вызвать оригинальный onDownload
-      await onDownload();
-    } finally {
+    // Execute the download
+    downloadFile().catch((error) => {
+      console.error("❌ [DownloadStep] Download failed:", error);
+      setDownloadError(true);
       setIsDownloading(false);
-      setDownloadStage(null);
-    }
+    });
   };
 
   const getDownloadButtonText = () => {
     if (isInitializing) return "Preparing...";
-    if (!isDownloading) return "Download";
-
-    switch (downloadStage) {
-      case "downloading":
-        return "Downloading...";
-      case "processing":
-        return "Processing...";
-      default:
-        return "Downloading...";
-    }
+    if (isDownloading) return "Downloading...";
+    return "Download";
   };
 
   return (
@@ -212,7 +228,7 @@ export function DownloadStep({
           </Button>
 
           <div className="flex-1">
-            {isCompleted && !isInitializing && (
+            {isCompleted && !isInitializing && !downloadError && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <svg
                   width="16"
@@ -228,20 +244,39 @@ export function DownloadStep({
               </div>
             )}
 
-            {!isInitializing && !isCompleted && !isDownloading && (
+            {downloadError && (
+              <div className="flex items-center gap-2 text-sm text-red-600">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Download failed. Please try again or check browser settings.
+              </div>
+            )}
+
+            {!isInitializing && !isCompleted && !downloadError && (
               <div className="text-sm text-muted-foreground">
                 Download your project files to get started with local
                 development.
+                {!isCompleted && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Click "Download" to get your project ZIP file.
+                  </div>
+                )}
               </div>
             )}
 
             {isDownloading && (
               <div className="text-sm text-muted-foreground">
-                {downloadStage === "downloading"
-                  ? "Fetching project from GitHub..."
-                  : downloadStage === "processing"
-                  ? "Preparing your project files..."
-                  : "Processing..."}
+                Downloading...
               </div>
             )}
           </div>

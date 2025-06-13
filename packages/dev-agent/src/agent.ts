@@ -5,6 +5,7 @@ import path from "path";
 import crypto from "crypto";
 import { exec } from "child_process";
 import { promisify } from "util";
+import http from "http";
 import { openPreview, type VSCodeConfig } from "./vscode-utils.js";
 
 const execAsync = promisify(exec);
@@ -59,6 +60,7 @@ export interface UpdateFilesData {
 export class VybcelAgent {
   private socket: Socket | null = null;
   private watcher: FSWatcher | null = null;
+  private httpServer: http.Server | null = null;
   private isConnected = false;
   private isGitRepo = false;
   private config: AgentConfig;
@@ -74,6 +76,9 @@ export class VybcelAgent {
       console.log(`🆔 Project ID: ${this.config.projectId}`);
     }
 
+    // Запускаем локальный HTTP сервер для команд
+    await this.startLocalServer();
+
     // Проверяем, что мы в git репозитории
     await this.checkGitRepository();
 
@@ -84,7 +89,164 @@ export class VybcelAgent {
     this.startFileWatcher();
 
     console.log("✅ Agent running - edit files to sync changes");
+    console.log("🌐 Local command server: http://localhost:3333");
     console.log("Press Ctrl+C to stop");
+  }
+
+  private async startLocalServer(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.httpServer = http.createServer((req, res) => {
+        // Enable CORS
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+
+        if (req.method === 'POST' && req.url === '/open-url') {
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk.toString();
+          });
+
+          req.on('end', async () => {
+            try {
+              const { url } = JSON.parse(body);
+              if (this.config.debug) {
+                console.log(`🌐 Local server: Opening URL ${url}`);
+              }
+
+              const success = await this.openUrlInSystem(url);
+              
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                success, 
+                message: success ? 'URL opened successfully' : 'Failed to open URL' 
+              }));
+            } catch (error) {
+              if (this.config.debug) {
+                console.error('❌ Local server: Error opening URL:', error);
+              }
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                success: false, 
+                error: (error as Error).message 
+              }));
+            }
+          });
+          return;
+        }
+
+        if (req.method === 'GET' && req.url === '/status') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            status: 'running',
+            projectId: this.config.projectId,
+            connected: this.isConnected
+          }));
+          return;
+        }
+
+        // 404 for other routes
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not found' }));
+      });
+
+      this.httpServer.listen(3333, 'localhost', () => {
+        if (this.config.debug) {
+          console.log('🌐 Local command server started on http://localhost:3333');
+        }
+        resolve();
+      });
+
+      this.httpServer.on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE') {
+          console.log('⚠️ Port 3333 already in use, trying 3334...');
+          this.httpServer?.listen(3334, 'localhost', () => {
+            if (this.config.debug) {
+              console.log('🌐 Local command server started on http://localhost:3334');
+            }
+            resolve();
+          });
+        } else {
+          console.error('❌ Failed to start local server:', error);
+          reject(error);
+        }
+      });
+    });
+  }
+
+  private async openUrlInSystem(url: string): Promise<boolean> {
+    try {
+      const platform = process.platform;
+      let command: string;
+
+      switch (platform) {
+        case 'darwin':
+          // Try multiple approaches on macOS
+          try {
+            // Method 1: Try to open in Cursor if it's running
+            const cursorAppleScript = `
+              tell application "System Events"
+                if exists (processes where name is "Cursor") then
+                  tell application "Cursor" to activate
+                  delay 0.5
+                  keystroke "l" using {command down}
+                  delay 0.2
+                  keystroke "${url}"
+                  delay 0.2
+                  keystroke return
+                  return true
+                else
+                  return false
+                end if
+              end tell
+            `;
+            
+            if (this.config.debug) {
+              console.log(`🍎 Trying AppleScript for Cursor: ${url}`);
+            }
+            
+            await execAsync(`osascript -e '${cursorAppleScript}'`);
+            if (this.config.debug) {
+              console.log(`✅ Opened in Cursor via AppleScript: ${url}`);
+            }
+            return true;
+          } catch (cursorError) {
+            if (this.config.debug) {
+              console.log(`⚠️ Cursor AppleScript failed, falling back to system browser`);
+            }
+            // Fallback to system browser
+            command = `open "${url}"`;
+          }
+          break;
+        case 'win32':
+          command = `start "" "${url}"`;
+          break;
+        default:
+          command = `xdg-open "${url}"`;
+          break;
+      }
+
+      if (command) {
+        await execAsync(command);
+        if (this.config.debug) {
+          console.log(`✅ Opened URL in system browser: ${url}`);
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to open URL:', (error as Error).message);
+      if (this.config.debug) {
+        console.error('❌ Full error details:', error);
+      }
+      return false;
+    }
   }
 
   private async checkGitRepository(): Promise<void> {
@@ -398,6 +560,8 @@ export class VybcelAgent {
         ".env*",
         "*.timestamp-*.mjs",
         "vite.config.*.timestamp-*.mjs",
+        "**/*timestamp-*",
+        "**/*.timestamp-*.*",
         "*.tmp",
         "*.temp",
         ".vite/**",
@@ -427,6 +591,14 @@ export class VybcelAgent {
     if (!this.isConnected) {
       if (this.config.debug) {
         console.log(`⏳ Not connected, skipping: ${filePath}`);
+      }
+      return;
+    }
+
+    // Additional check to ignore timestamp files that might slip through chokidar
+    if (filePath.includes('.timestamp-') || filePath.includes('timestamp-')) {
+      if (this.config.debug) {
+        console.log(`⏭️ Ignoring timestamp file: ${filePath}`);
       }
       return;
     }
@@ -525,6 +697,11 @@ export class VybcelAgent {
 
     if (this.socket) {
       this.socket.disconnect();
+    }
+
+    if (this.httpServer) {
+      this.httpServer.close();
+      this.httpServer = null;
     }
 
     console.log("✅ Stopped");

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatusDot } from "@/components/geist/status-dot";
 import { Button } from "@/components/geist/button";

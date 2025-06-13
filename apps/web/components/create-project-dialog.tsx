@@ -52,13 +52,17 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
       }
 
       const data = await response.json();
+
       showSuccess(
         "Project created successfully",
         `"${projectName.trim()}" is ready for setup`
       );
+
       setOpen(false);
-      router.push(`/project/${data.project.id}/onboarding`);
       setProjectName("");
+
+      // ✅ Быстрый redirect - пользователь увидит страницу с прогрессом
+      router.push(`/project/${data.project.id}/onboarding`);
     } catch (error) {
       console.error("Error creating project:", error);
       showError("Failed to create project", "Please try again");
@@ -115,6 +119,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
               onKeyDown={handleKeyDown}
               maxLength={100}
               autoFocus
+              disabled={isCreating}
             />
           </div>
 
