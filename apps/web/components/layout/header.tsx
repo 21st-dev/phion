@@ -9,7 +9,7 @@ import { useSupabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useProjectLimits } from "@/hooks/use-project-limits";
 import { PricingModal } from "@/components/pricing-dialog";
-import type { DatabaseTypes } from "@shipvibes/database";
+import type { ProjectRow } from "@shipvibes/database";
 
 interface HeaderProps {
   user?: {
@@ -19,7 +19,7 @@ interface HeaderProps {
       avatar_url?: string;
     };
   };
-  project?: DatabaseTypes.ProjectRow;
+  project?: ProjectRow;
 }
 
 // Slash icon component

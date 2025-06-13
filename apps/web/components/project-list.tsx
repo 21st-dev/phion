@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/project/project-card";
 import { ProjectCardSkeleton } from "@/components/project/project-card-skeleton";
 import { EmptyState } from "@/components/project/empty-state";
-import type { DatabaseTypes } from "@shipvibes/database";
+import type { ProjectRow } from "@shipvibes/database";
 import { useToast } from "@/hooks/use-toast";
 
 export function ProjectList() {
-  const [projects, setProjects] = useState<DatabaseTypes.ProjectRow[]>([]);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { error: showError } = useToast();
 
@@ -44,7 +44,7 @@ export function ProjectList() {
   };
 
   // Конвертируем данные для совместимости с ProjectCard
-  const formatProjectsForCards = (projects: DatabaseTypes.ProjectRow[]) => {
+  const formatProjectsForCards = (projects: ProjectRow[]) => {
     return projects.map((project) => ({
       id: project.id,
       name: project.name,
