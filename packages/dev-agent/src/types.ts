@@ -21,7 +21,6 @@ export interface ToolbarState {
   deployStatus: 'ready' | 'building' | 'failed' | 'pending'
   agentConnected: boolean
   netlifyUrl?: string
-  changedFiles?: string[]
 }
 
 export interface WebSocketEvents {

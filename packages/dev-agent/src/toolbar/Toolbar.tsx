@@ -21,7 +21,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     deployStatus: "ready",
     agentConnected: false,
     netlifyUrl: undefined,
-    changedFiles: [],
   });
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,26 +28,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [isSimpleBrowser, setIsSimpleBrowser] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-
     const connectToServer = async () => {
-      if (!mounted) return;
       const connected = await client.connect();
-      if (mounted) {
-        setIsConnected(connected);
-      }
+      setIsConnected(connected);
     };
 
     connectToServer();
 
     const handleStateChange = (newState: ToolbarState) => {
-      if (!mounted) return;
       console.log("[Vybcel Toolbar] State change:", newState);
       setState(newState);
+    };
+
+    const handleSaveSuccess = () => {
+      setIsLoading(false);
+    };
+
+    const handleDiscardSuccess = () => {
       setIsLoading(false);
     };
 
     client.on("stateChange", handleStateChange);
+    client.on("saveSuccess", handleSaveSuccess);
+    client.on("discardSuccess", handleDiscardSuccess);
 
     // Detect Simple Browser in Cursor
     const detectSimpleBrowser = () => {
@@ -93,34 +95,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         if (response.ok) {
           const packageJson = await response.json();
           const name = packageJson.name || "Project";
-          if (mounted) {
-            setProjectName(name);
-          }
+          setProjectName(name);
         }
       } catch (e) {
         // Use default project name
-        if (mounted) {
-          setProjectName("Project");
-        }
+        setProjectName("Project");
       }
     };
 
     getProjectName();
 
     return () => {
-      mounted = false;
       client.off("stateChange", handleStateChange);
+      client.off("saveSuccess", handleSaveSuccess);
+      client.off("discardSuccess", handleDiscardSuccess);
       document.removeEventListener("keydown", handleKeyDown);
-      // Только отключаем клиент при окончательном размонтировании
-    };
-  }, [client]);
-
-  // Отключаем клиент только при unmount всего компонента
-  useEffect(() => {
-    return () => {
       client.disconnect();
     };
-  }, []);
+  }, [client]);
 
   const handleSave = () => {
     if (state.pendingChanges > 0 && !isLoading) {
