@@ -1,6 +1,6 @@
 {
   "name": "vybcel",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "Vybcel Development Agent and Vite Plugin for seamless code sync and auto-deploy",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",
@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "vite dev-server",
+    "dev:server": "vite dev-server",
     "preview": "vite preview dev-server",
     "type-check": "tsc --noEmit"
   },

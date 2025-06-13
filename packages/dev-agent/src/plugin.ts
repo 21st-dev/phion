@@ -8,8 +8,19 @@ import type { VybcelConfig, VybcelPluginOptions, ToolbarVersion, UpdateCheckResp
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Current version of the plugin (should match package.json)
-const PLUGIN_VERSION = '1.1.10'
+// Auto-sync version from package.json
+const getPluginVersion = (): string => {
+  try {
+    const packageJsonPath = join(__dirname, '..', 'package.json')
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+    return packageJson.version
+  } catch (error) {
+    console.warn('[Vybcel] Could not read version from package.json, using fallback')
+    return '1.1.11' // Fallback version
+  }
+}
+
+const PLUGIN_VERSION = getPluginVersion()
 const DEFAULT_UPDATE_ENDPOINT = process.env.TOOLBAR_UPDATE_ENDPOINT || 'http://localhost:3004/api/toolbar'
 
 // Find the toolbar bundle location (working in both dev and prod environments)
