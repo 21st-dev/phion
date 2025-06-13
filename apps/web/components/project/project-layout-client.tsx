@@ -82,20 +82,26 @@ export function ProjectLayoutClient({
   } = useWebSocket({
     projectId: project.id,
 
-    onAgentConnected: useCallback((data) => {
-      console.log("🟢 [ProjectLayout] Agent connected:", data);
-      setAgentConnected(true);
-      setLastUpdated(new Date());
-    }, []),
+    onAgentConnected: useCallback(
+      (data: { projectId: string; clientId: string; timestamp: string }) => {
+        console.log("🟢 [ProjectLayout] Agent connected:", data);
+        setAgentConnected(true);
+        setLastUpdated(new Date());
+      },
+      []
+    ),
 
-    onAgentDisconnected: useCallback((data) => {
-      console.log("🔴 [ProjectLayout] Agent disconnected:", data);
-      setAgentConnected(false);
-      setLastUpdated(new Date());
-    }, []),
+    onAgentDisconnected: useCallback(
+      (data: { projectId: string; clientId: string; timestamp: string }) => {
+        console.log("🔴 [ProjectLayout] Agent disconnected:", data);
+        setAgentConnected(false);
+        setLastUpdated(new Date());
+      },
+      []
+    ),
 
     onFileTracked: useCallback(
-      (data) => {
+      (data: any) => {
         console.log("📝 [ProjectLayout] File tracked event received:", {
           eventProjectId: data.projectId,
           currentProjectId: project.id,
@@ -158,7 +164,7 @@ export function ProjectLayoutClient({
       [project.id]
     ),
     onSaveSuccess: useCallback(
-      (data) => {
+      (data: any) => {
         console.log("💾 [ProjectLayout] Save success received:", data);
         if (data.projectId === project.id) {
           setIsSaving(false);
@@ -170,7 +176,7 @@ export function ProjectLayoutClient({
       [project.id]
     ),
     onCommitCreated: useCallback(
-      (data) => {
+      (data: { projectId: string; commit: any; timestamp: number }) => {
         console.log("📝 [ProjectLayout] Commit created:", data);
         console.log("🎯 [ProjectLayout] onCommitCreated details:", {
           eventProjectId: data.projectId,
@@ -199,7 +205,13 @@ export function ProjectLayoutClient({
       [project.id]
     ),
     onDeployStatusUpdate: useCallback(
-      (data) => {
+      (data: {
+        projectId: string;
+        status: string;
+        url?: string;
+        error?: string;
+        timestamp: string;
+      }) => {
         console.log("🚀 [ProjectLayout] Deploy status update:", data);
         if (data.projectId === project.id) {
           // Обновляем статус проекта в реальном времени
@@ -219,7 +231,7 @@ export function ProjectLayoutClient({
       },
       [project.id]
     ),
-    onError: useCallback((error) => {
+    onError: useCallback((error: any) => {
       console.error("❌ [ProjectLayout] WebSocket error:", error);
       setIsSaving(false);
     }, []),
