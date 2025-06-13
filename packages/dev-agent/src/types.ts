@@ -1,6 +1,6 @@
 export interface VybcelConfig {
   projectId: string
-  websocketUrl?: string
+  wsUrl?: string
   debug?: boolean
   toolbar?: {
     enabled?: boolean

@@ -126,18 +126,29 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
     configResolved(resolvedConfig) {
       // Read vybcel config
       const configFilePath = resolve(resolvedConfig.root, configPath)
+      console.log(`[Vybcel] Looking for config at: ${configFilePath}`)
       
       if (existsSync(configFilePath)) {
         try {
           const configContent = readFileSync(configFilePath, 'utf-8')
           config = JSON.parse(configContent)
           
+          console.log(`[Vybcel] Config loaded:`, {
+            projectId: config?.projectId,
+            wsUrl: config?.wsUrl,
+            toolbarEnabled: config?.toolbar?.enabled
+          })
+          
           // Check if toolbar is enabled
           toolbarEnabled = config?.toolbar?.enabled !== false && 
                           process.env.VYBCEL_TOOLBAR !== 'false'
+          
+          console.log(`[Vybcel] Toolbar enabled: ${toolbarEnabled}`)
         } catch (error) {
           console.warn('[vybcel-plugin] Failed to read config:', error)
         }
+      } else {
+        console.log(`[Vybcel] Config file not found at: ${configFilePath}`)
       }
     },
 
@@ -147,17 +158,25 @@ export function vybcelPlugin(options: VybcelPluginOptions = {}): Plugin {
       // Serve the toolbar configuration
       server.middlewares.use('/vybcel/config.js', (req, res, next) => {
         try {
+          console.log(`[Vybcel] Creating toolbar config...`)
+          console.log(`[Vybcel] Config object:`, config)
+          console.log(`[Vybcel] config?.wsUrl:`, config?.wsUrl)
+          console.log(`[Vybcel] websocketUrl fallback:`, websocketUrl)
+          
           // Simply use the existing config 
           // (config was already read in configResolved hook)
           const toolbarConfig = {
             projectId: config?.projectId || '',
-            websocketUrl: websocketUrl || 'ws://localhost:8080',
+            websocketUrl: config?.wsUrl || websocketUrl, // ✅ Всегда из конфига в первую очередь
             position: config?.toolbar?.position || 'top',
             version: PLUGIN_VERSION,
             autoUpdate: config?.toolbar?.autoUpdate !== false,
             updateChannel: config?.toolbar?.updateChannel || 'stable',
             debug: config?.debug || false
           }
+          
+          console.log(`[Vybcel] Final toolbar config:`, toolbarConfig)
+          console.log(`[Vybcel] Toolbar config - wsUrl from config: ${config?.wsUrl}, fallback: ${websocketUrl}`)
           
           res.writeHead(200, { 'Content-Type': 'application/javascript' })
           res.end(`window.VYBCEL_CONFIG = ${JSON.stringify(toolbarConfig)};`)
