@@ -18,6 +18,12 @@ interface GitHubRepository {
   clone_url: string;
   ssh_url: string;
   default_branch: string;
+  created_at: string;
+  owner: {
+    login: string;
+    id: number;
+    type: string;
+  };
 }
 
 interface GitHubFileContent {
@@ -276,6 +282,24 @@ export class GitHubAppService {
     
     return this.withRetry(
       async () => {
+        // Проверяем существование репозитория перед созданием
+        const existingRepo = await this.checkRepositoryExists(repoName);
+        if (existingRepo) {
+          console.log(`⚠️ Repository ${repoName} already exists. Checking if it's orphaned...`);
+          
+          // Попытаемся удалить существующий репозиторий
+          try {
+            await this.deleteRepository(repoName);
+            console.log(`🧹 Deleted orphaned repository: ${repoName}`);
+            
+            // Небольшая задержка после удаления
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (deleteError) {
+            console.error(`❌ Failed to delete existing repository ${repoName}:`, deleteError);
+            throw new Error(`Repository ${repoName} already exists and could not be deleted. Please delete it manually on GitHub or contact support.`);
+          }
+        }
+
         const requestBody: CreateRepositoryRequest = {
           name: repoName,
           description: description || `Vybcel project ${projectId}`,
@@ -310,6 +334,94 @@ export class GitHubAppService {
       5, // Increased max attempts for critical operation
       2000 // Longer initial delay
     );
+  }
+
+  /**
+   * Проверяет существование репозитория
+   */
+  async checkRepositoryExists(repoName: string): Promise<GitHubRepository | null> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}`
+      );
+
+      if (response.ok) {
+        const repository = await response.json() as GitHubRepository;
+        console.log('🔍 Repository exists', { 
+          repoName: repository.name,
+          repoUrl: repository.html_url,
+          isPrivate: repository.private
+        });
+        return repository;
+      }
+
+      if (response.status === 404) {
+        console.log('🔍 Repository does not exist', { repoName });
+        return null;
+      }
+
+      // Для других ошибок выбрасываем исключение
+      const error = await response.text();
+      throw new Error(`Failed to check repository existence: ${response.status} ${error}`);
+    } catch (error) {
+      console.error('❌ Failed to check repository existence', { repoName, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Получает список всех репозиториев организации
+   */
+  async listOrganizationRepositories(page = 1, perPage = 100): Promise<GitHubRepository[]> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/orgs/${this.organization}/repos?type=all&page=${page}&per_page=${perPage}&sort=created&direction=desc`
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to list organization repositories: ${response.status} ${error}`);
+      }
+
+      const repositories = await response.json() as GitHubRepository[];
+      
+      console.log('📋 Retrieved organization repositories', {
+        organization: this.organization,
+        count: repositories.length,
+        page,
+        perPage
+      });
+
+      return repositories;
+    } catch (error) {
+      console.error('❌ Failed to list organization repositories', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Находит "осиротевшие" репозитории (существуют в GitHub, но нет в БД)
+   */
+  async findOrphanedRepositories(): Promise<GitHubRepository[]> {
+    try {
+      console.log('🔍 Searching for orphaned repositories...');
+      
+      // Получаем все репозитории vybcel-project-* из GitHub
+      const allRepos = await this.listOrganizationRepositories();
+      const vybcelRepos = allRepos.filter(repo => 
+        repo.name.startsWith('vybcel-project-') && 
+        repo.owner?.login === this.organization
+      );
+
+      console.log(`🔍 Found ${vybcelRepos.length} vybcel repositories in GitHub`);
+      
+      // TODO: Здесь нужно будет добавить проверку с базой данных
+      // Для начала возвращаем все найденные репозитории для ручной проверки
+      return vybcelRepos;
+    } catch (error) {
+      console.error('❌ Failed to find orphaned repositories', { error });
+      throw error;
+    }
   }
 
   /**

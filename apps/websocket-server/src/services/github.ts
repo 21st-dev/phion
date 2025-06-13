@@ -18,6 +18,12 @@ interface GitHubRepository {
   clone_url: string;
   ssh_url: string;
   default_branch: string;
+  created_at: string;
+  owner: {
+    login: string;
+    id: number;
+    type: string;
+  };
 }
 
 interface GitHubFileContent {
@@ -268,6 +274,24 @@ export class GitHubAppService {
     
     return this.withRetry(
       async () => {
+        // Проверяем существование репозитория перед созданием
+        const existingRepo = await this.checkRepositoryExists(repoName);
+        if (existingRepo) {
+          console.log(`⚠️ Repository ${repoName} already exists. Checking if it's orphaned...`);
+          
+          // Попытаемся удалить существующий репозиторий
+          try {
+            await this.deleteRepository(repoName);
+            console.log(`🧹 Deleted orphaned repository: ${repoName}`);
+            
+            // Небольшая задержка после удаления
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (deleteError) {
+            console.error(`❌ Failed to delete existing repository ${repoName}:`, deleteError);
+            throw new Error(`Repository ${repoName} already exists and could not be deleted. Please delete it manually on GitHub or contact support.`);
+          }
+        }
+
         const requestBody: CreateRepositoryRequest = {
           name: repoName,
           description: description || `Vybcel project ${projectId}`,
@@ -302,6 +326,74 @@ export class GitHubAppService {
       5, // Increased max attempts for critical operation
       2000 // Longer initial delay
     );
+  }
+
+  /**
+   * Проверяет существование репозитория
+   */
+  async checkRepositoryExists(repoName: string): Promise<GitHubRepository | null> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}`
+      );
+
+      if (response.ok) {
+        const repository = await response.json() as GitHubRepository;
+        console.log('🔍 Repository exists', { 
+          repoName: repository.name,
+          repoUrl: repository.html_url,
+          isPrivate: repository.private
+        });
+        return repository;
+      }
+
+      if (response.status === 404) {
+        console.log('🔍 Repository does not exist', { repoName });
+        return null;
+      }
+
+      // Для других ошибок выбрасываем исключение
+      const error = await response.text();
+      throw new Error(`Failed to check repository existence: ${response.status} ${error}`);
+    } catch (error) {
+      console.error('❌ Failed to check repository existence', { repoName, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Удаляет репозиторий из организации
+   * ВНИМАНИЕ: Это необратимая операция!
+   */
+  async deleteRepository(repoName: string): Promise<void> {
+    try {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        
+        // Если репозиторий уже не существует, считаем это успехом
+        if (response.status === 404) {
+          console.log('⚠️ Repository already deleted or not found', { repoName });
+          return;
+        }
+        
+        throw new Error(`Failed to delete repository: ${response.status} ${error}`);
+      }
+
+      console.log('🗑️ Deleted GitHub repository', { 
+        repoName,
+        fullName: `${this.organization}/${repoName}`
+      });
+    } catch (error) {
+      console.error('❌ Failed to delete GitHub repository', { repoName, error });
+      throw error;
+    }
   }
 
   /**

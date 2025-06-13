@@ -239,6 +239,44 @@ export class ProjectQueries {
       github_owner: githubInfo.github_owner || "vybcel",
     };
 
+    // Сначала проверяем, сколько записей с таким ID существует
+    const { data: existingProjects, error: checkError } = await this.client
+      .from("projects")
+      .select("id")
+      .eq("id", projectId);
+
+    if (checkError) {
+      throw new Error(`Failed to check project existence: ${checkError.message}`);
+    }
+
+    if (!existingProjects || existingProjects.length === 0) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+
+    if (existingProjects.length > 1) {
+      console.error(`⚠️ Multiple projects found with ID ${projectId}:`, existingProjects.length);
+      
+      // Если есть дубликаты, обновляем все записи, но возвращаем первую
+      const { data, error } = await this.client
+        .from("projects")
+        .update(updateData)
+        .eq("id", projectId)
+        .select()
+        .limit(1);
+
+      if (error) {
+        throw new Error(`Failed to update GitHub info: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error(`No project updated for ID: ${projectId}`);
+      }
+
+      console.log(`✅ Updated GitHub info for project ${projectId} (${existingProjects.length} duplicate records found)`);
+      return data[0] as unknown as ProjectRow;
+    }
+
+    // Стандартный случай - одна запись
     const { data, error } = await this.client
       .from("projects")
       .update(updateData)
