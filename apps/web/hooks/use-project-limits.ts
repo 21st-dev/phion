@@ -22,6 +22,8 @@ interface ProjectLimits {
   projectCount: number
   maxProjects: number
   subscriptionData: SubscriptionData | null
+  currentPlan: string
+  currentPlanName: string
   error: string | null
   refetch: () => void
 }
@@ -87,6 +89,13 @@ export function useProjectLimits(): ProjectLimits {
   const maxProjects = hasActiveSubscription || isDevelopment ? Infinity : FREE_TIER_LIMIT
   const canCreateProject = isDevelopment || projectCount < maxProjects
 
+  const currentPlan = subscriptionData?.planType || "free"
+  const currentPlanName = currentPlan
+    .replace(/_/g, " ")
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ")
+
   return {
     isLoading,
     canCreateProject,
@@ -95,6 +104,8 @@ export function useProjectLimits(): ProjectLimits {
     maxProjects: hasActiveSubscription || isDevelopment ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
     subscriptionData,
     error: error?.message || null,
+    currentPlan: currentPlan,
+    currentPlanName: currentPlanName,
     refetch: () => {
       refetch()
     },

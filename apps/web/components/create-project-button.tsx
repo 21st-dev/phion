@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/geist/button"
 import { CreateProjectDialog } from "@/components/create-project-dialog"
+import { Button } from "@/components/geist/button"
 import { PricingModal } from "@/components/pricing-dialog"
 import { useProjectLimits } from "@/hooks/use-project-limits"
+import { useState } from "react"
 
 interface CreateProjectButtonProps {
   trigger?: React.ReactNode
@@ -58,8 +58,6 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
                 refetch()
               }
             }}
-            currentProjectCount={projectCount}
-            maxProjects={maxProjects}
           />
         </>
       )}

@@ -1,15 +1,15 @@
 "use client"
 
-import Link from "next/link"
-import { useState } from "react"
-import { ThemeSwitcher } from "@/components/geist/theme-switcher"
 import { Avatar } from "@/components/geist/avatar"
 import { Button } from "@/components/geist/button"
-import { useSupabase } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
-import { useProjectLimits } from "@/hooks/use-project-limits"
+import { ThemeSwitcher } from "@/components/geist/theme-switcher"
 import { PricingModal } from "@/components/pricing-dialog"
+import { useProjectLimits } from "@/hooks/use-project-limits"
+import { useSupabase } from "@/lib/supabase/client"
 import type { ProjectRow } from "@shipvibes/database"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 interface HeaderProps {
   user?: {
@@ -38,7 +38,8 @@ export function Header({ user, project }: HeaderProps) {
   const supabase = useSupabase()
   const router = useRouter()
   const [showPricingModal, setShowPricingModal] = useState(false)
-  const { hasActiveSubscription, projectCount, maxProjects, isLoading } = useProjectLimits()
+  const { hasActiveSubscription, projectCount, maxProjects, isLoading, currentPlanName } =
+    useProjectLimits()
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -71,21 +72,12 @@ export function Header({ user, project }: HeaderProps) {
           <div className="flex items-center space-x-4">
             {user && !isLoading && (
               <div className="hidden sm:block">
-                {hasActiveSubscription ? (
-                  <span
-                    className="cursor-pointer hover:opacity-80 transition-opacity text-sm "
-                    onClick={() => setShowPricingModal(true)}
-                  >
-                    Pro
-                  </span>
-                ) : (
-                  <span
-                    className="cursor-pointer hover:opacity-80 transition-opacity text-sm "
-                    onClick={() => setShowPricingModal(true)}
-                  >
-                    {projectCount}/{maxProjects} Free
-                  </span>
-                )}
+                <span
+                  className="cursor-pointer hover:opacity-80 transition-opacity text-sm "
+                  onClick={() => setShowPricingModal(true)}
+                >
+                  {projectCount}/{maxProjects} {currentPlanName}
+                </span>
               </div>
             )}
             <ThemeSwitcher />
@@ -116,12 +108,7 @@ export function Header({ user, project }: HeaderProps) {
       </div>
 
       {/* Pricing Modal */}
-      <PricingModal
-        open={showPricingModal}
-        onOpenChange={setShowPricingModal}
-        currentProjectCount={projectCount}
-        maxProjects={maxProjects}
-      />
+      <PricingModal open={showPricingModal} onOpenChange={setShowPricingModal} />
     </header>
   )
 }

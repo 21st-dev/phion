@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useProjectLimits } from "@/hooks/use-project-limits"
 import { useToast } from "@/hooks/use-toast"
 import { Check } from "lucide-react"
 import { useState } from "react"
@@ -15,19 +16,13 @@ import { useState } from "react"
 interface PricingModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentProjectCount: number
-  maxProjects: number
 }
 
-export function PricingModal({
-  open,
-  onOpenChange,
-  currentProjectCount,
-  maxProjects,
-}: PricingModalProps) {
+export function PricingModal({ open, onOpenChange }: PricingModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isYearly, setIsYearly] = useState(true) // Default to yearly
   const { error: showError, info } = useToast()
+  const { projectCount, maxProjects, currentPlanName } = useProjectLimits()
 
   const handleUpgrade = async () => {
     setIsLoading(true)
@@ -167,7 +162,7 @@ export function PricingModal({
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="text-lg font-semibold text-left">Upgrade Plan</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground text-left">
-            You&apos;re currently on the Free plan.
+            You&apos;re currently on the {currentPlanName} plan.
           </DialogDescription>
         </DialogHeader>
 
@@ -204,7 +199,7 @@ export function PricingModal({
               </li>
             </ul>
             <div className="text-xs text-muted-foreground">
-              Current projects: {currentProjectCount} / {maxProjects}
+              Current projects: {projectCount} / {maxProjects}
             </div>
           </div>
 
