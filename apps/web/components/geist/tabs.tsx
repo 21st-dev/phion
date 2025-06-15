@@ -28,7 +28,7 @@ interface TabProps extends ITab {
 const getClasses = (
   isSelected: boolean,
   disabled: boolean,
-  variant: TTabVariant
+  variant: TTabVariant,
 ) => {
   let classes = `relative overflow-visible box-border font-sans text-sm flex gap-0.5 duration-100 ${
     disabled ? "cursor-not-allowed" : "cursor-pointer"
@@ -129,7 +129,7 @@ export const Tabs = ({
             variant={variant}
             {...tab}
           />
-        )
+        ),
       )}
     </div>
   );

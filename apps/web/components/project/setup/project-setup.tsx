@@ -56,15 +56,15 @@ export function ProjectSetup({
           // Проект инициализируется
           setSteps((prev) =>
             prev.map((step) =>
-              step.id === "download" ? { ...step, status: "BUILDING" } : step
-            )
+              step.id === "download" ? { ...step, status: "BUILDING" } : step,
+            ),
           );
         } else if (data.status === "ready" && !data.url) {
           // Инициализация завершена, проект готов к скачиванию
           setSteps((prev) =>
             prev.map((step) =>
-              step.id === "download" ? { ...step, status: "READY" } : step
-            )
+              step.id === "download" ? { ...step, status: "READY" } : step,
+            ),
           );
         } else if (data.status === "building") {
           // Деплой в процессе - фоновая обработка
@@ -112,8 +112,8 @@ export function ProjectSetup({
             // Проект готов к скачиванию - разблокируем первый шаг
             setSteps((prev) =>
               prev.map((step) =>
-                step.id === "download" ? { ...step, status: "READY" } : step
-              )
+                step.id === "download" ? { ...step, status: "READY" } : step,
+              ),
             );
           }
           // Если проект в процессе деплоя
@@ -125,8 +125,8 @@ export function ProjectSetup({
             // Показываем что проект еще инициализируется
             setSteps((prev) =>
               prev.map((step) =>
-                step.id === "download" ? { ...step, status: "BUILDING" } : step
-              )
+                step.id === "download" ? { ...step, status: "BUILDING" } : step,
+              ),
             );
           }
 
@@ -152,8 +152,8 @@ export function ProjectSetup({
     console.log("✅ [ProjectSetup] Initialization completed");
     setSteps((prev) =>
       prev.map((step) =>
-        step.id === "download" ? { ...step, status: "READY" } : step
-      )
+        step.id === "download" ? { ...step, status: "READY" } : step,
+      ),
     );
   };
 
@@ -193,7 +193,7 @@ export function ProjectSetup({
       setDownloadCompleted(true);
       showSuccess(
         "Project downloaded",
-        "Open the downloaded file in Cursor to continue"
+        "Open the downloaded file in Cursor to continue",
       );
 
       // Update steps
@@ -202,9 +202,9 @@ export function ProjectSetup({
           step.id === "download"
             ? { ...step, status: "READY" }
             : step.id === "setup"
-            ? { ...step, status: "READY" }
-            : step
-        )
+              ? { ...step, status: "READY" }
+              : step,
+        ),
       );
       setCurrentStep(1);
 
@@ -214,8 +214,8 @@ export function ProjectSetup({
       console.error("Error downloading project:", error);
       setSteps((prev) =>
         prev.map((step) =>
-          step.id === "download" ? { ...step, status: "ERROR" } : step
-        )
+          step.id === "download" ? { ...step, status: "ERROR" } : step,
+        ),
       );
       // Показываем ошибку пользователю
       showError("Failed to download project", "Please try again");
@@ -226,13 +226,13 @@ export function ProjectSetup({
     setSetupCompleted(true);
     setSteps((prev) =>
       prev.map((step) =>
-        step.id === "setup" ? { ...step, status: "READY" } : step
-      )
+        step.id === "setup" ? { ...step, status: "READY" } : step,
+      ),
     );
 
     // Редиректим на overview по кнопке
     console.log(
-      "✅ [ProjectSetup] Setup completed, redirecting to overview..."
+      "✅ [ProjectSetup] Setup completed, redirecting to overview...",
     );
     router.push(`/project/${project.id}/overview`);
   };
@@ -293,8 +293,8 @@ export function ProjectSetup({
                 currentStep === 0
                   ? "" // Текущий шаг - яркий
                   : downloadCompleted
-                  ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
-                  : "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
+                    ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
+                    : "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
               }`}
             >
               <DownloadStep
@@ -311,10 +311,10 @@ export function ProjectSetup({
                 currentStep === 1
                   ? "" // Текущий шаг - яркий
                   : setupCompleted
-                  ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
-                  : currentStep > 1 || !downloadCompleted
-                  ? "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
-                  : "opacity-50 pointer-events-none"
+                    ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
+                    : currentStep > 1 || !downloadCompleted
+                      ? "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
+                      : "opacity-50 pointer-events-none"
               }`}
             >
               <SetupStep

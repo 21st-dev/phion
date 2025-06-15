@@ -5,14 +5,14 @@ const sizes = [
     xsmall: "h-6 text-xs pl-1.5 pr-[22px]",
     small: "h-8 text-sm pl-3 pr-9",
     medium: "h-10 text-sm pl-3 pr-9",
-    large: "h-12 text-base pl-3 pr-9 rounded-lg"
+    large: "h-12 text-base pl-3 pr-9 rounded-lg",
   },
   {
     xsmall: "h-6 text-xs px-[22px]",
     small: "h-8 text-sm px-9",
     medium: "h-10 text-sm px-9",
-    large: "h-12 text-base px-9 rounded-lg"
-  }
+    large: "h-12 text-base px-9 rounded-lg",
+  },
 ];
 
 export interface Option {
@@ -25,7 +25,7 @@ interface SelectProps {
   label?: string;
   value?: string;
   placeholder?: string;
-  size?: keyof typeof sizes[0];
+  size?: keyof (typeof sizes)[0];
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
   disabled?: boolean;
@@ -34,12 +34,7 @@ interface SelectProps {
 }
 
 const ArrowBottom = () => (
-  <svg
-    height="16"
-    strokeLinejoin="round"
-    viewBox="0 0 16 16"
-    width="16"
-  >
+  <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
     <path
       fillRule="evenodd"
       clipRule="evenodd"
@@ -49,12 +44,7 @@ const ArrowBottom = () => (
 );
 
 const Error = () => (
-  <svg
-    height="16"
-    strokeLinejoin="round"
-    viewBox="0 0 16 16"
-    width="16"
-  >
+  <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
     <path
       fillRule="evenodd"
       clipRule="evenodd"
@@ -73,7 +63,7 @@ export const Select = ({
   prefix,
   disabled = false,
   error,
-  onChange
+  onChange,
 }: SelectProps) => {
   return (
     <div>
@@ -86,7 +76,8 @@ export const Select = ({
         </label>
       )}
       <div
-        className={`relative flex items-center ${disabled ? "fill-[#8f8f8f]" : "fill-[#666666] dark:fill-[#a1a1a1] hover:fill-[#171717] hover:dark:fill-[#ededed]"}`}>
+        className={`relative flex items-center ${disabled ? "fill-[#8f8f8f]" : "fill-[#666666] dark:fill-[#a1a1a1] hover:fill-[#171717] hover:dark:fill-[#ededed]"}`}
+      >
         <style>
           {`
           .xsmallIconContainer svg {
@@ -106,31 +97,39 @@ export const Select = ({
           onChange={onChange}
           className={`font-sans  appearance-none w-full border rounded-[5px] duration-200 outline-none ${sizes[prefix ? 1 : 0][size]} ${disabled ? "cursor-not-allowed bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f]" : "text-[#171717] dark:text-[#ededed] bg-white dark:bg-[#0a0a0a] cursor-pointer"} ${error ? "border-[#ee0000] dark:border-[#ff0000] ring-[#cb2a2f29] dark:ring-[#ff616629] ring-opacity-100 ring-[3px]" : "border-[#00000014] dark:border-[#ffffff24] ring-[#d7d7d7] dark:ring-[#555555] ring-opacity-100 focus:ring-[3px]"}`}
         >
-          {placeholder && <option value="" disabled selected>{placeholder}</option>}
-          {options && options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {placeholder && (
+            <option value="" disabled selected>
+              {placeholder}
             </option>
-          ))}
+          )}
+          {options &&
+            options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
         </select>
         {prefix && (
           <span
-            className={`inline-flex absolute ${size === "xsmall" ? "left-[5px]" : "left-3"} pointer-events-none duration-150 ${size}IconContainer`}>
+            className={`inline-flex absolute ${size === "xsmall" ? "left-[5px]" : "left-3"} pointer-events-none duration-150 ${size}IconContainer`}
+          >
             {prefix}
           </span>
         )}
         <span
-          className={`inline-flex absolute ${size === "xsmall" ? "right-[5px]" : "right-3"} pointer-events-none duration-150 ${size}IconContainer`}>
+          className={`inline-flex absolute ${size === "xsmall" ? "right-[5px]" : "right-3"} pointer-events-none duration-150 ${size}IconContainer`}
+        >
           {suffix ? suffix : <ArrowBottom />}
         </span>
       </div>
       {error && (
         <div
-          className={`mt-2 flex items-center gap-2 text-[#d8001b] dark:text-[#ff565f] fill-[#d8001b] dark:fill-[#ff565f] ${size === "large" ? "text-base" : "text-[13px]"}`}>
+          className={`mt-2 flex items-center gap-2 text-[#d8001b] dark:text-[#ff565f] fill-[#d8001b] dark:fill-[#ff565f] ${size === "large" ? "text-base" : "text-[13px]"}`}
+        >
           <Error />
           {error}
         </div>
       )}
     </div>
   );
-}; 
+};

@@ -499,7 +499,7 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
 
   // Вспомогательная функция для безопасного преобразования статуса
   const getValidDeployStatus = (
-    status: string | null
+    status: string | null,
   ): Deployment["status"] => {
     if (!status) return "no_deploy";
     if (["building", "ready", "failed", "pending"].includes(status)) {

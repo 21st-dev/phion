@@ -55,7 +55,7 @@ const getClasses = (
   checked: boolean,
   disabled: boolean,
   size: "small" | "large",
-  color?: TToggleColor
+  color?: TToggleColor,
 ) => {
   let toggle = "rounded-[14px] inline-block relative duration-150";
   let thumb =

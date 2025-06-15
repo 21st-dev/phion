@@ -78,7 +78,7 @@ export const Gauge = ({
         Math.max(
           ...Object.keys(colors)
             .map(Number)
-            .filter((key) => key <= value)
+            .filter((key) => key <= value),
         ).toString()
       ];
 
@@ -116,10 +116,10 @@ export const Gauge = ({
             indeterminate
               ? circumference
               : arcPriority === "default"
-              ? (circumference *
-                  (100 - (value === 0 ? 0 : 2 * gapPercent[size]) - value)) /
-                100
-              : (circumference * (100 - 2 * gapPercent[size])) / 100 / 2
+                ? (circumference *
+                    (100 - (value === 0 ? 0 : 2 * gapPercent[size]) - value)) /
+                  100
+                : (circumference * (100 - 2 * gapPercent[size])) / 100 / 2
           } ${circumference}`}
         />
         {(value > 0 || arcPriority === "equal") && !indeterminate && (

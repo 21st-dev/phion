@@ -304,7 +304,7 @@ export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
           >
             <AvatarGroupItem member={member} size={size} />
           </span>
-        )
+        ),
       )}
       {members.length === limit && (
         <span

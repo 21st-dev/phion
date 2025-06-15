@@ -41,7 +41,7 @@ export function ProjectNavigation({
               "pb-4 px-1 border-b-2 font-medium text-sm transition-colors",
               isActive
                 ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted",
             )}
           >
             {tab.label}

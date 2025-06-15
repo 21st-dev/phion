@@ -22,7 +22,7 @@ export function DownloadStep({
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(
-    project.deploy_status === "pending"
+    project.deploy_status === "pending",
   );
   const [downloadError, setDownloadError] = useState(false);
   const [initializationProgress, setInitializationProgress] = useState({
@@ -40,7 +40,7 @@ export function DownloadStep({
         // Если статус изменился с "pending" на что-то другое - инициализация завершена
         if (data.status !== "pending" && isInitializing) {
           console.log(
-            "✅ [DownloadStep] Initialization completed via WebSocket"
+            "✅ [DownloadStep] Initialization completed via WebSocket",
           );
           setIsInitializing(false);
           onInitializationComplete?.();
@@ -64,7 +64,7 @@ export function DownloadStep({
         // Если прогресс завершен (100%) - инициализация закончена
         if (data.progress >= 100) {
           console.log(
-            "✅ [DownloadStep] Initialization completed via progress"
+            "✅ [DownloadStep] Initialization completed via progress",
           );
           setIsInitializing(false);
           onInitializationComplete?.();
@@ -112,7 +112,7 @@ export function DownloadStep({
 
         if (!response.ok) {
           throw new Error(
-            `Download failed: ${response.status} ${response.statusText}`
+            `Download failed: ${response.status} ${response.statusText}`,
           );
         }
 
@@ -149,7 +149,7 @@ export function DownloadStep({
         }, 100);
 
         console.log(
-          `✅ [DownloadStep] Download triggered successfully: ${filename}`
+          `✅ [DownloadStep] Download triggered successfully: ${filename}`,
         );
         onDownload();
       } catch (error) {

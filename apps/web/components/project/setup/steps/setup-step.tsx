@@ -34,7 +34,7 @@ export function SetupStep({
       console.log("🔴 [SetupStep] Agent disconnected");
       error(
         "Agent disconnected",
-        "Make sure your development server is running"
+        "Make sure your development server is running",
       );
     },
   });
@@ -74,13 +74,13 @@ export function SetupStep({
       window.open("cursor://", "_self");
       success(
         "Opening Cursor",
-        "If Cursor doesn't open automatically, launch it manually"
+        "If Cursor doesn't open automatically, launch it manually",
       );
     } catch (error) {
       console.log("Could not open Cursor automatically");
       success(
         "Open Cursor manually",
-        "Launch Cursor from your Applications folder"
+        "Launch Cursor from your Applications folder",
       );
     }
   };

@@ -7,7 +7,8 @@ export default function AuthCodeError() {
             Authentication Error
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            There was an error during the authentication process. Please try again.
+            There was an error during the authentication process. Please try
+            again.
           </p>
           <div className="mt-6">
             <a
@@ -20,5 +21,5 @@ export default function AuthCodeError() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

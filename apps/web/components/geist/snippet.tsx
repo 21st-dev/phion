@@ -76,7 +76,7 @@ export const Snippet = ({
     animationTimeout.current = setTimeout(() => setAnimation(false), 2000);
 
     navigator.clipboard.writeText(
-      _text.reduce((prev, curr) => prev + "\n" + curr)
+      _text.reduce((prev, curr) => prev + "\n" + curr),
     );
 
     if (onCopy) {

@@ -47,7 +47,7 @@ export function DeleteProjectDialog({
       console.log("Project deleted successfully");
       showSuccess(
         "Project deleted",
-        "The project has been permanently deleted"
+        "The project has been permanently deleted",
       );
 
       if (onSuccess) {

@@ -70,7 +70,7 @@ export function PricingModal({
         console.error(
           "❌ Payment response not OK:",
           paymentResponse.status,
-          errorText
+          errorText,
         );
         throw new Error(`HTTP ${paymentResponse.status}: ${errorText}`);
       }
@@ -99,14 +99,14 @@ export function PricingModal({
           "Redirecting to payment",
           `Taking you to the payment page for ${
             isYearly ? "yearly" : "monthly"
-          } plan...`
+          } plan...`,
         );
         window.location.href = paymentData.paymentUrl;
       } else if (paymentData.hasActiveSubscription) {
         // User already has subscription
         console.log(
           "✅ User already has active subscription:",
-          paymentData.currentPlan
+          paymentData.currentPlan,
         );
         info("Already subscribed", "You already have an active subscription!");
         onOpenChange(false);
@@ -135,12 +135,12 @@ export function PricingModal({
       if (errorMessage.includes("API key")) {
         showError(
           "Configuration Error",
-          "The payment system is temporarily unavailable. Please contact support."
+          "The payment system is temporarily unavailable. Please contact support.",
         );
       } else if (errorMessage.includes("User not found")) {
         showError(
           "Account Setup Required",
-          "Please try again or contact support if the issue persists."
+          "Please try again or contact support if the issue persists.",
         );
       } else if (
         errorMessage.includes("No such price") ||
@@ -148,20 +148,20 @@ export function PricingModal({
       ) {
         showError(
           "Payment Configuration Issue",
-          "The pricing plans are being updated. Please try again in a few minutes or contact support."
+          "The pricing plans are being updated. Please try again in a few minutes or contact support.",
         );
         console.log(
-          "💡 Stripe price ID issue - likely needs updating on the payment server"
+          "💡 Stripe price ID issue - likely needs updating on the payment server",
         );
       } else if (errorMessage.includes("Internal server error")) {
         showError(
           "Service Temporarily Unavailable",
-          "Payment service is down. Please try again in a few minutes."
+          "Payment service is down. Please try again in a few minutes.",
         );
       } else {
         showError(
           "Payment Error",
-          `Failed to create payment link: ${errorMessage}`
+          `Failed to create payment link: ${errorMessage}`,
         );
       }
 

@@ -159,7 +159,7 @@ export const CodeBlock = ({
     navigator.clipboard.writeText(
       typeof children === "string"
         ? children
-        : children.reduce((prev, curr) => prev + "\n" + curr)
+        : children.reduce((prev, curr) => prev + "\n" + curr),
     );
   };
 

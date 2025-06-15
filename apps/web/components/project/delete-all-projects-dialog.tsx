@@ -49,14 +49,14 @@ export function DeleteAllProjectsDialog({
 
       showSuccess(
         "All projects deleted",
-        `Successfully deleted ${result.deletedCount} project(s)`
+        `Successfully deleted ${result.deletedCount} project(s)`,
       );
 
       if (result.errors && result.errors.length > 0) {
         console.warn("Some errors occurred during deletion:", result.errors);
         showError(
           "Partial deletion completed",
-          `${result.errors.length} error(s) occurred during deletion`
+          `${result.errors.length} error(s) occurred during deletion`,
         );
       }
 
@@ -73,7 +73,7 @@ export function DeleteAllProjectsDialog({
       console.error("Error deleting all projects:", error);
       showError(
         "Failed to delete projects",
-        error instanceof Error ? error.message : "Please try again"
+        error instanceof Error ? error.message : "Please try again",
       );
     } finally {
       setIsDeleting(false);

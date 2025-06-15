@@ -85,10 +85,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className,
       ...rest
     },
-    ref
+    ref,
   ) => {
     // Icon size for prefix/suffix
-    const iconSize = size === "large" ? 24 : size === "small" || size === "tiny" ? 16 : 20;
+    const iconSize =
+      size === "large" ? 24 : size === "small" || size === "tiny" ? 16 : 20;
 
     return (
       <button
@@ -104,10 +105,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             ? "bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f] fill-[#8f8f8f] border border-[#ebebeb] dark:border-[#2e2e2e] cursor-not-allowed"
             : types[type],
           shapes[shape][size],
-          shadow && "shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none",
+          shadow &&
+            "shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none",
           fullWidth && "w-full",
           "focus:shadow-[0_0_0_2px_hsla(0,0%,100%,1),0_0_0_4px_oklch(57.61% 0.2508 258.23)]",
-          className
+          className,
         )}
         {...rest}
       >
@@ -120,7 +122,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? React.cloneElement(prefix as React.ReactElement, {
                   width: iconSize,
                   height: iconSize,
-                  className: cn("inline-block align-middle", prefix.props?.className),
+                  className: cn(
+                    "inline-block align-middle",
+                    prefix.props?.className,
+                  ),
                 })
               : prefix}
           </span>
@@ -131,7 +136,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           <span
             className={cn(
               "overflow-hidden whitespace-nowrap overflow-ellipsis font-sans",
-              size !== "tiny" && "px-1.5"
+              size !== "tiny" && "px-1.5",
             )}
           >
             {children}
@@ -145,14 +150,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? React.cloneElement(suffix as React.ReactElement, {
                   width: iconSize,
                   height: iconSize,
-                  className: cn("inline-block align-middle", suffix.props?.className),
+                  className: cn(
+                    "inline-block align-middle",
+                    suffix.props?.className,
+                  ),
                 })
               : suffix}
           </span>
         ) : null}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";

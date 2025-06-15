@@ -29,7 +29,7 @@ export const Material = forwardRef<HTMLDivElement, MaterialProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 
 Material.displayName = "Material";

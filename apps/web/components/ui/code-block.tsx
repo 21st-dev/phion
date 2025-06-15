@@ -16,7 +16,7 @@ function CodeBlock({ children, className, ...props }: CodeBlockProps) {
       className={cn(
         "not-prose flex w-full flex-col overflow-clip border",
         "border-border bg-card text-card-foreground rounded-xl",
-        className
+        className,
       )}
       {...props}
     >
@@ -69,7 +69,7 @@ function CodeBlockCode({
 
   const classNames = cn(
     "w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4",
-    className
+    className,
   );
 
   // SSR fallback: render plain code if not hydrated yet

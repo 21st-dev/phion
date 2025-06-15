@@ -44,8 +44,8 @@ export const Skeleton = ({
           squared && "rounded-none after:rounded-none",
           animated && !children && show && "animate-skeleton-loading",
           animated && children && show && "after:animate-skeleton-loading",
-          className
-        )
+          className,
+        ),
       )}
       style={{
         minHeight: height || 24,

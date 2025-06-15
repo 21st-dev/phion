@@ -47,7 +47,7 @@ export default function ProjectSettingsPage() {
         onSuccess: () => {
           showSuccess(
             "Settings saved",
-            "Project settings have been updated successfully"
+            "Project settings have been updated successfully",
           );
           console.log("Settings saved successfully");
         },
@@ -55,7 +55,7 @@ export default function ProjectSettingsPage() {
           console.error("Error saving settings:", error);
           showError("Failed to save settings", "Please try again");
         },
-      }
+      },
     );
   };
 
@@ -63,7 +63,7 @@ export default function ProjectSettingsPage() {
     navigator.clipboard.writeText(project.id);
     showSuccess(
       "Project ID copied",
-      "The project ID has been copied to your clipboard"
+      "The project ID has been copied to your clipboard",
     );
     console.log("Project ID copied to clipboard");
   };

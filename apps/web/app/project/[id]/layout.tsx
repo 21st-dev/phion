@@ -32,7 +32,7 @@ export default async function ProjectLayout({
     setAll(cookiesToSet) {
       try {
         cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
+          cookieStore.set(name, value, options),
         );
       } catch {
         // Игнорируем ошибки установки cookies в Server Components
@@ -103,8 +103,7 @@ export default async function ProjectLayout({
           </div>
         </div>
         {/* Add padding to account for fixed header height */}
-        <div className="pt-[120px]">
-        </div>
+        <div className="pt-[120px]"></div>
 
         {/* Page Content */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

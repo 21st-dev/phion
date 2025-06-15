@@ -15,7 +15,7 @@ export function ProjectList() {
   if (error) {
     showError(
       "Failed to load projects",
-      "Please refresh the page to try again"
+      "Please refresh the page to try again",
     );
   }
 
@@ -35,7 +35,7 @@ export function ProjectList() {
   };
 
   const mapDeployStatus = (
-    status: string
+    status: string,
   ): "QUEUED" | "BUILDING" | "ERROR" | "READY" | "CANCELED" => {
     console.log("🔄 [ProjectList] Mapping deploy status:", status);
     switch (status) {
@@ -55,7 +55,7 @@ export function ProjectList() {
         console.warn(
           "⚠️ [ProjectList] Unknown deploy status:",
           status,
-          "- mapping to QUEUED"
+          "- mapping to QUEUED",
         );
         return "QUEUED";
     }

@@ -134,8 +134,8 @@ ChoiceboxGroup.Item = ({
               disabled
                 ? "text-gray-500"
                 : isSelected
-                ? "text-blue-900"
-                : "text-gray-1000"
+                  ? "text-blue-900"
+                  : "text-gray-1000"
             }`}
           >
             {title}
@@ -145,8 +145,8 @@ ChoiceboxGroup.Item = ({
               disabled
                 ? " text-gray-500"
                 : isSelected
-                ? "text-blue-900"
-                : "text-gray-900"
+                  ? "text-blue-900"
+                  : "text-gray-900"
             }
           >
             {description}

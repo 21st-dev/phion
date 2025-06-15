@@ -11,7 +11,7 @@ interface CheckboxProps {
 const getInputClasses = (
   checked: boolean,
   disabled: boolean,
-  indeterminate: boolean
+  indeterminate: boolean,
 ) => {
   let className =
     "relative border w-4 h-4 duration-200 rounded inline-flex items-center justify-center";

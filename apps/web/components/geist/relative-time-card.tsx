@@ -50,7 +50,7 @@ const useTimeAgo = (timestamp: number) => {
 
     const years = Math.floor(diff / (60 * 60 * 24 * 365));
     const months = Math.floor(
-      (diff % (60 * 60 * 24 * 365)) / (60 * 60 * 24 * 30)
+      (diff % (60 * 60 * 24 * 365)) / (60 * 60 * 24 * 30),
     );
     const days = Math.floor((diff % (60 * 60 * 24 * 30)) / (60 * 60 * 24));
     const hours = Math.floor((diff % (60 * 60 * 24)) / (60 * 60));

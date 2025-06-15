@@ -88,7 +88,7 @@ export function ProjectLayoutClient({
         setAgentConnected(true);
         setLastUpdated(new Date());
       },
-      []
+      [],
     ),
 
     onAgentDisconnected: useCallback(
@@ -97,7 +97,7 @@ export function ProjectLayoutClient({
         setAgentConnected(false);
         setLastUpdated(new Date());
       },
-      []
+      [],
     ),
 
     onFileTracked: useCallback(
@@ -112,13 +112,13 @@ export function ProjectLayoutClient({
         if (data.projectId === project.id) {
           setPendingChanges((prev) => {
             const existing = prev.find(
-              (change) => change.file_path === data.filePath
+              (change) => change.file_path === data.filePath,
             );
 
             // Если файл удален, убираем его из pending changes
             if (data.action === "deleted") {
               return prev.filter(
-                (change) => change.file_path !== data.filePath
+                (change) => change.file_path !== data.filePath,
               );
             }
 
@@ -134,7 +134,7 @@ export function ProjectLayoutClient({
                         : change.file_size || 0,
                       updated_at: new Date().toISOString(),
                     }
-                  : change
+                  : change,
               );
             } else {
               // Добавляем новое изменение
@@ -161,7 +161,7 @@ export function ProjectLayoutClient({
           });
         }
       },
-      [project.id]
+      [project.id],
     ),
     onSaveSuccess: useCallback(
       (data: any) => {
@@ -173,7 +173,7 @@ export function ProjectLayoutClient({
           setLastUpdated(new Date());
         }
       },
-      [project.id]
+      [project.id],
     ),
     onCommitCreated: useCallback(
       (data: { projectId: string; commit: any; timestamp: number }) => {
@@ -198,11 +198,11 @@ export function ProjectLayoutClient({
           setLastUpdated(new Date());
         } else {
           console.log(
-            "❌ [ProjectLayout] Commit not added - project mismatch or no commit data"
+            "❌ [ProjectLayout] Commit not added - project mismatch or no commit data",
           );
         }
       },
-      [project.id]
+      [project.id],
     ),
     onDeployStatusUpdate: useCallback(
       (data: {
@@ -229,7 +229,7 @@ export function ProjectLayoutClient({
           });
         }
       },
-      [project.id]
+      [project.id],
     ),
     onError: useCallback((error: any) => {
       console.error("❌ [ProjectLayout] WebSocket error:", error);

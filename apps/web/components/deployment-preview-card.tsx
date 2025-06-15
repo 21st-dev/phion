@@ -27,7 +27,7 @@ export function DeploymentPreviewCard({
     // Если статус изменился на "ready", обновляем ключ iframe для перезагрузки
     if (prevStatus !== currentStatus && currentStatus === "ready") {
       console.log(
-        "🔄 [DeploymentPreviewCard] Status changed to ready, reloading iframe"
+        "🔄 [DeploymentPreviewCard] Status changed to ready, reloading iframe",
       );
       setIframeKey((prev) => prev + 1);
     }

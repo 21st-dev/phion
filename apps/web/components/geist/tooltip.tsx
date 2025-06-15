@@ -34,7 +34,7 @@ export const Tooltip = ({
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return Array.from(
       { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)]
+      () => chars[Math.floor(Math.random() * chars.length)],
     ).join("");
   }, []);
 

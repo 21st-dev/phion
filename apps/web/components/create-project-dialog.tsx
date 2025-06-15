@@ -55,7 +55,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
 
       showSuccess(
         "Project created successfully",
-        `"${projectName.trim()}" is ready for setup`
+        `"${projectName.trim()}" is ready for setup`,
       );
 
       setOpen(false);

@@ -89,12 +89,12 @@ export function ProjectSetupSidebar({
                   index < currentStep
                     ? "bg-foreground text-background" // Завершенные шаги - стандартные цвета
                     : index === currentStep
-                    ? step.status === "BUILDING"
-                      ? "bg-blue-600 text-white"
-                      : step.status === "ERROR"
-                      ? "bg-red-600 text-white"
-                      : "bg-foreground text-background" // Текущий шаг - стандартные цвета
-                    : "bg-muted text-muted-foreground" // Будущие шаги - серый
+                      ? step.status === "BUILDING"
+                        ? "bg-blue-600 text-white"
+                        : step.status === "ERROR"
+                          ? "bg-red-600 text-white"
+                          : "bg-foreground text-background" // Текущий шаг - стандартные цвета
+                      : "bg-muted text-muted-foreground" // Будущие шаги - серый
                 }`}
               >
                 {index + 1}

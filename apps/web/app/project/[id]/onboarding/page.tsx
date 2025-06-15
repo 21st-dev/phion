@@ -13,7 +13,7 @@ export default function ProjectOnboardingPage() {
   useEffect(() => {
     if (project.netlify_site_id) {
       console.log(
-        "🔄 [Onboarding] Project already has netlify_site_id, redirecting to overview..."
+        "🔄 [Onboarding] Project already has netlify_site_id, redirecting to overview...",
       );
       router.push(`/project/${project.id}/overview`);
     }
