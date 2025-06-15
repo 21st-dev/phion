@@ -3,8 +3,8 @@ import { createAuthServerClient } from "@shipvibes/database";
 import { cookies } from "next/headers";
 
 // Загружаем переменные окружения
-if (process.env.NODE_ENV === 'development') {
-  require('dotenv').config({ path: '.env.local' });
+if (process.env.NODE_ENV === "development") {
+  require("dotenv").config({ path: ".env.local" });
 }
 
 interface SubscriptionResponse {
@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest) {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, options),
           );
         } catch {
           // Игнорируем ошибки установки cookies
@@ -58,16 +58,20 @@ export async function GET(_request: NextRequest) {
 
     const email = user.email;
     if (!email) {
-      return NextResponse.json({ error: "User email not found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User email not found" },
+        { status: 400 },
+      );
     }
 
     // Проверяем подписку через 21st.dev API
     const subscriptionApiKey = process.env.SUBSCRIPTION_API_KEY;
-    
+
     // В development режиме можно отключить проверку подписки
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const skipSubscriptionCheck = isDevelopment && process.env.SKIP_SUBSCRIPTION_CHECK === 'true';
-    
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const skipSubscriptionCheck =
+      isDevelopment && process.env.SKIP_SUBSCRIPTION_CHECK === "true";
+
     if (skipSubscriptionCheck) {
       console.log("Skipping subscription check in development mode");
       return NextResponse.json({
@@ -75,17 +79,19 @@ export async function GET(_request: NextRequest) {
         email,
         planType: "dev",
         subscriptionStatus: "active",
-        metadata: { isAdmin: true }
+        metadata: { isAdmin: true },
       });
     }
-    
+
     if (!subscriptionApiKey) {
       console.error("SUBSCRIPTION_API_KEY not configured");
-      return NextResponse.json({ 
+      return NextResponse.json({
         hasActiveSubscription: false,
         email,
         error: "Subscription service not configured",
-        hint: isDevelopment ? "Add SKIP_SUBSCRIPTION_CHECK=true to .env.local for development" : undefined
+        hint: isDevelopment
+          ? "Add SKIP_SUBSCRIPTION_CHECK=true to .env.local for development"
+          : undefined,
       });
     }
 
@@ -94,56 +100,66 @@ export async function GET(_request: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const subscriptionResponse = await fetch('https://21st.dev/api/subscription/check', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
+      const subscriptionResponse = await fetch(
+        "https://21st.dev/api/subscription/check",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            apiKey: subscriptionApiKey,
+            email: email,
+          }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          apiKey: subscriptionApiKey,
-          email: email
-        }),
-        signal: controller.signal
-      });
+      );
 
       clearTimeout(timeoutId);
 
       if (!subscriptionResponse.ok) {
-        console.error("Failed to check subscription:", subscriptionResponse.status, subscriptionResponse.statusText);
-        return NextResponse.json({ 
+        console.error(
+          "Failed to check subscription:",
+          subscriptionResponse.status,
+          subscriptionResponse.statusText,
+        );
+        return NextResponse.json({
           hasActiveSubscription: false,
           email,
-          error: "Subscription check failed" 
+          error: "Subscription check failed",
         });
       }
 
       // Check if response is JSON before parsing
-      const contentType = subscriptionResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = subscriptionResponse.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         // Log what we actually received for debugging
         const responseText = await subscriptionResponse.text();
         console.error("Subscription API returned non-JSON response:", {
           status: subscriptionResponse.status,
           statusText: subscriptionResponse.statusText,
           contentType,
-          responseBody: responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''), // First 500 chars
-          url: 'https://21st.dev/api/subscription/check'
+          responseBody:
+            responseText.substring(0, 500) +
+            (responseText.length > 500 ? "..." : ""), // First 500 chars
+          url: "https://21st.dev/api/subscription/check",
         });
-        
-        return NextResponse.json({ 
+
+        return NextResponse.json({
           hasActiveSubscription: false,
           email,
           error: "Invalid response from subscription service",
           debug: {
             status: subscriptionResponse.status,
             contentType,
-            responsePreview: responseText.substring(0, 200)
-          }
+            responsePreview: responseText.substring(0, 200),
+          },
         });
       }
 
-      const subscriptionData: SubscriptionResponse = await subscriptionResponse.json();
-      
+      const subscriptionData: SubscriptionResponse =
+        await subscriptionResponse.json();
+
       return NextResponse.json({
         hasActiveSubscription: subscriptionData.hasActiveSubscription || false,
         email: subscriptionData.email,
@@ -151,39 +167,37 @@ export async function GET(_request: NextRequest) {
         subscriptionStatus: subscriptionData.subscriptionStatus,
         subscriptionEndDate: subscriptionData.subscriptionEndDate,
         isExpired: subscriptionData.isExpired,
-        metadata: subscriptionData.metadata
+        metadata: subscriptionData.metadata,
       });
-
     } catch (fetchError) {
       // Handle specific fetch errors
       if (fetchError instanceof Error) {
-        if (fetchError.name === 'AbortError') {
+        if (fetchError.name === "AbortError") {
           console.error("Subscription check timed out");
-          return NextResponse.json({ 
+          return NextResponse.json({
             hasActiveSubscription: false,
             email,
-            error: "Subscription check timed out" 
+            error: "Subscription check timed out",
           });
         }
         console.error("Subscription check fetch error:", fetchError.message);
       }
-      
+
       // Return graceful fallback for subscription check failures
-      return NextResponse.json({ 
+      return NextResponse.json({
         hasActiveSubscription: false,
         email,
-        error: "Unable to verify subscription status" 
+        error: "Unable to verify subscription status",
       });
     }
-
   } catch (error) {
     console.error("Error checking subscription:", error);
     return NextResponse.json(
-      { 
+      {
         hasActiveSubscription: false,
-        error: "Failed to check subscription" 
+        error: "Failed to check subscription",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

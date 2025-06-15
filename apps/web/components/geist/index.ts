@@ -24,7 +24,13 @@ export { Tabs } from "./tabs";
 export { ThemeSwitcher } from "./theme-switcher";
 
 // Data Display
-export { Avatar, GitHubAvatar, GitLabAvatar, BitbucketAvatar, AvatarGroup } from "./avatar";
+export {
+  Avatar,
+  GitHubAvatar,
+  GitLabAvatar,
+  BitbucketAvatar,
+  AvatarGroup,
+} from "./avatar";
 export { Gauge } from "./gauge";
 export { Skeleton } from "./skeleton";
 
@@ -38,4 +44,4 @@ export { Spinner } from "./spinner";
 
 // Export types
 export type { ITab } from "./tabs";
-export type { Option } from "./select"; 
+export type { Option } from "./select";

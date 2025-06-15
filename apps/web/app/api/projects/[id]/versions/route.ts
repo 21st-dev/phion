@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseServerClient, FileHistoryQueries } from "@shipvibes/database";
+import {
+  getSupabaseServerClient,
+  FileHistoryQueries,
+} from "@shipvibes/database";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: projectId } = await params;
@@ -18,4 +21,4 @@ export async function GET(
     console.error("Error fetching history:", error);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
-} 
+}

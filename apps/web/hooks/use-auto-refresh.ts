@@ -10,7 +10,7 @@ interface UseAutoRefreshOptions {
 export function useAutoRefresh<T>(
   queryKey: string[],
   fetchFunction: () => Promise<T>,
-  options: UseAutoRefreshOptions = {}
+  options: UseAutoRefreshOptions = {},
 ) {
   const {
     enabled = true,
@@ -33,4 +33,4 @@ export function useAutoRefresh<T>(
     refresh: query.refetch,
     isRefetching: query.isFetching && !query.isLoading,
   };
-} 
+}

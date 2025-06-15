@@ -8,21 +8,26 @@ import { githubAppService } from "@/lib/github-service";
  */
 async function deleteNetlifySite(siteId: string): Promise<void> {
   const netlifyToken = process.env.NETLIFY_ACCESS_TOKEN;
-  
+
   if (!netlifyToken) {
-    throw new Error('NETLIFY_ACCESS_TOKEN not configured');
+    throw new Error("NETLIFY_ACCESS_TOKEN not configured");
   }
 
-  const response = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${netlifyToken}`,
+  const response = await fetch(
+    `https://api.netlify.com/api/v1/sites/${siteId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${netlifyToken}`,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to delete Netlify site: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to delete Netlify site: ${response.status} ${errorText}`,
+    );
   }
 }
 
@@ -35,7 +40,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
     setAll(cookiesToSet) {
       try {
         cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
+          cookieStore.set(name, value, options),
         );
       } catch {
         // Игнорируем ошибки установки cookies
@@ -58,10 +63,10 @@ async function getAuthenticatedUser(_request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Проверяем, что это dev environment
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== "development") {
       return NextResponse.json(
         { error: "This endpoint is only available in development environment" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -71,30 +76,32 @@ export async function DELETE(request: NextRequest) {
     }
 
     const projectQueries = new ProjectQueries(supabase);
-    
+
     // Получаем все проекты пользователя
     const { data: projects, error: fetchError } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('user_id', user.id);
+      .from("projects")
+      .select("*")
+      .eq("user_id", user.id);
 
     if (fetchError) {
       console.error("Error fetching projects:", fetchError);
       return NextResponse.json(
         { error: "Failed to fetch projects" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     if (!projects || projects.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: "No projects to delete",
-        deletedCount: 0 
+        deletedCount: 0,
       });
     }
 
-    console.log(`🗑️ [DEV] Deleting all ${projects.length} projects for user ${user.id}`);
+    console.log(
+      `🗑️ [DEV] Deleting all ${projects.length} projects for user ${user.id}`,
+    );
 
     let deletedCount = 0;
     let errors: string[] = [];
@@ -103,40 +110,63 @@ export async function DELETE(request: NextRequest) {
     for (const project of projects) {
       try {
         console.log(`🗑️ [DEV] Deleting project ${project.id}: ${project.name}`);
-        
+
         // Если у проекта есть Netlify сайт, удаляем его
         if (project.netlify_site_id) {
           try {
-            console.log(`🌐 [DEV] Deleting Netlify site: ${project.netlify_site_id}`);
+            console.log(
+              `🌐 [DEV] Deleting Netlify site: ${project.netlify_site_id}`,
+            );
             await deleteNetlifySite(project.netlify_site_id);
-            console.log(`✅ [DEV] Netlify site deleted successfully: ${project.netlify_site_id}`);
+            console.log(
+              `✅ [DEV] Netlify site deleted successfully: ${project.netlify_site_id}`,
+            );
           } catch (netlifyError) {
-            console.error(`❌ [DEV] Error deleting Netlify site ${project.netlify_site_id}:`, netlifyError);
-            errors.push(`Failed to delete Netlify site for project ${project.name}`);
+            console.error(
+              `❌ [DEV] Error deleting Netlify site ${project.netlify_site_id}:`,
+              netlifyError,
+            );
+            errors.push(
+              `Failed to delete Netlify site for project ${project.name}`,
+            );
           }
         }
 
         // Если у проекта есть GitHub репозиторий, удаляем его
         if (project.github_repo_name) {
           try {
-            console.log(`🐙 [DEV] Deleting GitHub repository: ${project.github_repo_name}`);
+            console.log(
+              `🐙 [DEV] Deleting GitHub repository: ${project.github_repo_name}`,
+            );
             await githubAppService.deleteRepository(project.github_repo_name);
-            console.log(`✅ [DEV] GitHub repository deleted successfully: ${project.github_repo_name}`);
+            console.log(
+              `✅ [DEV] GitHub repository deleted successfully: ${project.github_repo_name}`,
+            );
           } catch (githubError) {
-            console.error(`❌ [DEV] Error deleting GitHub repository ${project.github_repo_name}:`, githubError);
-            errors.push(`Failed to delete GitHub repository for project ${project.name}`);
+            console.error(
+              `❌ [DEV] Error deleting GitHub repository ${project.github_repo_name}:`,
+              githubError,
+            );
+            errors.push(
+              `Failed to delete GitHub repository for project ${project.name}`,
+            );
           }
         }
-        
+
         // Удаляем проект из базы данных
         console.log(`🗄️ [DEV] Deleting project from database: ${project.id}`);
         await projectQueries.deleteProject(project.id);
         console.log(`✅ [DEV] Project deleted successfully: ${project.id}`);
-        
+
         deletedCount++;
       } catch (projectError) {
-        console.error(`❌ [DEV] Error deleting project ${project.id}:`, projectError);
-        errors.push(`Failed to delete project ${project.name}: ${projectError instanceof Error ? projectError.message : 'Unknown error'}`);
+        console.error(
+          `❌ [DEV] Error deleting project ${project.id}:`,
+          projectError,
+        );
+        errors.push(
+          `Failed to delete project ${project.name}: ${projectError instanceof Error ? projectError.message : "Unknown error"}`,
+        );
       }
     }
 
@@ -145,17 +175,17 @@ export async function DELETE(request: NextRequest) {
       deletedCount,
       totalProjects: projects.length,
       message: `Successfully deleted ${deletedCount} out of ${projects.length} projects`,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     };
 
     console.log(`🎉 [DEV] Delete all projects completed:`, response);
-    
+
     return NextResponse.json(response);
   } catch (error) {
     console.error("❌ [DEV] Error in delete all projects:", error);
     return NextResponse.json(
       { error: "Failed to delete projects" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

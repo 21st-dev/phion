@@ -1,4 +1,4 @@
- declare module 'diff' {
+declare module "diff" {
   export interface Change {
     added?: boolean;
     removed?: boolean;

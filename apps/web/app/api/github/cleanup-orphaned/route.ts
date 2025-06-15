@@ -12,7 +12,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
     setAll(cookiesToSet) {
       try {
         cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
+          cookieStore.set(name, value, options),
         );
       } catch {
         // Игнорируем ошибки установки cookies
@@ -35,10 +35,10 @@ async function getAuthenticatedUser(_request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Проверяем, что это dev environment (для безопасности)
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== "development") {
       return NextResponse.json(
         { error: "This endpoint is only available in development environment" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -47,49 +47,55 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error }, { status: 401 });
     }
 
-    console.log('🔍 [CLEANUP] Starting orphaned repositories scan...');
-    
+    console.log("🔍 [CLEANUP] Starting orphaned repositories scan...");
+
     // Получаем все репозитории vybcel-project-* из GitHub
-    const githubRepositories = await githubAppService.findOrphanedRepositories();
-    
+    const githubRepositories =
+      await githubAppService.findOrphanedRepositories();
+
     // Получаем все проекты из базы данных
     const projectQueries = new ProjectQueries(supabase);
     const { data: dbProjects } = await supabase
-      .from('projects')
-      .select('id, github_repo_name, name, created_at');
+      .from("projects")
+      .select("id, github_repo_name, name, created_at");
 
     const dbRepoNames = new Set(
       dbProjects
-        ?.filter(p => p.github_repo_name)
-        .map(p => p.github_repo_name) || []
+        ?.filter((p) => p.github_repo_name)
+        .map((p) => p.github_repo_name) || [],
     );
 
     // Находим осиротевшие репозитории (есть в GitHub, но нет в БД)
-    const orphanedRepos = githubRepositories.filter(repo => 
-      !dbRepoNames.has(repo.name)
+    const orphanedRepos = githubRepositories.filter(
+      (repo) => !dbRepoNames.has(repo.name),
     );
 
-    console.log(`🔍 [CLEANUP] Found ${orphanedRepos.length} orphaned repositories out of ${githubRepositories.length} total`);
+    console.log(
+      `🔍 [CLEANUP] Found ${orphanedRepos.length} orphaned repositories out of ${githubRepositories.length} total`,
+    );
 
     const response = {
       success: true,
       totalGithubRepos: githubRepositories.length,
       totalDbProjects: dbProjects?.length || 0,
-      orphanedRepos: orphanedRepos.map(repo => ({
+      orphanedRepos: orphanedRepos.map((repo) => ({
         name: repo.name,
         url: repo.html_url,
         created_at: repo.created_at,
-        private: repo.private
+        private: repo.private,
       })),
-      orphanedCount: orphanedRepos.length
+      orphanedCount: orphanedRepos.length,
     };
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("❌ [CLEANUP] Error scanning for orphaned repositories:", error);
+    console.error(
+      "❌ [CLEANUP] Error scanning for orphaned repositories:",
+      error,
+    );
     return NextResponse.json(
       { error: "Failed to scan for orphaned repositories" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -97,10 +103,10 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Проверяем, что это dev environment (для безопасности)
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== "development") {
       return NextResponse.json(
         { error: "This endpoint is only available in development environment" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -115,18 +121,20 @@ export async function DELETE(request: NextRequest) {
     if (!confirmDeletion) {
       return NextResponse.json(
         { error: "confirmDeletion must be true to proceed with deletion" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!Array.isArray(repoNames) || repoNames.length === 0) {
       return NextResponse.json(
         { error: "repoNames array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    console.log(`🗑️ [CLEANUP] Starting deletion of ${repoNames.length} orphaned repositories...`);
+    console.log(
+      `🗑️ [CLEANUP] Starting deletion of ${repoNames.length} orphaned repositories...`,
+    );
 
     let deletedCount = 0;
     let errors: string[] = [];
@@ -138,7 +146,7 @@ export async function DELETE(request: NextRequest) {
         console.log(`✅ [CLEANUP] Deleted repository: ${repoName}`);
         deletedCount++;
       } catch (deleteError) {
-        const errorMessage = `Failed to delete ${repoName}: ${deleteError instanceof Error ? deleteError.message : 'Unknown error'}`;
+        const errorMessage = `Failed to delete ${repoName}: ${deleteError instanceof Error ? deleteError.message : "Unknown error"}`;
         console.error(`❌ [CLEANUP] ${errorMessage}`);
         errors.push(errorMessage);
       }
@@ -149,17 +157,20 @@ export async function DELETE(request: NextRequest) {
       deletedCount,
       totalRequested: repoNames.length,
       message: `Successfully deleted ${deletedCount} out of ${repoNames.length} repositories`,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     };
 
-    console.log(`🎉 [CLEANUP] Orphaned repositories cleanup completed:`, response);
-    
+    console.log(
+      `🎉 [CLEANUP] Orphaned repositories cleanup completed:`,
+      response,
+    );
+
     return NextResponse.json(response);
   } catch (error) {
     console.error("❌ [CLEANUP] Error deleting orphaned repositories:", error);
     return NextResponse.json(
       { error: "Failed to delete orphaned repositories" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

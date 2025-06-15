@@ -54,4 +54,4 @@ export function useToast(): UseToastReturn {
     loading,
     dismiss,
   };
-} 
+}

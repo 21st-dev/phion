@@ -32,7 +32,7 @@ async function fetchProjectLimits(): Promise<ProjectLimitsData> {
   // Параллельно загружаем проекты и подписку
   const [projectsResponse, subscriptionResponse] = await Promise.all([
     fetch("/api/projects"),
-    fetch("/api/subscription/check")
+    fetch("/api/subscription/check"),
   ]);
 
   if (!projectsResponse.ok) {
@@ -45,7 +45,7 @@ async function fetchProjectLimits(): Promise<ProjectLimitsData> {
   let subscriptionData: SubscriptionData = {
     hasActiveSubscription: false,
     email: "",
-    error: "Subscription check failed"
+    error: "Subscription check failed",
   };
 
   if (subscriptionResponse.ok) {
@@ -53,7 +53,9 @@ async function fetchProjectLimits(): Promise<ProjectLimitsData> {
       subscriptionData = await subscriptionResponse.json();
     } catch (parseError) {
       // JSON parsing failed, default to free tier
-      console.warn("Failed to parse subscription response, defaulting to free tier");
+      console.warn(
+        "Failed to parse subscription response, defaulting to free tier",
+      );
     }
   } else {
     // Если проверка подписки не удалась, считаем что подписки нет
@@ -80,21 +82,25 @@ export function useProjectLimits(): ProjectLimits {
 
   const projectCount = data?.projectCount || 0;
   const subscriptionData = data?.subscriptionData || null;
-  const hasActiveSubscription = subscriptionData?.hasActiveSubscription || false;
-  
+  const hasActiveSubscription =
+    subscriptionData?.hasActiveSubscription || false;
+
   // В development окружении убираем лимиты
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const maxProjects = (hasActiveSubscription || isDevelopment) ? Infinity : FREE_TIER_LIMIT;
-  const canCreateProject = (isDevelopment || projectCount < maxProjects);
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const maxProjects =
+    hasActiveSubscription || isDevelopment ? Infinity : FREE_TIER_LIMIT;
+  const canCreateProject = isDevelopment || projectCount < maxProjects;
 
   return {
     isLoading,
     canCreateProject,
     hasActiveSubscription: hasActiveSubscription || isDevelopment,
     projectCount,
-    maxProjects: (hasActiveSubscription || isDevelopment) ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
+    maxProjects: hasActiveSubscription || isDevelopment ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
     subscriptionData,
     error: error?.message || null,
-    refetch: () => { refetch(); }
+    refetch: () => {
+      refetch();
+    },
   };
-} 
+}

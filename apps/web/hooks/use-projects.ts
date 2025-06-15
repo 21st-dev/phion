@@ -21,9 +21,9 @@ export function useProjects() {
 // Хук для инвалидации кеша проектов (для использования после создания/удаления проектов)
 export function useInvalidateProjects() {
   const queryClient = useQueryClient();
-  
+
   return () => {
     queryClient.invalidateQueries({ queryKey: ["projects"] });
     queryClient.invalidateQueries({ queryKey: ["project-limits"] });
   };
-} 
+}

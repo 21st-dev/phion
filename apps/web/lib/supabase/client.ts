@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { createBrowserClient } from '@supabase/ssr';
-import { useState } from 'react';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from './types';
+import { createBrowserClient } from "@supabase/ssr";
+import { useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
 // Create a singleton Supabase client for client-side usage
 let supabaseClient: SupabaseClient<Database> | null = null;
@@ -12,7 +12,7 @@ function getSupabaseClient() {
   if (!supabaseClient) {
     supabaseClient = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
   }
   return supabaseClient;
@@ -25,4 +25,4 @@ export function useSupabase() {
 }
 
 // Export the client for direct usage
-export const supabase = getSupabaseClient(); 
+export const supabase = getSupabaseClient();

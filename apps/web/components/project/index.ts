@@ -8,6 +8,6 @@ export { ProjectSetup } from "./setup/project-setup";
 // Other components
 export { PendingChangesSidebar } from "./pending-changes-sidebar";
 
-export * from './setup';
-export { ProjectCard } from './project-card';
-export { EmptyState } from './empty-state'; 
+export * from "./setup";
+export { ProjectCard } from "./project-card";
+export { EmptyState } from "./empty-state";

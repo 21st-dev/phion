@@ -5,7 +5,10 @@ interface UpdateProjectSettingsParams {
   name: string;
 }
 
-async function updateProjectSettings({ projectId, name }: UpdateProjectSettingsParams) {
+async function updateProjectSettings({
+  projectId,
+  name,
+}: UpdateProjectSettingsParams) {
   const response = await fetch(`/api/projects/${projectId}`, {
     method: "PATCH",
     headers: {
@@ -31,4 +34,4 @@ export function useUpdateProjectSettings() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
-} 
+}

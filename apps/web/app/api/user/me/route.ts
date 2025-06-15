@@ -13,7 +13,7 @@ export async function GET(_request: NextRequest) {
       setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, options),
           );
         } catch {
           // Ignore cookie setting errors in Server Components
@@ -29,11 +29,11 @@ export async function GET(_request: NextRequest) {
     if (authError || !user) {
       console.error("❌ Authentication error:", authError);
       return NextResponse.json(
-        { 
+        {
           error: "Unauthorized",
-          message: "User not authenticated"
+          message: "User not authenticated",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -49,19 +49,18 @@ export async function GET(_request: NextRequest) {
     console.log("👤 User data requested for payment flow:", {
       id: userData.id,
       email: userData.email,
-      hasName: !!userData.name
+      hasName: !!userData.name,
     });
 
     return NextResponse.json(userData);
-
   } catch (error) {
     console.error("❌ Error getting user data:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to get user data",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}
