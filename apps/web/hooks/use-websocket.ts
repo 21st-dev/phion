@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { io, Socket } from "socket.io-client"
 
 interface UseWebSocketOptions {
@@ -99,7 +99,9 @@ export function useWebSocket({
     // 🚫 PREVENT MULTIPLE CONNECTIONS
     if (!projectId || isConnecting.current) {
       console.log(
-        `⏭️ [WebSocket] Skipping connection - projectId: ${!!projectId}, isConnecting: ${isConnecting.current}`,
+        `⏭️ [WebSocket] Skipping connection - projectId: ${!!projectId}, isConnecting: ${
+          isConnecting.current
+        }`,
       )
       return
     }

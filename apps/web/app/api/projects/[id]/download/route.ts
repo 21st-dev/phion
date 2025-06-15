@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
 import { getProjectById } from "@shipvibes/database"
 import AdmZip from "adm-zip"
+import { NextRequest, NextResponse } from "next/server"
 // Убираем R2 импорт
 // import { downloadProjectTemplate } from "@shipvibes/storage";
 // Добавляем GitHub App service
@@ -48,7 +48,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       )
       const downloadTime = Date.now() - downloadStartTime
       console.log(
-        `✅ [DOWNLOAD] GitHub download completed in ${downloadTime}ms, size: ${originalProjectData?.length || 0} bytes`,
+        `✅ [DOWNLOAD] GitHub download completed in ${downloadTime}ms, size: ${
+          originalProjectData?.length || 0
+        } bytes`,
       )
     } catch (downloadError) {
       console.error(`❌ [DOWNLOAD] GitHub download failed for project ${projectId}:`, downloadError)
@@ -231,8 +233,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           return cyrillicMap[char] || "x"
         }) || "project"
 
-    // Создаем полное имя файла с ID проекта
-    const fullFileName = `${safeFileName}-${projectId}.zip`
+    // Создаем полное имя файла без ID проекта
+    const fullFileName = `${safeFileName}.zip`
 
     console.log(`📁 [DOWNLOAD] Filename: "${originalFileName}" → "${fullFileName}"`)
 

@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import NumberFlow from "@number-flow/react"
 import { Button } from "@/components/geist/button"
 import { Material } from "@/components/geist/material"
 import { useWebSocket } from "@/hooks/use-websocket"
+import NumberFlow from "@number-flow/react"
 import type { ProjectRow } from "@shipvibes/database"
+import { useEffect, useState } from "react"
 
 interface DownloadStepProps {
   project: ProjectRow
@@ -116,16 +116,9 @@ export function DownloadStep({
         const downloadLink = document.createElement("a")
         downloadLink.href = downloadUrl
 
-        // Extract filename from Content-Disposition header or use default
+        // Extract filename from Content-Disposition header
         const contentDisposition = response.headers.get("Content-Disposition")
-        let filename = `${project.name || "project"}-${project.id}.zip`
-
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/)
-          if (filenameMatch) {
-            filename = filenameMatch[1]
-          }
-        }
+        const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || "project.zip"
 
         downloadLink.download = filename
         downloadLink.style.display = "none"

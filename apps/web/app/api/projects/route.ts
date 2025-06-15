@@ -1,8 +1,12 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createProject, getUserProjects } from "@shipvibes/database"
-import { createAuthServerClient } from "@shipvibes/database"
+import {
+  createAuthServerClient,
+  createProject,
+  getSupabaseServerClient,
+  getUserProjects,
+  ProjectQueries,
+} from "@shipvibes/database"
 import { cookies } from "next/headers"
-import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database"
+import { NextRequest, NextResponse } from "next/server"
 // Project logger removed - using console.log instead
 
 // Загружаем переменные окружения
@@ -102,14 +106,16 @@ export async function POST(request: NextRequest) {
 
     if (subscriptionApiKey) {
       try {
-        const subscriptionResponse = await fetch(
-          `https://api.21st.dev/v1/customers/${encodeURIComponent(email)}/subscription`,
-          {
-            headers: {
-              Authorization: `Bearer ${subscriptionApiKey}`,
-            },
+        const subscriptionResponse = await fetch(`https://21st.dev/api/subscription/check`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        )
+          body: JSON.stringify({
+            email,
+            apiKey: subscriptionApiKey,
+          }),
+        })
 
         if (subscriptionResponse.ok) {
           const subscriptionData = await subscriptionResponse.json()
