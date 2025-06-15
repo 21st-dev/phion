@@ -260,6 +260,12 @@ secret = "env(GOOGLE_OAUTH_SECRET)"
 redirect_uri = ""
 skip_nonce_check = true
 
+[auth.external.github]
+enabled = true
+client_id = "env(GITHUB_OAUTH_CLIENT_ID)"
+secret = "env(GITHUB_OAUTH_SECRET)"
+redirect_uri = ""
+
 # Use Firebase Auth as a third-party provider alongside Supabase Auth.
 [auth.third_party.firebase]
 enabled = false
