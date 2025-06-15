@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { Button } from "@/components/geist/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/geist/button"
-import { Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Check } from "lucide-react"
+import { useState } from "react"
 
 interface PricingModalProps {
   open: boolean
@@ -152,7 +152,7 @@ export function PricingModal({
 
       // Fallback to pricing page
       console.log("🔄 Falling back to pricing page")
-      window.open("https://21st.dev/pricing", "_blank")
+      window.open(`${process.env.NEXT_PUBLIC_21ST_URL}/pricing`, "_blank")
     } finally {
       setIsLoading(false)
     }
@@ -212,7 +212,7 @@ export function PricingModal({
           <div className="text-xs mb-4">
             Compare plans and options on our{" "}
             <a
-              href="https://21st.dev/pricing"
+              href={`${process.env.NEXT_PUBLIC_21ST_URL}/pricing`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline"

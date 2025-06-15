@@ -53,14 +53,17 @@ export async function POST(request: NextRequest) {
     console.log("🔐 Sending API key in Authorization header")
 
     // Proxy request to local 21st.dev API server for testing
-    const response = await fetch("https://21st.dev/api/subscription/payment-link", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUBSCRIPTION_API_KEY}`,
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_21ST_URL}/api/subscription/payment-link`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SUBSCRIPTION_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    })
+    )
 
     const data = await response.json()
 
@@ -192,14 +195,17 @@ export async function GET(request: NextRequest) {
       cancelUrl,
     }
 
-    const response = await fetch("https://21st.dev/api/subscription/payment-link", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUBSCRIPTION_API_KEY}`,
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_21ST_URL}/api/subscription/payment-link`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SUBSCRIPTION_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    })
+    )
 
     const data = await response.json()
 

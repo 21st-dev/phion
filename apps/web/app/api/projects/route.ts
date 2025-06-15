@@ -106,20 +106,23 @@ export async function POST(request: NextRequest) {
 
     if (subscriptionApiKey) {
       try {
-        const subscriptionResponse = await fetch(`https://21st.dev/api/subscription/check`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const subscriptionResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_21ST_URL}/api/subscription/check`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              apiKey: subscriptionApiKey,
+            }),
           },
-          body: JSON.stringify({
-            email,
-            apiKey: subscriptionApiKey,
-          }),
-        })
+        )
 
         if (subscriptionResponse.ok) {
           const subscriptionData = await subscriptionResponse.json()
-          hasActiveSubscription = subscriptionData.status === "active"
+          hasActiveSubscription = subscriptionData?.hasActiveSubscription ?? false
           console.log(`🔍 Subscription check for ${email}:`, {
             status: subscriptionData.status,
             hasActiveSubscription,

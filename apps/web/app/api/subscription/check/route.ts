@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
 import { createAuthServerClient } from "@shipvibes/database"
 import { cookies } from "next/headers"
+import { NextRequest, NextResponse } from "next/server"
 
 // Загружаем переменные окружения
 if (process.env.NODE_ENV === "development") {
@@ -64,18 +64,6 @@ export async function GET(_request: NextRequest) {
 
     // В development режиме можно отключить проверку подписки
     const isDevelopment = process.env.NODE_ENV === "development"
-    const skipSubscriptionCheck = isDevelopment && process.env.SKIP_SUBSCRIPTION_CHECK === "true"
-
-    if (skipSubscriptionCheck) {
-      console.log("Skipping subscription check in development mode")
-      return NextResponse.json({
-        hasActiveSubscription: true, // В dev режиме считаем что подписка есть
-        email,
-        planType: "dev",
-        subscriptionStatus: "active",
-        metadata: { isAdmin: true },
-      })
-    }
 
     if (!subscriptionApiKey) {
       console.error("SUBSCRIPTION_API_KEY not configured")
@@ -94,17 +82,20 @@ export async function GET(_request: NextRequest) {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-      const subscriptionResponse = await fetch("https://21st.dev/api/subscription/check", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const subscriptionResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_21ST_URL}/api/subscription/check`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            apiKey: subscriptionApiKey,
+            email: email,
+          }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          apiKey: subscriptionApiKey,
-          email: email,
-        }),
-        signal: controller.signal,
-      })
+      )
 
       clearTimeout(timeoutId)
 
@@ -131,7 +122,7 @@ export async function GET(_request: NextRequest) {
           statusText: subscriptionResponse.statusText,
           contentType,
           responseBody: responseText.substring(0, 500) + (responseText.length > 500 ? "..." : ""), // First 500 chars
-          url: "https://21st.dev/api/subscription/check",
+          url: `${process.env.NEXT_PUBLIC_21ST_URL}/api/subscription/check`,
         })
 
         return NextResponse.json({
@@ -147,16 +138,7 @@ export async function GET(_request: NextRequest) {
       }
 
       const subscriptionData: SubscriptionResponse = await subscriptionResponse.json()
-
-      return NextResponse.json({
-        hasActiveSubscription: subscriptionData.hasActiveSubscription || false,
-        email: subscriptionData.email,
-        planType: subscriptionData.planType,
-        subscriptionStatus: subscriptionData.subscriptionStatus,
-        subscriptionEndDate: subscriptionData.subscriptionEndDate,
-        isExpired: subscriptionData.isExpired,
-        metadata: subscriptionData.metadata,
-      })
+      return NextResponse.json(subscriptionData)
     } catch (fetchError) {
       // Handle specific fetch errors
       if (fetchError instanceof Error) {
