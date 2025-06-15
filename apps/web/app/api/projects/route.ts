@@ -5,6 +5,7 @@ import {
   getUserProjects,
   ProjectQueries,
 } from "@shipvibes/database"
+import { waitUtil } from "@vercel/functions"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 // Project logger removed - using console.log instead
@@ -172,12 +173,14 @@ export async function POST(request: NextRequest) {
 
     // ✅ 3. Запускаем тяжелые операции АСИНХРОННО в фоне (без await!)
     // Это не блокирует возврат ответа пользователю
-    initializeProjectInBackground(project.id, name, template_type, user.id).catch((error) => {
-      console.error(
-        `❌ [PROJECT_CREATION] Background initialization failed for ${project.id}:`,
-        error,
-      )
-    })
+    waitUtil(
+      initializeProjectInBackground(project.id, name, template_type, user.id).catch((error) => {
+        console.error(
+          `❌ [PROJECT_CREATION] Background initialization failed for ${project.id}:`,
+          error,
+        )
+      }),
+    )
 
     return response
   } catch (error) {
