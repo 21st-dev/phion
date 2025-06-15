@@ -5,7 +5,6 @@ import {
   getUserProjects,
   ProjectQueries,
 } from "@shipvibes/database"
-import { waitUtil } from "@vercel/functions"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 // Project logger removed - using console.log instead
@@ -171,16 +170,9 @@ export async function POST(request: NextRequest) {
       message: "Project created! Setting up GitHub repository and template files...",
     })
 
-    // ✅ 3. Запускаем тяжелые операции АСИНХРОННО в фоне (без await!)
-    // Это не блокирует возврат ответа пользователю
-    waitUtil(
-      initializeProjectInBackground(project.id, name, template_type, user.id).catch((error) => {
-        console.error(
-          `❌ [PROJECT_CREATION] Background initialization failed for ${project.id}:`,
-          error,
-        )
-      }),
-    )
+    // ✅ 3. Запускаем полную инициализацию через WebSocket сервер
+    // WebSocket сервер обработает все в фоне - создание репо + шаблон
+    await triggerCompleteInitialization(project.id, name, template_type, user.id)
 
     return response
   } catch (error) {
@@ -190,106 +182,56 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * ✅ Асинхронная инициализация проекта в фоне
- * Не блокирует HTTP ответ пользователю
+ * ✅ Простая функция для запуска полной инициализации через WebSocket сервер
+ * Все тяжелые операции выполняются на WebSocket сервере
  */
-async function initializeProjectInBackground(
+async function triggerCompleteInitialization(
   projectId: string,
   projectName: string,
   templateType: string,
-  _userId: string,
+  userId: string,
 ): Promise<void> {
   try {
-    console.log(`🚀 [PROJECT_INIT_BG] Starting background initialization for ${projectId}...`)
+    console.log(`🚀 [TRIGGER_INIT] Triggering complete initialization for ${projectId}...`)
 
     const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || "http://localhost:8080"
 
-    // 1. Создаем GitHub репозиторий с retry логикой
-    console.log(`🔄 [PROJECT_INIT_BG] Creating GitHub repository...`)
-    const repoResponse = await retryWithBackoff(
-      async () => {
-        const response = await fetch(`${websocketServerUrl}/api/projects/create-repository`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId,
-            projectName,
-          }),
-          // Add timeout
-          signal: AbortSignal.timeout(30000), // 30 second timeout
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          const error = new Error(`Repository creation failed: ${errorText}`) as any
-          error.status = response.status
-          throw error
-        }
-
-        return response
+    const response = await fetch(`${websocketServerUrl}/api/projects/initialize-complete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      `GitHub repository creation for ${projectId}`,
-      5, // max attempts
-      2000, // base delay
-    )
+      body: JSON.stringify({
+        projectId,
+        projectName,
+        templateType,
+        userId,
+      }),
+      // Add timeout
+      signal: AbortSignal.timeout(10000), // 10 second timeout - just for triggering
+    })
 
-    const repoData = await repoResponse.json()
-    const repository = repoData.repository
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to trigger initialization: ${errorText}`)
+    }
 
-    console.log(`✅ [PROJECT_INIT_BG] GitHub repository created: ${repository.html_url}`)
-
-    // 2. Инициализируем шаблон с retry логикой
-    console.log(`🔄 [PROJECT_INIT_BG] Starting template upload...`)
-    await retryWithBackoff(
-      async () => {
-        const response = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId,
-            templateType,
-            projectName,
-            repositoryName: repository.name,
-          }),
-          // Add timeout
-          signal: AbortSignal.timeout(60000), // 60 second timeout for template upload
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          const error = new Error(`Template upload failed: ${errorText}`) as any
-          error.status = response.status
-          throw error
-        }
-
-        return response
-      },
-      `Template upload for ${projectId}`,
-      3, // max attempts
-      5000, // base delay
-    )
-
-    console.log(`✅ [PROJECT_INIT_BG] Template upload initiated for ${projectId}`)
+    console.log(`✅ [TRIGGER_INIT] Complete initialization triggered for ${projectId}`)
   } catch (error) {
-    console.error(`❌ [PROJECT_INIT_BG] Background initialization failed for ${projectId}:`, error)
+    console.error(`❌ [TRIGGER_INIT] Failed to trigger initialization for ${projectId}:`, error)
 
-    // Обновляем статус проекта на failed
+    // Update project status to failed if we can't even trigger the initialization
     try {
       const supabaseClient = getSupabaseServerClient()
       const projectQueries = new ProjectQueries(supabaseClient)
       await projectQueries.updateProject(projectId, {
         deploy_status: "failed",
       })
-      console.log(`📊 Updated project ${projectId} status to failed`)
+      console.log(`📊 Updated project ${projectId} status to failed (trigger failed)`)
     } catch (updateError) {
       console.error(`❌ Error updating project status for ${projectId}:`, updateError)
     }
 
-    // Rethrow для логирования в catch блоке выше
     throw error
   }
 }

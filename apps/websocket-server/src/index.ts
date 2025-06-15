@@ -2157,3 +2157,178 @@ app.post("/api/projects/create-repository", async (req, res) => {
     })
   }
 })
+
+// ✅ NEW: Complete project initialization endpoint - handles everything in one place
+app.post("/api/projects/initialize-complete", async (req, res) => {
+  try {
+    const { projectId, projectName, templateType, userId } = req.body
+
+    if (!projectId || !projectName || !templateType || !userId) {
+      return res.status(400).json({
+        error: "Missing required fields: projectId, projectName, templateType, userId",
+      })
+    }
+
+    console.log(`🚀 [INIT_COMPLETE] Starting complete project initialization for ${projectId}...`)
+
+    // Start the complete initialization process in the background
+    // This is safe here - Railway doesn't sleep like Vercel serverless functions
+    completeProjectInitialization(projectId, projectName, templateType, userId).catch((error) => {
+      console.error(`❌ [INIT_COMPLETE] Complete initialization failed for ${projectId}:`, error)
+    })
+
+    // Immediately respond to the client
+    res.status(200).json({
+      success: true,
+      message: "Complete project initialization started",
+      projectId,
+    })
+  } catch (error) {
+    console.error("❌ [INIT_COMPLETE] Error starting complete project initialization:", error)
+    res.status(500).json({
+      error: "Failed to start complete project initialization",
+      details: error instanceof Error ? error.message : "Unknown error",
+    })
+  }
+})
+
+/**
+ * ✅ Complete project initialization - handles everything in the background
+ * This replaces the logic that was in the Next.js API route
+ */
+async function completeProjectInitialization(
+  projectId: string,
+  projectName: string,
+  templateType: string,
+  userId: string,
+): Promise<void> {
+  try {
+    console.log(`🚀 [COMPLETE_INIT] Starting complete initialization for ${projectId}...`)
+
+    // 1. Create GitHub repository
+    console.log(`🔄 [COMPLETE_INIT] Creating GitHub repository...`)
+    const repository = await githubAppService.createRepository(
+      projectId,
+      `Vybcel project: ${projectName}`,
+    )
+
+    // Update project with GitHub info
+    const supabase = getSupabaseServerClient()
+    const projectQueries = new ProjectQueries(supabase)
+    await projectQueries.updateGitHubInfo(projectId, {
+      github_repo_url: repository.html_url,
+      github_repo_name: repository.name,
+      github_owner: "vybcel",
+    })
+
+    console.log(`✅ [COMPLETE_INIT] GitHub repository created: ${repository.html_url}`)
+
+    // 2. Initialize template
+    console.log(`🔄 [COMPLETE_INIT] Starting template initialization...`)
+    await initializeProjectInBackground(projectId, templateType, projectName, repository.name)
+
+    console.log(`✅ [COMPLETE_INIT] Complete initialization finished for ${projectId}`)
+  } catch (error) {
+    console.error(`❌ [COMPLETE_INIT] Complete initialization failed for ${projectId}:`, error)
+
+    // Update project status to failed
+    try {
+      const supabase = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabase)
+      await projectQueries.updateProject(projectId, {
+        deploy_status: "failed",
+      })
+      console.log(`📊 Updated project ${projectId} status to failed`)
+
+      // Send WebSocket event about failure
+      io.to(`project:${projectId}`).emit("deploy_status_update", {
+        status: "failed",
+        message: "Project initialization failed",
+        projectId,
+        timestamp: new Date().toISOString(),
+      })
+    } catch (updateError) {
+      console.error(`❌ Error updating project status for ${projectId}:`, updateError)
+    }
+
+    // Rethrow for logging
+    throw error
+  }
+}
+
+/**
+ * Retry helper with exponential backoff - moved here to be reused
+ */
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  context: string,
+  maxAttempts = 3,
+  baseDelay = 1000,
+): Promise<T> {
+  let lastError: Error
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await operation()
+      if (attempt > 1) {
+        console.log(`✅ [RETRY] ${context} succeeded on attempt ${attempt}`)
+      }
+      return result
+    } catch (error) {
+      lastError = error as Error
+
+      if (attempt === maxAttempts) {
+        console.error(
+          `❌ [RETRY] ${context} failed after ${maxAttempts} attempts:`,
+          lastError.message,
+        )
+        break
+      }
+
+      // Check if error is retryable
+      const isRetryable = shouldRetryError(error)
+      if (!isRetryable) {
+        console.error(`❌ [RETRY] ${context} failed with non-retryable error:`, lastError.message)
+        break
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000
+      console.log(
+        `⚠️ [RETRY] ${context} attempt ${attempt} failed, retrying in ${Math.round(delay)}ms:`,
+        lastError.message,
+      )
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+
+  throw lastError!
+}
+
+/**
+ * Determines if an error should trigger a retry
+ */
+function shouldRetryError(error: any): boolean {
+  // Retry on server errors (5xx)
+  if (error?.status >= 500) return true
+
+  // Retry on rate limiting
+  if (error?.status === 429) return true
+
+  // Don't retry on client errors (4xx except 429)
+  if (error?.status >= 400 && error?.status < 500) return false
+
+  // Retry on network/timeout errors
+  if (
+    error?.code === "ENOTFOUND" ||
+    error?.code === "ECONNRESET" ||
+    error?.code === "ETIMEDOUT" ||
+    error?.name === "AbortError" ||
+    error?.message?.includes("fetch failed") ||
+    error?.message?.includes("network") ||
+    error?.message?.includes("timeout")
+  ) {
+    return true
+  }
+
+  return false
+}
