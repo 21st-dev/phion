@@ -101,7 +101,7 @@ export function useProjectLimits(): ProjectLimits {
     canCreateProject,
     hasActiveSubscription: hasActiveSubscription || isDevelopment,
     projectCount,
-    maxProjects: hasActiveSubscription || isDevelopment ? -1 : FREE_TIER_LIMIT, // -1 означает безлимитный
+    maxProjects: hasActiveSubscription || isDevelopment ? 5 : FREE_TIER_LIMIT,
     subscriptionData,
     error: error?.message || null,
     currentPlan: currentPlan,
