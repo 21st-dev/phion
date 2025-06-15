@@ -1,18 +1,14 @@
-import React, { useId } from "react";
-import { Tooltip } from "react-tooltip";
+import React, { useId } from "react"
+import { Tooltip } from "react-tooltip"
 
 interface ContextCardTriggerProps {
-  content: React.ReactNode;
-  side?: "top" | "bottom" | "left" | "right";
-  children: React.ReactNode;
+  content: React.ReactNode
+  side?: "top" | "bottom" | "left" | "right"
+  children: React.ReactNode
 }
 
-const ContextCardTrigger = ({
-  content,
-  side = "top",
-  children,
-}: ContextCardTriggerProps) => {
-  const id = useId();
+const ContextCardTrigger = ({ content, side = "top", children }: ContextCardTriggerProps) => {
+  const id = useId()
 
   return (
     <>
@@ -27,9 +23,9 @@ const ContextCardTrigger = ({
         {content}
       </Tooltip>
     </>
-  );
-};
+  )
+}
 
 export const ContextCard = {
   Trigger: ContextCardTrigger,
-};
+}

@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
+import React, { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 
-type TTheme = "system" | "light" | "dark";
+type TTheme = "system" | "light" | "dark"
 
 export const ThemeSwitcher = () => {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
   // После hydration компонент монтируется на клиенте
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setMounted(true)
+  }, [])
 
   // На сервере не рендерим ничего для избежания mismatch
   if (!mounted) {
@@ -22,12 +22,7 @@ export const ThemeSwitcher = () => {
         <div className="mt-[-1px] ml-[-1px]">
           <div className="flex items-center justify-center h-8 w-8 cursor-pointer rounded-[999999px] group">
             <span className="sr-only">system</span>
-            <svg
-              height="16"
-              strokeLinejoin="round"
-              viewBox="0 0 16 16"
-              width="16"
-            >
+            <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -40,12 +35,7 @@ export const ThemeSwitcher = () => {
         <div className="mt-[-1px]">
           <div className="flex items-center justify-center h-8 w-8 cursor-pointer rounded-[999999px] group">
             <span className="sr-only">light</span>
-            <svg
-              height="16"
-              strokeLinejoin="round"
-              viewBox="0 0 16 16"
-              width="16"
-            >
+            <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -58,12 +48,7 @@ export const ThemeSwitcher = () => {
         <div className="mt-[-1px] mr-[-1px]">
           <div className="flex items-center justify-center h-8 w-8 cursor-pointer rounded-[999999px] group">
             <span className="sr-only">dark</span>
-            <svg
-              height="16"
-              strokeLinejoin="round"
-              viewBox="0 0 16 16"
-              width="16"
-            >
+            <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -74,7 +59,7 @@ export const ThemeSwitcher = () => {
           </div>
         </div>
       </fieldset>
-    );
+    )
   }
 
   return (
@@ -97,12 +82,7 @@ export const ThemeSwitcher = () => {
           }`}
         >
           <span className="sr-only">system</span>
-          <svg
-            height="16"
-            strokeLinejoin="round"
-            viewBox="0 0 16 16"
-            width="16"
-          >
+          <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
             <path
               fillRule="evenodd"
               clipRule="evenodd"
@@ -131,12 +111,7 @@ export const ThemeSwitcher = () => {
           }`}
         >
           <span className="sr-only">light</span>
-          <svg
-            height="16"
-            strokeLinejoin="round"
-            viewBox="0 0 16 16"
-            width="16"
-          >
+          <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
             <path
               fillRule="evenodd"
               clipRule="evenodd"
@@ -165,12 +140,7 @@ export const ThemeSwitcher = () => {
           }`}
         >
           <span className="sr-only">dark</span>
-          <svg
-            height="16"
-            strokeLinejoin="round"
-            viewBox="0 0 16 16"
-            width="16"
-          >
+          <svg height="16" strokeLinejoin="round" viewBox="0 0 16 16" width="16">
             <path
               fillRule="evenodd"
               clipRule="evenodd"
@@ -183,5 +153,5 @@ export const ThemeSwitcher = () => {
         </label>
       </div>
     </fieldset>
-  );
-};
+  )
+}

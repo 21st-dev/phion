@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { MoreVertical } from "lucide-react";
-import { useProject } from "@/components/project/project-layout-client";
-import { DeploymentsList } from "@/components/deployments-list";
-import { DeploymentPreviewCard } from "@/components/deployment-preview-card";
-import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
+import { Button } from "@/components/ui/button"
+import { MoreVertical } from "lucide-react"
+import { useProject } from "@/components/project/project-layout-client"
+import { DeploymentsList } from "@/components/deployments-list"
+import { DeploymentPreviewCard } from "@/components/deployment-preview-card"
+import { DeleteProjectDialog } from "@/components/project/delete-project-dialog"
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 
 export default function ProjectOverviewPage() {
-  const { project } = useProject();
+  const { project } = useProject()
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
@@ -61,5 +61,5 @@ export default function ProjectOverviewPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

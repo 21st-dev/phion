@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 
 const colors = {
   blue: {
@@ -33,22 +33,22 @@ const colors = {
     backgroundColor: "bg-gray-700",
     fill: "fill-gray-1000 dark:fill-gray-100",
   },
-};
+}
 
-type TToggleColor = keyof typeof colors;
+type TToggleColor = keyof typeof colors
 
 interface ToggleProps {
-  checked: boolean;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  disabled?: boolean;
-  size?: "small" | "large";
-  color?: TToggleColor;
+  checked: boolean
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+  disabled?: boolean
+  size?: "small" | "large"
+  color?: TToggleColor
   icon?: {
-    checked: React.ReactNode;
-    unchecked: React.ReactNode;
-  };
-  direction?: "switch-first" | "label-first";
-  children?: React.ReactNode;
+    checked: React.ReactNode
+    unchecked: React.ReactNode
+  }
+  direction?: "switch-first" | "label-first"
+  children?: React.ReactNode
 }
 
 const getClasses = (
@@ -57,53 +57,52 @@ const getClasses = (
   size: "small" | "large",
   color?: TToggleColor,
 ) => {
-  let toggle = "rounded-[14px] inline-block relative duration-150";
+  let toggle = "rounded-[14px] inline-block relative duration-150"
   let thumb =
-    "rounded-[50%] border border-transparent absolute top-1/2 -translate-y-1/2 shadow-toggle duration-150 flex items-center justify-center";
+    "rounded-[50%] border border-transparent absolute top-1/2 -translate-y-1/2 shadow-toggle duration-150 flex items-center justify-center"
 
   if (size === "small") {
-    toggle += " h-3.5 w-7";
-    thumb += " h-3 w-3";
+    toggle += " h-3.5 w-7"
+    thumb += " h-3 w-3"
   } else {
-    toggle += " h-6 w-10";
-    thumb += " h-[22px] w-[22px]";
+    toggle += " h-6 w-10"
+    thumb += " h-[22px] w-[22px]"
   }
 
   if (checked) {
     if (size === "small") {
-      thumb += " left-3.5";
+      thumb += " left-3.5"
     } else {
-      thumb += " left-4";
+      thumb += " left-4"
     }
 
     if (disabled) {
-      toggle += " bg-accents-1 border border-accents-2 cursor-not-allowed";
-      thumb += " bg-gray-200";
+      toggle += " bg-accents-1 border border-accents-2 cursor-not-allowed"
+      thumb += " bg-gray-200"
     } else {
       toggle += ` ${
         color
           ? `bg-gray-100 ${colors[color].fill}`
           : "bg-success fill-gray-900 dark:fill-background-100"
-      } border border-gray-alpha-400 cursor-pointer`;
-      thumb += " bg-background-100 dark:bg-gray-1000";
+      } border border-gray-alpha-400 cursor-pointer`
+      thumb += " bg-background-100 dark:bg-gray-1000"
     }
   } else {
     if (disabled) {
-      toggle +=
-        " bg-background-100 border border-gray-alpha-400 cursor-not-allowed";
-      thumb += " bg-gray-200 left-0";
+      toggle += " bg-background-100 border border-gray-alpha-400 cursor-not-allowed"
+      thumb += " bg-gray-200 left-0"
     } else {
       toggle += ` ${
         color
           ? `${colors[color].backgroundColor} ${colors[color].fill}`
           : "bg-background-100 fill-gray-900 dark:fill-background-100"
-      } border border-gray-alpha-400 cursor-pointer`;
-      thumb += " bg-background-200 dark:bg-gray-1000 left-0";
+      } border border-gray-alpha-400 cursor-pointer`
+      thumb += " bg-background-200 dark:bg-gray-1000 left-0"
     }
   }
 
-  return { toggle, thumb };
-};
+  return { toggle, thumb }
+}
 
 export const Toggle = ({
   checked,
@@ -138,5 +137,5 @@ export const Toggle = ({
         </div>
       </span>
     </label>
-  );
-};
+  )
+}

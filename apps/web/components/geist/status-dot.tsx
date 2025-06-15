@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 
 const states = {
   QUEUED: "bg-accents-2",
@@ -7,7 +7,7 @@ const states = {
   READY: "bg-cyan",
   CURRENT: "bg-yellow-500",
   CANCELED: "bg-accents-2",
-};
+}
 
 const titles = {
   QUEUED: "Project is initializing...",
@@ -16,7 +16,7 @@ const titles = {
   READY: "Your site is live.",
   CURRENT: "This is the current step.",
   CANCELED: "Publishing was canceled.",
-};
+}
 
 const labels = {
   QUEUED: "initializing",
@@ -25,11 +25,11 @@ const labels = {
   READY: "live",
   CURRENT: "current",
   CANCELED: "canceled",
-};
+}
 
 interface StatusDotProps {
-  state: keyof typeof states;
-  label?: boolean;
+  state: keyof typeof states
+  label?: boolean
 }
 
 export const StatusDot = ({ state, label }: StatusDotProps) => {
@@ -39,14 +39,10 @@ export const StatusDot = ({ state, label }: StatusDotProps) => {
       className="inline-flex items-center gap-2"
       title={titles[state]}
     >
-      <span
-        className={`inline-block w-2.5 h-2.5 rounded-[5px] ${states[state]}`}
-      />
+      <span className={`inline-block w-2.5 h-2.5 rounded-[5px] ${states[state]}`} />
       {label && (
-        <span className="font-sans text-[14px] leading-4 text-gray-1000">
-          {labels[state]}
-        </span>
+        <span className="font-sans text-[14px] leading-4 text-gray-1000">{labels[state]}</span>
       )}
     </span>
-  );
-};
+  )
+}

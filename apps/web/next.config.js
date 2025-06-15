@@ -1,5 +1,5 @@
 // Load environment variables from .env.local
-require("dotenv").config({ path: "../../.env.local" });
+require("dotenv").config({ path: "../../.env.local" })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -10,12 +10,12 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Исключаем ngrok бинарники из обработки webpack
-      config.externals = config.externals || [];
+      config.externals = config.externals || []
       config.externals.push({
         "@ngrok/ngrok": "commonjs @ngrok/ngrok",
-      });
+      })
     }
-    return config;
+    return config
   },
   // Настройки для работы с WebSocket
   async rewrites() {
@@ -24,7 +24,7 @@ const nextConfig = {
         source: "/api/ws/:path*",
         destination: `${process.env.WS_URL || "http://localhost:8080"}/:path*`,
       },
-    ];
+    ]
   },
   // Explicitly define environment variables for server-side
   env: {
@@ -38,6 +38,6 @@ const nextConfig = {
     WS_PORT: process.env.WS_PORT,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
   },
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

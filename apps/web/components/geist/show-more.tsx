@@ -1,17 +1,13 @@
-import React from "react";
+import React from "react"
 
 interface ShowMoreProps {
-  expanded: boolean;
-  onClick: React.Dispatch<React.SetStateAction<boolean>>;
-  noBorder?: boolean;
-  className?: string;
+  expanded: boolean
+  onClick: React.Dispatch<React.SetStateAction<boolean>>
+  noBorder?: boolean
+  className?: string
 }
 
-export const ShowMore = ({
-  expanded = false,
-  onClick,
-  className = "",
-}: ShowMoreProps) => {
+export const ShowMore = ({ expanded = false, onClick, className = "" }: ShowMoreProps) => {
   return (
     <div
       className={`w-[calc(100%_-_40px)] flex items-center justify-center min-h-[30px] ${className}`}
@@ -25,11 +21,7 @@ export const ShowMore = ({
           <span className="text-nowrap inline-block">
             <div className="flex items-center">
               Show {expanded ? "Less" : "More"}
-              <span
-                className={`inline-flex ml-1 duration-200${
-                  expanded ? " rotate-180" : ""
-                }`}
-              >
+              <span className={`inline-flex ml-1 duration-200${expanded ? " rotate-180" : ""}`}>
                 <svg
                   height="16"
                   strokeLinejoin="round"
@@ -49,5 +41,5 @@ export const ShowMore = ({
         </button>
       </div>
     </div>
-  );
-};
+  )
+}

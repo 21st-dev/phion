@@ -1,6 +1,6 @@
-import React from "react";
-import { Spinner } from "./spinner";
-import { cn } from "@/lib/utils";
+import React from "react"
+import { Spinner } from "./spinner"
+import { cn } from "@/lib/utils"
 
 const sizes = [
   {
@@ -15,7 +15,7 @@ const sizes = [
     medium: "w-10 h-10 text-sm",
     large: "w-12 h-12 text-base",
   },
-];
+]
 
 const types = {
   primary:
@@ -27,7 +27,7 @@ const types = {
   error:
     "bg-[#ea001d] dark:bg-[#e2162a] hover:bg-[#ae292f] dark:hover:bg-[#ff565f] text-[#f5f5f5] dark:text-white fill-[#f5f5f5] dark:fill-white",
   warning: "bg-[#ff9300] hover:bg-[#d27504] text-[#0a0a0a] fill-[#0a0a0a]",
-};
+}
 
 const shapes = {
   square: {
@@ -48,23 +48,23 @@ const shapes = {
     medium: "rounded-[100px]",
     large: "rounded-[100px]",
   },
-};
+}
 
 export interface ButtonProps {
-  size?: keyof (typeof sizes)[0];
-  type?: keyof typeof types;
-  shape?: keyof typeof shapes;
-  svgOnly?: boolean;
-  children?: React.ReactNode;
-  prefix?: React.ReactNode;
-  suffix?: React.ReactNode;
-  shadow?: boolean;
-  loading?: boolean;
-  disabled?: boolean;
-  fullWidth?: boolean;
-  onClick?: () => void;
-  ref?: React.Ref<HTMLButtonElement>;
-  className?: string;
+  size?: keyof (typeof sizes)[0]
+  type?: keyof typeof types
+  shape?: keyof typeof shapes
+  svgOnly?: boolean
+  children?: React.ReactNode
+  prefix?: React.ReactNode
+  suffix?: React.ReactNode
+  shadow?: boolean
+  loading?: boolean
+  disabled?: boolean
+  fullWidth?: boolean
+  onClick?: () => void
+  ref?: React.Ref<HTMLButtonElement>
+  className?: string
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -88,8 +88,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     // Icon size for prefix/suffix
-    const iconSize =
-      size === "large" ? 24 : size === "small" || size === "tiny" ? 16 : 20;
+    const iconSize = size === "large" ? 24 : size === "small" || size === "tiny" ? 16 : 20
 
     return (
       <button
@@ -105,8 +104,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             ? "bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f] fill-[#8f8f8f] border border-[#ebebeb] dark:border-[#2e2e2e] cursor-not-allowed"
             : types[type],
           shapes[shape][size],
-          shadow &&
-            "shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none",
+          shadow && "shadow-[0_0_0_1px_#00000014,_0px_2px_2px_#0000000a] border-none",
           fullWidth && "w-full",
           "focus:shadow-[0_0_0_2px_hsla(0,0%,100%,1),0_0_0_4px_oklch(57.61% 0.2508 258.23)]",
           className,
@@ -122,10 +120,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? React.cloneElement(prefix as React.ReactElement, {
                   width: iconSize,
                   height: iconSize,
-                  className: cn(
-                    "inline-block align-middle",
-                    prefix.props?.className,
-                  ),
+                  className: cn("inline-block align-middle", prefix.props?.className),
                 })
               : prefix}
           </span>
@@ -150,17 +145,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? React.cloneElement(suffix as React.ReactElement, {
                   width: iconSize,
                   height: iconSize,
-                  className: cn(
-                    "inline-block align-middle",
-                    suffix.props?.className,
-                  ),
+                  className: cn("inline-block align-middle", suffix.props?.className),
                 })
               : suffix}
           </span>
         ) : null}
       </button>
-    );
+    )
   },
-);
+)
 
-Button.displayName = "Button";
+Button.displayName = "Button"

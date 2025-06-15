@@ -1,200 +1,166 @@
-"use client";
+"use client"
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import type { ProjectRow } from "@shipvibes/database";
-import { useWebSocket } from "@/hooks/use-websocket";
-import { Spinner } from "@/components/geist/spinner";
-import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/geist/spinner"
+import { useToast } from "@/hooks/use-toast"
+import { useWebSocket } from "@/hooks/use-websocket"
+import type { ProjectRow } from "@shipvibes/database"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 // Material удален - не используется
 import {
+  DownloadStep,
   ProjectSetupLayout,
   ProjectSetupSidebar,
-  DownloadStep,
   SetupStep,
   type SetupStep as ISetupStep,
-} from "./index";
+} from "./index"
 
 interface ProjectSetupProps {
-  project: ProjectRow;
-  agentConnected?: boolean; // Статус агента получаем извне
+  project: ProjectRow
+  agentConnected?: boolean // Статус агента получаем извне
 }
 
-export function ProjectSetup({
-  project,
-  agentConnected = false,
-}: ProjectSetupProps) {
-  const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentComplete, setDeploymentComplete] = useState(false);
-  const [projectUrl, setProjectUrl] = useState<string | null>(null);
-  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  const { error: showError, success: showSuccess } = useToast();
+export function ProjectSetup({ project, agentConnected = false }: ProjectSetupProps) {
+  const router = useRouter()
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isDeploying, setIsDeploying] = useState(false)
+  const [deploymentComplete, setDeploymentComplete] = useState(false)
+  const [projectUrl, setProjectUrl] = useState<string | null>(null)
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true)
+  const { error: showError, success: showSuccess } = useToast()
 
   // Состояния выполнения для каждого шага
-  const [downloadCompleted, setDownloadCompleted] = useState(false);
-  const [setupCompleted, setSetupCompleted] = useState(false);
+  const [downloadCompleted, setDownloadCompleted] = useState(false)
+  const [setupCompleted, setSetupCompleted] = useState(false)
 
   // Рефы для плавного скролла
-  const downloadStepRef = useRef<HTMLDivElement>(null);
-  const setupStepRef = useRef<HTMLDivElement>(null);
+  const downloadStepRef = useRef<HTMLDivElement>(null)
+  const setupStepRef = useRef<HTMLDivElement>(null)
 
   const [steps, setSteps] = useState<ISetupStep[]>([
     { id: "download", title: "Get Files", status: "READY" },
     { id: "setup", title: "Open in Cursor", status: "QUEUED" },
-  ]);
+  ])
 
   // WebSocket для отслеживания статуса проекта в реальном времени
   const { isConnected } = useWebSocket({
     projectId: project.id,
     onDeployStatusUpdate: (data) => {
-      console.log("🚀 [ProjectSetup] Deploy status update:", data);
+      console.log("🚀 [ProjectSetup] Deploy status update:", data)
       if (data.projectId === project.id) {
         // Обновляем статус шагов на основе WebSocket событий
         if (data.status === "pending") {
           // Проект инициализируется
           setSteps((prev) =>
-            prev.map((step) =>
-              step.id === "download" ? { ...step, status: "BUILDING" } : step,
-            ),
-          );
+            prev.map((step) => (step.id === "download" ? { ...step, status: "BUILDING" } : step)),
+          )
         } else if (data.status === "ready" && !data.url) {
           // Инициализация завершена, проект готов к скачиванию
           setSteps((prev) =>
-            prev.map((step) =>
-              step.id === "download" ? { ...step, status: "READY" } : step,
-            ),
-          );
+            prev.map((step) => (step.id === "download" ? { ...step, status: "READY" } : step)),
+          )
         } else if (data.status === "building") {
           // Деплой в процессе - фоновая обработка
-          setIsDeploying(true);
+          setIsDeploying(true)
         } else if (data.status === "ready" && data.url) {
           // Деплой завершен успешно
-          setIsDeploying(false);
-          setDeploymentComplete(true);
-          setProjectUrl(data.url);
+          setIsDeploying(false)
+          setDeploymentComplete(true)
+          setProjectUrl(data.url)
         } else if (data.status === "failed") {
           // Деплой провалился
-          setIsDeploying(false);
+          setIsDeploying(false)
         }
       }
     },
     onFileTracked: () => {
       // Когда отслеживается новый файл
-      console.log("📝 [ProjectSetup] File tracked");
+      console.log("📝 [ProjectSetup] File tracked")
     },
     onSaveSuccess: () => {
       // Когда файлы сохранены
-      console.log("💾 [ProjectSetup] Save success");
+      console.log("💾 [ProjectSetup] Save success")
     },
-  });
+  })
 
   // Проверяем статус проекта при загрузке компонента
   useEffect(() => {
     const checkProjectStatus = async () => {
       try {
-        const response = await fetch(`/api/projects/${project.id}/status`);
+        const response = await fetch(`/api/projects/${project.id}/status`)
         if (response.ok) {
-          const statusData = await response.json();
+          const statusData = await response.json()
 
           // ИСПРАВЛЕНО: Проверяем статус деплоя и наличие Netlify URL
           if (statusData.deploy_status === "ready" && statusData.netlify_url) {
             // Проект полностью задеплоен - фоновая обработка
-            setDeploymentComplete(true);
-            setProjectUrl(statusData.netlify_url);
+            setDeploymentComplete(true)
+            setProjectUrl(statusData.netlify_url)
           }
           // Если статус ready но нет netlify_url - проект готов к скачиванию
-          else if (
-            statusData.deploy_status === "ready" &&
-            !statusData.netlify_url
-          ) {
+          else if (statusData.deploy_status === "ready" && !statusData.netlify_url) {
             // Проект готов к скачиванию - разблокируем первый шаг
             setSteps((prev) =>
-              prev.map((step) =>
-                step.id === "download" ? { ...step, status: "READY" } : step,
-              ),
-            );
+              prev.map((step) => (step.id === "download" ? { ...step, status: "READY" } : step)),
+            )
           }
           // Если проект в процессе деплоя
           else if (statusData.deploy_status === "building") {
-            setIsDeploying(true);
+            setIsDeploying(true)
           }
           // Если проект инициализируется (загружаются файлы шаблона)
           else if (statusData.deploy_status === "pending") {
             // Показываем что проект еще инициализируется
             setSteps((prev) =>
-              prev.map((step) =>
-                step.id === "download" ? { ...step, status: "BUILDING" } : step,
-              ),
-            );
+              prev.map((step) => (step.id === "download" ? { ...step, status: "BUILDING" } : step)),
+            )
           }
 
           // Определяем какой шаг должен быть активным
           if (!downloadCompleted) {
-            setCurrentStep(0); // Первый шаг - скачивание
+            setCurrentStep(0) // Первый шаг - скачивание
           } else if (!setupCompleted) {
-            setCurrentStep(1); // Второй шаг - настройка
+            setCurrentStep(1) // Второй шаг - настройка
           }
         }
       } catch (error) {
-        console.error("Error checking project status:", error);
+        console.error("Error checking project status:", error)
       } finally {
-        setIsLoadingStatus(false);
+        setIsLoadingStatus(false)
       }
-    };
+    }
 
-    checkProjectStatus();
-  }, [project.id]);
+    checkProjectStatus()
+  }, [project.id])
 
   // Обработчик завершения инициализации
   const handleInitializationComplete = () => {
-    console.log("✅ [ProjectSetup] Initialization completed");
+    console.log("✅ [ProjectSetup] Initialization completed")
     setSteps((prev) =>
-      prev.map((step) =>
-        step.id === "download" ? { ...step, status: "READY" } : step,
-      ),
-    );
-  };
+      prev.map((step) => (step.id === "download" ? { ...step, status: "READY" } : step)),
+    )
+  }
 
   // Функция плавного скролла к следующему шагу
   const scrollToStep = (stepIndex: number) => {
-    const refs = [downloadStepRef, setupStepRef];
-    const targetRef = refs[stepIndex];
+    const refs = [downloadStepRef, setupStepRef]
+    const targetRef = refs[stepIndex]
 
     if (targetRef.current) {
       setTimeout(() => {
         targetRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
-        });
-      }, 500); // Небольшая задержка чтобы UI успел обновиться
+        })
+      }, 500) // Небольшая задержка чтобы UI успел обновиться
     }
-  };
+  }
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(`/api/projects/${project.id}/download`);
-      if (!response.ok) {
-        throw new Error("Failed to download project");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${project.name}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
       // Отмечаем первый шаг как выполненный
-      setDownloadCompleted(true);
-      showSuccess(
-        "Project downloaded",
-        "Open the downloaded file in Cursor to continue",
-      );
+      setDownloadCompleted(true)
+      showSuccess("Project downloaded", "Open the downloaded file in Cursor to continue")
 
       // Update steps
       setSteps((prev) =>
@@ -205,37 +171,31 @@ export function ProjectSetup({
               ? { ...step, status: "READY" }
               : step,
         ),
-      );
-      setCurrentStep(1);
+      )
+      setCurrentStep(1)
 
       // Скроллим к следующему шагу
-      scrollToStep(1);
+      scrollToStep(1)
     } catch (error) {
-      console.error("Error downloading project:", error);
+      console.error("Error downloading project:", error)
       setSteps((prev) =>
-        prev.map((step) =>
-          step.id === "download" ? { ...step, status: "ERROR" } : step,
-        ),
-      );
+        prev.map((step) => (step.id === "download" ? { ...step, status: "ERROR" } : step)),
+      )
       // Показываем ошибку пользователю
-      showError("Failed to download project", "Please try again");
+      showError("Failed to download project", "Please try again")
     }
-  };
+  }
 
   const handleSetupComplete = () => {
-    setSetupCompleted(true);
+    setSetupCompleted(true)
     setSteps((prev) =>
-      prev.map((step) =>
-        step.id === "setup" ? { ...step, status: "READY" } : step,
-      ),
-    );
+      prev.map((step) => (step.id === "setup" ? { ...step, status: "READY" } : step)),
+    )
 
     // Редиректим на overview по кнопке
-    console.log(
-      "✅ [ProjectSetup] Setup completed, redirecting to overview...",
-    );
-    router.push(`/project/${project.id}/overview`);
-  };
+    console.log("✅ [ProjectSetup] Setup completed, redirecting to overview...")
+    router.push(`/project/${project.id}/overview`)
+  }
 
   // Функция для возврата к шагу
   const handleStepClick = (stepIndex: number) => {
@@ -243,13 +203,13 @@ export function ProjectSetup({
     const canGoToStep =
       (stepIndex === 0 && downloadCompleted) ||
       (stepIndex === 1 && setupCompleted) ||
-      stepIndex === currentStep;
+      stepIndex === currentStep
 
     if (canGoToStep) {
-      setCurrentStep(stepIndex);
-      scrollToStep(stepIndex);
+      setCurrentStep(stepIndex)
+      scrollToStep(stepIndex)
     }
-  };
+  }
 
   // Показываем загрузку пока проверяем статус
   if (isLoadingStatus) {
@@ -257,12 +217,10 @@ export function ProjectSetup({
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <div className="flex flex-col items-center justify-center text-center">
           <Spinner size={32} />
-          <p className="mt-4 text-sm text-muted-foreground">
-            Checking project status...
-          </p>
+          <p className="mt-4 text-sm text-muted-foreground">Checking project status...</p>
         </div>
       </div>
-    );
+    )
   }
 
   // Убираем показ congratulations page так как deploy step больше нет в UI
@@ -327,5 +285,5 @@ export function ProjectSetup({
         </div>
       </div>
     </ProjectSetupLayout>
-  );
+  )
 }

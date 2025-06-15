@@ -1,68 +1,66 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query"
 
 interface SubscriptionData {
-  hasActiveSubscription: boolean;
-  email: string;
-  planType?: string;
-  subscriptionStatus?: string;
-  subscriptionEndDate?: string;
-  isExpired?: boolean;
-  error?: string;
+  hasActiveSubscription: boolean
+  email: string
+  planType?: string
+  subscriptionStatus?: string
+  subscriptionEndDate?: string
+  isExpired?: boolean
+  error?: string
 }
 
 interface ProjectLimitsData {
-  projectCount: number;
-  subscriptionData: SubscriptionData;
+  projectCount: number
+  subscriptionData: SubscriptionData
 }
 
 interface ProjectLimits {
-  isLoading: boolean;
-  canCreateProject: boolean;
-  hasActiveSubscription: boolean;
-  projectCount: number;
-  maxProjects: number;
-  subscriptionData: SubscriptionData | null;
-  error: string | null;
-  refetch: () => void;
+  isLoading: boolean
+  canCreateProject: boolean
+  hasActiveSubscription: boolean
+  projectCount: number
+  maxProjects: number
+  subscriptionData: SubscriptionData | null
+  error: string | null
+  refetch: () => void
 }
 
-const FREE_TIER_LIMIT = 1;
+const FREE_TIER_LIMIT = 1
 
 async function fetchProjectLimits(): Promise<ProjectLimitsData> {
   // Параллельно загружаем проекты и подписку
   const [projectsResponse, subscriptionResponse] = await Promise.all([
     fetch("/api/projects"),
     fetch("/api/subscription/check"),
-  ]);
+  ])
 
   if (!projectsResponse.ok) {
-    throw new Error("Failed to fetch projects");
+    throw new Error("Failed to fetch projects")
   }
 
-  const projects = await projectsResponse.json();
-  const projectCount = Array.isArray(projects) ? projects.length : 0;
+  const projects = await projectsResponse.json()
+  const projectCount = Array.isArray(projects) ? projects.length : 0
 
   let subscriptionData: SubscriptionData = {
     hasActiveSubscription: false,
     email: "",
     error: "Subscription check failed",
-  };
+  }
 
   if (subscriptionResponse.ok) {
     try {
-      subscriptionData = await subscriptionResponse.json();
+      subscriptionData = await subscriptionResponse.json()
     } catch (parseError) {
       // JSON parsing failed, default to free tier
-      console.warn(
-        "Failed to parse subscription response, defaulting to free tier",
-      );
+      console.warn("Failed to parse subscription response, defaulting to free tier")
     }
   } else {
     // Если проверка подписки не удалась, считаем что подписки нет
-    console.warn("Subscription check failed, defaulting to free tier");
+    console.warn("Subscription check failed, defaulting to free tier")
   }
 
-  return { projectCount, subscriptionData };
+  return { projectCount, subscriptionData }
 }
 
 export function useProjectLimits(): ProjectLimits {
@@ -74,22 +72,20 @@ export function useProjectLimits(): ProjectLimits {
     retry: (failureCount, error) => {
       // Retry only for network errors, not for project fetch failures
       if (error?.message?.includes("Failed to fetch projects")) {
-        return false;
+        return false
       }
-      return failureCount < 2;
+      return failureCount < 2
     },
-  });
+  })
 
-  const projectCount = data?.projectCount || 0;
-  const subscriptionData = data?.subscriptionData || null;
-  const hasActiveSubscription =
-    subscriptionData?.hasActiveSubscription || false;
+  const projectCount = data?.projectCount || 0
+  const subscriptionData = data?.subscriptionData || null
+  const hasActiveSubscription = subscriptionData?.hasActiveSubscription || false
 
   // В development окружении убираем лимиты
-  const isDevelopment = process.env.NODE_ENV === "development";
-  const maxProjects =
-    hasActiveSubscription || isDevelopment ? Infinity : FREE_TIER_LIMIT;
-  const canCreateProject = isDevelopment || projectCount < maxProjects;
+  const isDevelopment = process.env.NODE_ENV === "development"
+  const maxProjects = hasActiveSubscription || isDevelopment ? Infinity : FREE_TIER_LIMIT
+  const canCreateProject = isDevelopment || projectCount < maxProjects
 
   return {
     isLoading,
@@ -100,7 +96,7 @@ export function useProjectLimits(): ProjectLimits {
     subscriptionData,
     error: error?.message || null,
     refetch: () => {
-      refetch();
+      refetch()
     },
-  };
+  }
 }

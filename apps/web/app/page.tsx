@@ -1,61 +1,59 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ProjectList } from "@/components/project-list";
-import { DeleteAllProjectsDialog } from "@/components/project/delete-all-projects-dialog";
-import { Header } from "@/components/layout/header";
-import { createAuthBrowserClient } from "@shipvibes/database";
-import type { User } from "@supabase/supabase-js";
-import { CreateProjectButton } from "@/components/create-project-button";
-import { useInvalidateProjects } from "@/hooks/use-projects";
-import { Spinner } from "@/components/geist/spinner";
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { ProjectList } from "@/components/project-list"
+import { DeleteAllProjectsDialog } from "@/components/project/delete-all-projects-dialog"
+import { Header } from "@/components/layout/header"
+import { createAuthBrowserClient } from "@shipvibes/database"
+import type { User } from "@supabase/supabase-js"
+import { CreateProjectButton } from "@/components/create-project-button"
+import { useInvalidateProjects } from "@/hooks/use-projects"
+import { Spinner } from "@/components/geist/spinner"
 
 export default function HomePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  const supabase = createAuthBrowserClient();
-  const invalidateProjects = useInvalidateProjects();
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createAuthBrowserClient()
+  const invalidateProjects = useInvalidateProjects()
 
   useEffect(() => {
     const checkAuth = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push("/login");
-        return;
+        router.push("/login")
+        return
       }
 
-      setUser(user);
-      setLoading(false);
-    };
+      setUser(user)
+      setLoading(false)
+    }
 
-    checkAuth();
-  }, [router, supabase.auth]);
+    checkAuth()
+  }, [router, supabase.auth])
 
   const handleDeleteAllSuccess = () => {
     // Инвалидируем кеш проектов
-    invalidateProjects();
-  };
+    invalidateProjects()
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background-100 flex items-center justify-center">
         <div className="flex flex-col items-center justify-center text-center">
           <Spinner size={32} />
-          <p className="mt-4 text-sm text-muted-foreground">
-            Loading your projects...
-          </p>
+          <p className="mt-4 text-sm text-muted-foreground">Loading your projects...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!user) {
-    return null;
+    return null
   }
 
   return (
@@ -71,22 +69,16 @@ export default function HomePage() {
             {/* Hero Section */}
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <h1 className="text-2xl font-semibold text-gray-1000">
-                  Your Projects
-                </h1>
+                <h1 className="text-2xl font-semibold text-gray-1000">Your Projects</h1>
                 <p className="text-gray-700">
-                  Edit your frontend code locally in Cursor and see changes
-                  published instantly.
+                  Edit your frontend code locally in Cursor and see changes published instantly.
                 </p>
               </div>
               <div className="flex items-center space-x-3">
                 <CreateProjectButton />
                 {/* Dev-only: Delete All Projects */}
                 {process.env.NODE_ENV === "development" && (
-                  <DeleteAllProjectsDialog
-                    variant="button"
-                    onSuccess={handleDeleteAllSuccess}
-                  />
+                  <DeleteAllProjectsDialog variant="button" onSuccess={handleDeleteAllSuccess} />
                 )}
               </div>
             </div>
@@ -97,5 +89,5 @@ export default function HomePage() {
         </div>
       </main>
     </div>
-  );
+  )
 }

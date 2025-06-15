@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/geist/button";
-import { Material } from "@/components/geist/material";
-import { CreateProjectButton } from "@/components/create-project-button";
+import { Button } from "@/components/geist/button"
+import { Material } from "@/components/geist/material"
+import { CreateProjectButton } from "@/components/create-project-button"
 
 export function EmptyState() {
   return (
@@ -11,13 +11,7 @@ export function EmptyState() {
         <div className="max-w-sm mx-auto items-center flex flex-col">
           {/* Icon */}
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-gray-600"
-            >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-gray-600">
               <path
                 d="M12 2L2 7L12 12L22 7L12 2Z"
                 stroke="currentColor"
@@ -43,12 +37,9 @@ export function EmptyState() {
           </div>
 
           {/* Content */}
-          <h3 className="text-xl font-semibold text-gray-1000 mb-2">
-            No projects yet
-          </h3>
+          <h3 className="text-xl font-semibold text-gray-1000 mb-2">No projects yet</h3>
           <p className="text-gray-700 mb-6">
-            Create your first project to start building and publishing your
-            frontend applications.
+            Create your first project to start building and publishing your frontend applications.
           </p>
 
           {/* Action */}
@@ -62,5 +53,5 @@ export function EmptyState() {
         </div>
       </Material>
     </div>
-  );
+  )
 }

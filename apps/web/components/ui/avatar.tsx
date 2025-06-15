@@ -1,34 +1,28 @@
-import React, { useState } from "react";
-import { Skeleton } from "./skeleton";
-import clsx from "clsx";
+import React, { useState } from "react"
+import { Skeleton } from "./skeleton"
+import clsx from "clsx"
 
 interface AvatarProps {
-  placeholder?: boolean;
-  size?: number;
-  src?: string;
-  name?: string;
-  fallback?: string;
+  placeholder?: boolean
+  size?: number
+  src?: string
+  name?: string
+  fallback?: string
 }
 
 // Function to generate initials from name
 const getInitials = (name?: string) => {
-  if (!name) return "?";
+  if (!name) return "?"
   return name
     .split(" ")
     .map((part) => part.charAt(0))
     .join("")
     .toUpperCase()
-    .slice(0, 2);
-};
+    .slice(0, 2)
+}
 
-export const Avatar = ({
-  placeholder = false,
-  size = 24,
-  src,
-  name,
-  fallback,
-}: AvatarProps) => {
-  const [imageError, setImageError] = useState(false);
+export const Avatar = ({ placeholder = false, size = 24, src, name, fallback }: AvatarProps) => {
+  const [imageError, setImageError] = useState(false)
 
   if (placeholder) {
     return (
@@ -36,10 +30,10 @@ export const Avatar = ({
         className="rounded-full border border-gray-alpha-400"
         style={{ width: size, height: size }}
       />
-    );
+    )
   }
 
-  const showFallback = !src || imageError;
+  const showFallback = !src || imageError
 
   return (
     <span
@@ -62,13 +56,13 @@ export const Avatar = ({
         </div>
       )}
     </span>
-  );
-};
+  )
+}
 
 interface GitAvatarProps {
-  username?: string;
-  size?: number;
-  src?: string;
+  username?: string
+  size?: number
+  src?: string
 }
 
 const GitHubIcon = () => (
@@ -92,7 +86,7 @@ const GitHubIcon = () => (
       </clipPath>
     </defs>
   </svg>
-);
+)
 const GitLabIcon = () => (
   <svg
     aria-label="gitlab"
@@ -102,10 +96,7 @@ const GitLabIcon = () => (
     className="scale-75 fill-white"
   >
     <path d="M1.279 8.29L.044 12.294c-.117.367 0 .78.325 1.014l11.323 8.23-.009-.012-.03-.039L1.279 8.29zM22.992 13.308a.905.905 0 00.325-1.014L22.085 8.29 11.693 21.52l11.299-8.212z" />
-    <path
-      d="M1.279 8.29l10.374 13.197.03.039.01-.006L22.085 8.29H1.28z"
-      opacity="0.4"
-    />
+    <path d="M1.279 8.29l10.374 13.197.03.039.01-.006L22.085 8.29H1.28z" opacity="0.4" />
     <path
       d="M15.982 8.29l-4.299 13.236-.004.011.014-.017L22.085 8.29h-6.103zM7.376 8.29H1.279l10.374 13.197L7.376 8.29z"
       opacity="0.6"
@@ -115,18 +106,12 @@ const GitLabIcon = () => (
       opacity="0.4"
     />
   </svg>
-);
+)
 
 const BitbucketIcon = () => (
   <svg height="14" viewBox="-2 -2 65 59" width="14" className="scale-[65%]">
     <defs>
-      <linearGradient
-        id="bitbucketGradient"
-        x1="104.953%"
-        x2="46.569%"
-        y1="21.921%"
-        y2="75.234%"
-      >
+      <linearGradient id="bitbucketGradient" x1="104.953%" x2="46.569%" y1="21.921%" y2="75.234%">
         <stop offset="7%" stopColor="white" stopOpacity=".4" />
         <stop offset="100%" stopColor="white" />
       </linearGradient>
@@ -143,11 +128,11 @@ const BitbucketIcon = () => (
       className="fill-white"
     />
   </svg>
-);
+)
 
 export const GitHubAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
-  const [imageError, setImageError] = useState(false);
-  const showFallback = !src || imageError;
+  const [imageError, setImageError] = useState(false)
+  const showFallback = !src || imageError
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -175,12 +160,12 @@ export const GitHubAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
         <GitHubIcon />
       </div>
     </div>
-  );
-};
+  )
+}
 
 export const GitLabAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
-  const [imageError, setImageError] = useState(false);
-  const showFallback = !src || imageError;
+  const [imageError, setImageError] = useState(false)
+  const showFallback = !src || imageError
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -208,16 +193,12 @@ export const GitLabAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
         <GitLabIcon />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export const BitbucketAvatar = ({
-  username,
-  size = 24,
-  src,
-}: GitAvatarProps) => {
-  const [imageError, setImageError] = useState(false);
-  const showFallback = !src || imageError;
+export const BitbucketAvatar = ({ username, size = 24, src }: GitAvatarProps) => {
+  const [imageError, setImageError] = useState(false)
+  const showFallback = !src || imageError
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -245,27 +226,27 @@ export const BitbucketAvatar = ({
         <BitbucketIcon />
       </div>
     </div>
-  );
-};
+  )
+}
 
 interface AvatarGroupProps {
   members: {
-    username?: string;
-    src?: string;
-  }[];
-  size?: number;
-  limit?: number;
+    username?: string
+    src?: string
+  }[]
+  size?: number
+  limit?: number
 }
 
 const AvatarGroupItem = ({
   member,
   size,
 }: {
-  member: { username?: string; src?: string };
-  size?: number;
+  member: { username?: string; src?: string }
+  size?: number
 }) => {
-  const [imageError, setImageError] = useState(false);
-  const showFallback = !member.src || imageError;
+  const [imageError, setImageError] = useState(false)
+  const showFallback = !member.src || imageError
 
   return (
     <span
@@ -288,24 +269,22 @@ const AvatarGroupItem = ({
         </div>
       )}
     </span>
-  );
-};
+  )
+}
 
 export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
   return (
     <div className="flex items-center">
-      {(members.length >= limit ? members.slice(0, limit - 1) : members).map(
-        (member, index) => (
-          <span
-            key={member.username}
-            className={clsx("inline-flex items-center", index !== 0 && "-ml-2")}
-            style={{ zIndex: index + 1 }}
-            aria-label={`Avatar for ${member.username}`}
-          >
-            <AvatarGroupItem member={member} size={size} />
-          </span>
-        ),
-      )}
+      {(members.length >= limit ? members.slice(0, limit - 1) : members).map((member, index) => (
+        <span
+          key={member.username}
+          className={clsx("inline-flex items-center", index !== 0 && "-ml-2")}
+          style={{ zIndex: index + 1 }}
+          aria-label={`Avatar for ${member.username}`}
+        >
+          <AvatarGroupItem member={member} size={size} />
+        </span>
+      ))}
       {members.length === limit && (
         <span
           className="inline-flex items-center -ml-2"
@@ -325,9 +304,7 @@ export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
         <span
           className="inline-flex items-center -ml-2 dark"
           style={{ zIndex: limit }}
-          aria-label={`${
-            members.length - limit + 1
-          } more avatars in this group`}
+          aria-label={`${members.length - limit + 1} more avatars in this group`}
         >
           <span
             className="rounded-full overflow-hidden border border-gray-400 bg-gray-100 duration-200 flex justify-center items-center text-gray-1000 text-[0.625rem] leading-3 font-semibold"
@@ -338,5 +315,5 @@ export const AvatarGroup = ({ members, size, limit = 3 }: AvatarGroupProps) => {
         </span>
       )}
     </div>
-  );
-};
+  )
+}

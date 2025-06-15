@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/geist/button";
-import { Trash2 } from "lucide-react";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/geist/button"
+import { Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -12,14 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface DeleteProjectDialogProps {
-  projectId: string;
-  trigger?: React.ReactNode;
-  onSuccess?: () => void;
-  variant?: "button" | "menu-item";
+  projectId: string
+  trigger?: React.ReactNode
+  onSuccess?: () => void
+  variant?: "button" | "menu-item"
 }
 
 export function DeleteProjectDialog({
@@ -28,41 +28,38 @@ export function DeleteProjectDialog({
   onSuccess,
   variant = "button",
 }: DeleteProjectDialogProps) {
-  const router = useRouter();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const { error: showError, success: showSuccess } = useToast();
+  const router = useRouter()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { error: showError, success: showSuccess } = useToast()
 
   const confirmDeleteProject = async () => {
-    setIsDeleting(true);
+    setIsDeleting(true)
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: "DELETE",
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to delete project");
+        throw new Error("Failed to delete project")
       }
 
-      console.log("Project deleted successfully");
-      showSuccess(
-        "Project deleted",
-        "The project has been permanently deleted",
-      );
+      console.log("Project deleted successfully")
+      showSuccess("Project deleted", "The project has been permanently deleted")
 
       if (onSuccess) {
-        onSuccess();
+        onSuccess()
       } else {
-        router.push("/");
+        router.push("/")
       }
     } catch (error) {
-      console.error("Error deleting project:", error);
-      showError("Failed to delete project", "Please try again");
+      console.error("Error deleting project:", error)
+      showError("Failed to delete project", "Please try again")
     } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
     }
-  };
+  }
 
   const defaultTrigger =
     variant === "button" ? (
@@ -80,7 +77,7 @@ export function DeleteProjectDialog({
         <Trash2 className="h-4 w-4" />
         Delete Project
       </div>
-    );
+    )
 
   return (
     <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -88,7 +85,7 @@ export function DeleteProjectDialog({
         asChild
         onClick={(e) => {
           if (variant === "menu-item") {
-            e.stopPropagation();
+            e.stopPropagation()
           }
         }}
       >
@@ -98,9 +95,8 @@ export function DeleteProjectDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Project</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this project? This action cannot be
-            undone. This will permanently delete all files, publications, and
-            history.
+            Are you sure you want to delete this project? This action cannot be undone. This will
+            permanently delete all files, publications, and history.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -124,5 +120,5 @@ export function DeleteProjectDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

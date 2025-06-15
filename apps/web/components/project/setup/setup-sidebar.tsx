@@ -1,22 +1,22 @@
-"use client";
+"use client"
 
-import { StatusDot } from "@/components/geist/status-dot";
-import type { ProjectRow } from "@shipvibes/database";
+import { StatusDot } from "@/components/geist/status-dot"
+import type { ProjectRow } from "@shipvibes/database"
 
 interface SetupStep {
-  id: string;
-  title: string;
-  status: "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CURRENT";
+  id: string
+  title: string
+  status: "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CURRENT"
 }
 
 interface ProjectSetupSidebarProps {
-  steps: SetupStep[];
-  currentStep: number;
-  project: ProjectRow;
-  downloadCompleted?: boolean;
-  setupCompleted?: boolean;
-  deployCompleted?: boolean;
-  onStepClick?: (stepIndex: number) => void;
+  steps: SetupStep[]
+  currentStep: number
+  project: ProjectRow
+  downloadCompleted?: boolean
+  setupCompleted?: boolean
+  deployCompleted?: boolean
+  onStepClick?: (stepIndex: number) => void
 }
 
 export function ProjectSetupSidebar({
@@ -32,22 +32,19 @@ export function ProjectSetupSidebar({
   const getStepStatus = (stepIndex: number, step: SetupStep) => {
     // Проверяем выполненность по индексу шага (только 2 шага)
     const isCompleted =
-      (stepIndex === 0 && downloadCompleted) ||
-      (stepIndex === 1 && setupCompleted);
+      (stepIndex === 0 && downloadCompleted) || (stepIndex === 1 && setupCompleted)
 
     if (isCompleted) {
-      return "READY"; // Выполненные шаги - зеленые
+      return "READY" // Выполненные шаги - зеленые
     } else if (stepIndex === currentStep) {
       // Текущий шаг - желтый, если не в процессе сборки или ошибки
-      return step.status === "BUILDING" || step.status === "ERROR"
-        ? step.status
-        : "CURRENT";
+      return step.status === "BUILDING" || step.status === "ERROR" ? step.status : "CURRENT"
     } else if (stepIndex < currentStep) {
-      return "CURRENT"; // Доступные но не завершенные шаги - желтые
+      return "CURRENT" // Доступные но не завершенные шаги - желтые
     } else {
-      return "QUEUED"; // Будущие шаги - серые
+      return "QUEUED" // Будущие шаги - серые
     }
-  };
+  }
 
   // Функция для определения кликабельности шага
   const isStepClickable = (stepIndex: number) => {
@@ -55,32 +52,26 @@ export function ProjectSetupSidebar({
       (stepIndex === 0 && downloadCompleted) ||
       (stepIndex === 1 && setupCompleted) ||
       stepIndex === currentStep
-    );
-  };
+    )
+  }
 
   return (
     <div className="lg:col-span-1">
       <div className="space-y-4">
         {steps.map((step, index) => {
-          const statusForDot = getStepStatus(index, step);
-          const isCompleted =
-            (index === 0 && downloadCompleted) ||
-            (index === 1 && setupCompleted);
-          const clickable = isStepClickable(index);
+          const statusForDot = getStepStatus(index, step)
+          const isCompleted = (index === 0 && downloadCompleted) || (index === 1 && setupCompleted)
+          const clickable = isStepClickable(index)
 
           return (
             <div
               key={step.id}
               className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
                 currentStep === index ? "bg-accents-1" : ""
-              } ${
-                clickable
-                  ? "cursor-pointer hover:bg-accents-1"
-                  : "cursor-default"
-              }`}
+              } ${clickable ? "cursor-pointer hover:bg-accents-1" : "cursor-default"}`}
               onClick={() => {
                 if (clickable && onStepClick) {
-                  onStepClick(index);
+                  onStepClick(index)
                 }
               }}
             >
@@ -100,13 +91,11 @@ export function ProjectSetupSidebar({
                 {index + 1}
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium text-foreground">
-                  {step.title}
-                </div>
+                <div className="text-sm font-medium text-foreground">{step.title}</div>
               </div>
               <StatusDot state={statusForDot} />
             </div>
-          );
+          )
         })}
       </div>
 
@@ -132,5 +121,5 @@ export function ProjectSetupSidebar({
         </div>
       </div>
     </div>
-  );
+  )
 }

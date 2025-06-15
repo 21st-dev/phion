@@ -1,15 +1,12 @@
-"use client";
+"use client"
 
-import { ReactNode } from "react";
+import { ReactNode } from "react"
 
 interface ProjectSetupLayoutProps {
-  children: ReactNode;
-  className?: string;
+  children: ReactNode
+  className?: string
 }
 
-export function ProjectSetupLayout({
-  children,
-  className = "",
-}: ProjectSetupLayoutProps) {
-  return <div className={`${className}`}>{children}</div>;
+export function ProjectSetupLayout({ children, className = "" }: ProjectSetupLayoutProps) {
+  return <div className={`${className}`}>{children}</div>
 }

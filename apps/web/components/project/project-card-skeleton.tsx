@@ -1,14 +1,11 @@
-"use client";
+"use client"
 
-import { Material } from "@/components/geist/material";
-import { Skeleton } from "@/components/geist/skeleton";
+import { Material } from "@/components/geist/material"
+import { Skeleton } from "@/components/geist/skeleton"
 
 export function ProjectCardSkeleton() {
   return (
-    <Material
-      type="base"
-      className="p-6 hover:shadow-border-medium transition-shadow"
-    >
+    <Material type="base" className="p-6 hover:shadow-border-medium transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           {/* Project name and status */}
@@ -37,5 +34,5 @@ export function ProjectCardSkeleton() {
         </div>
       </div>
     </Material>
-  );
+  )
 }

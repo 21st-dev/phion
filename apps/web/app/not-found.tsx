@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { Button } from "@/components/geist/button";
-import { Material } from "@/components/geist/material";
+import Link from "next/link"
+import { Button } from "@/components/geist/button"
+import { Material } from "@/components/geist/material"
 
 export default function NotFound() {
   return (
@@ -13,12 +13,8 @@ export default function NotFound() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-2xl font-semibold text-gray-1000">
-                Page not found
-              </h1>
-              <p className="text-gray-700">
-                The page you are looking for doesn&apos;t exist.
-              </p>
+              <h1 className="text-2xl font-semibold text-gray-1000">Page not found</h1>
+              <p className="text-gray-700">The page you are looking for doesn&apos;t exist.</p>
             </div>
 
             <Link href="/">
@@ -30,5 +26,5 @@ export default function NotFound() {
         </Material>
       </div>
     </div>
-  );
+  )
 }

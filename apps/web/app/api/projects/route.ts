@@ -1,120 +1,104 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createProject, getUserProjects } from "@shipvibes/database";
-import { createAuthServerClient } from "@shipvibes/database";
-import { cookies } from "next/headers";
-import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
+import { NextRequest, NextResponse } from "next/server"
+import { createProject, getUserProjects } from "@shipvibes/database"
+import { createAuthServerClient } from "@shipvibes/database"
+import { cookies } from "next/headers"
+import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database"
 // Project logger removed - using console.log instead
 
 // Загружаем переменные окружения
 if (process.env.NODE_ENV === "development") {
-  require("dotenv").config({ path: ".env.local" });
+  require("dotenv").config({ path: ".env.local" })
 }
 
 export async function GET(_request: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const cookieStore = await cookies()
     const supabase = createAuthServerClient({
       getAll() {
-        return cookieStore.getAll();
+        return cookieStore.getAll()
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
           // Игнорируем ошибки установки cookies
         }
       },
-    });
+    })
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Получаем проекты пользователя (RLS автоматически фильтрует)
-    const projects = await getUserProjects(user.id);
-    return NextResponse.json(projects);
+    const projects = await getUserProjects(user.id)
+    return NextResponse.json(projects)
   } catch (error) {
-    console.error("Error fetching projects:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch projects" },
-      { status: 500 },
-    );
+    console.error("Error fetching projects:", error)
+    return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const cookieStore = await cookies()
     const supabase = createAuthServerClient({
       getAll() {
-        return cookieStore.getAll();
+        return cookieStore.getAll()
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
           // Игнорируем ошибки установки cookies
         }
       },
-    });
+    })
 
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json();
-    const { name, template_type } = body;
+    const body = await request.json()
+    const { name, template_type } = body
 
     if (!name || !template_type) {
-      return NextResponse.json(
-        { error: "Name and template_type are required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Name and template_type are required" }, { status: 400 })
     }
 
     // Проверяем лимиты проектов
-    const email = user.email;
+    const email = user.email
     if (!email) {
-      return NextResponse.json(
-        { error: "User email not found" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "User email not found" }, { status: 400 })
     }
 
     // Проверяем текущее количество проектов пользователя
     const { data: existingProjects, error: countError } = await supabase
       .from("projects")
       .select("id")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
 
     if (countError) {
-      console.error("Error counting projects:", countError);
-      return NextResponse.json(
-        { error: "Failed to check project limits" },
-        { status: 500 },
-      );
+      console.error("Error counting projects:", countError)
+      return NextResponse.json({ error: "Failed to check project limits" }, { status: 500 })
     }
 
-    const projectCount = existingProjects?.length || 0;
-    const FREE_TIER_LIMIT = 1;
+    const projectCount = existingProjects?.length || 0
+    const FREE_TIER_LIMIT = 1
 
     // Проверяем подписку через 21st.dev API
-    let hasActiveSubscription = false;
-    const subscriptionApiKey = process.env.SUBSCRIPTION_API_KEY;
+    let hasActiveSubscription = false
+    const subscriptionApiKey = process.env.SUBSCRIPTION_API_KEY
 
     if (subscriptionApiKey) {
       try {
@@ -125,22 +109,20 @@ export async function POST(request: NextRequest) {
               Authorization: `Bearer ${subscriptionApiKey}`,
             },
           },
-        );
+        )
 
         if (subscriptionResponse.ok) {
-          const subscriptionData = await subscriptionResponse.json();
-          hasActiveSubscription = subscriptionData.status === "active";
+          const subscriptionData = await subscriptionResponse.json()
+          hasActiveSubscription = subscriptionData.status === "active"
           console.log(`🔍 Subscription check for ${email}:`, {
             status: subscriptionData.status,
             hasActiveSubscription,
-          });
+          })
         } else {
-          console.log(
-            `⚠️ Subscription API returned ${subscriptionResponse.status} for ${email}`,
-          );
+          console.log(`⚠️ Subscription API returned ${subscriptionResponse.status} for ${email}`)
         }
       } catch (subscriptionError) {
-        console.error("Error checking subscription:", subscriptionError);
+        console.error("Error checking subscription:", subscriptionError)
         // Продолжаем без проверки подписки если API недоступен
       }
     }
@@ -159,7 +141,7 @@ export async function POST(request: NextRequest) {
           maxProjects: FREE_TIER_LIMIT,
         },
         { status: 403 },
-      );
+      )
     }
 
     // ✅ 1. СРАЗУ создаем проект в БД (быстрая операция)
@@ -167,9 +149,9 @@ export async function POST(request: NextRequest) {
       name,
       template_type,
       user_id: user.id,
-    });
+    })
 
-    console.log(`🎉 Project created: ${project.id} by user ${user.id}`);
+    console.log(`🎉 Project created: ${project.id} by user ${user.id}`)
 
     // ✅ 2. НЕМЕДЛЕННО возвращаем ответ пользователю для быстрого redirect
     const response = NextResponse.json({
@@ -179,31 +161,22 @@ export async function POST(request: NextRequest) {
       },
       downloadUrl: `/api/projects/${project.id}/download`,
       status: "pending", // Клиент знает что проект инициализируется
-      message:
-        "Project created! Setting up GitHub repository and template files...",
-    });
+      message: "Project created! Setting up GitHub repository and template files...",
+    })
 
     // ✅ 3. Запускаем тяжелые операции АСИНХРОННО в фоне (без await!)
     // Это не блокирует возврат ответа пользователю
-    initializeProjectInBackground(
-      project.id,
-      name,
-      template_type,
-      user.id,
-    ).catch((error) => {
+    initializeProjectInBackground(project.id, name, template_type, user.id).catch((error) => {
       console.error(
         `❌ [PROJECT_CREATION] Background initialization failed for ${project.id}:`,
         error,
-      );
-    });
+      )
+    })
 
-    return response;
+    return response
   } catch (error) {
-    console.error("Error creating project:", error);
-    return NextResponse.json(
-      { error: "Failed to create project" },
-      { status: 500 },
-    );
+    console.error("Error creating project:", error)
+    return NextResponse.json({ error: "Failed to create project" }, { status: 500 })
   }
 }
 
@@ -218,120 +191,97 @@ async function initializeProjectInBackground(
   _userId: string,
 ): Promise<void> {
   try {
-    console.log(
-      `🚀 [PROJECT_INIT_BG] Starting background initialization for ${projectId}...`,
-    );
+    console.log(`🚀 [PROJECT_INIT_BG] Starting background initialization for ${projectId}...`)
 
-    const websocketServerUrl =
-      process.env.WEBSOCKET_SERVER_URL || "http://localhost:8080";
+    const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || "http://localhost:8080"
 
     // 1. Создаем GitHub репозиторий с retry логикой
-    console.log(`🔄 [PROJECT_INIT_BG] Creating GitHub repository...`);
+    console.log(`🔄 [PROJECT_INIT_BG] Creating GitHub repository...`)
     const repoResponse = await retryWithBackoff(
       async () => {
-        const response = await fetch(
-          `${websocketServerUrl}/api/projects/create-repository`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              projectId,
-              projectName,
-            }),
-            // Add timeout
-            signal: AbortSignal.timeout(30000), // 30 second timeout
+        const response = await fetch(`${websocketServerUrl}/api/projects/create-repository`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            projectId,
+            projectName,
+          }),
+          // Add timeout
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        })
 
         if (!response.ok) {
-          const errorText = await response.text();
-          const error = new Error(
-            `Repository creation failed: ${errorText}`,
-          ) as any;
-          error.status = response.status;
-          throw error;
+          const errorText = await response.text()
+          const error = new Error(`Repository creation failed: ${errorText}`) as any
+          error.status = response.status
+          throw error
         }
 
-        return response;
+        return response
       },
       `GitHub repository creation for ${projectId}`,
       5, // max attempts
       2000, // base delay
-    );
+    )
 
-    const repoData = await repoResponse.json();
-    const repository = repoData.repository;
+    const repoData = await repoResponse.json()
+    const repository = repoData.repository
 
-    console.log(
-      `✅ [PROJECT_INIT_BG] GitHub repository created: ${repository.html_url}`,
-    );
+    console.log(`✅ [PROJECT_INIT_BG] GitHub repository created: ${repository.html_url}`)
 
     // 2. Инициализируем шаблон с retry логикой
-    console.log(`🔄 [PROJECT_INIT_BG] Starting template upload...`);
+    console.log(`🔄 [PROJECT_INIT_BG] Starting template upload...`)
     await retryWithBackoff(
       async () => {
-        const response = await fetch(
-          `${websocketServerUrl}/api/projects/initialize`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              projectId,
-              templateType,
-              projectName,
-              repositoryName: repository.name,
-            }),
-            // Add timeout
-            signal: AbortSignal.timeout(60000), // 60 second timeout for template upload
+        const response = await fetch(`${websocketServerUrl}/api/projects/initialize`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            projectId,
+            templateType,
+            projectName,
+            repositoryName: repository.name,
+          }),
+          // Add timeout
+          signal: AbortSignal.timeout(60000), // 60 second timeout for template upload
+        })
 
         if (!response.ok) {
-          const errorText = await response.text();
-          const error = new Error(
-            `Template upload failed: ${errorText}`,
-          ) as any;
-          error.status = response.status;
-          throw error;
+          const errorText = await response.text()
+          const error = new Error(`Template upload failed: ${errorText}`) as any
+          error.status = response.status
+          throw error
         }
 
-        return response;
+        return response
       },
       `Template upload for ${projectId}`,
       3, // max attempts
       5000, // base delay
-    );
+    )
 
-    console.log(
-      `✅ [PROJECT_INIT_BG] Template upload initiated for ${projectId}`,
-    );
+    console.log(`✅ [PROJECT_INIT_BG] Template upload initiated for ${projectId}`)
   } catch (error) {
-    console.error(
-      `❌ [PROJECT_INIT_BG] Background initialization failed for ${projectId}:`,
-      error,
-    );
+    console.error(`❌ [PROJECT_INIT_BG] Background initialization failed for ${projectId}:`, error)
 
     // Обновляем статус проекта на failed
     try {
-      const supabaseClient = getSupabaseServerClient();
-      const projectQueries = new ProjectQueries(supabaseClient);
+      const supabaseClient = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabaseClient)
       await projectQueries.updateProject(projectId, {
         deploy_status: "failed",
-      });
-      console.log(`📊 Updated project ${projectId} status to failed`);
+      })
+      console.log(`📊 Updated project ${projectId} status to failed`)
     } catch (updateError) {
-      console.error(
-        `❌ Error updating project status for ${projectId}:`,
-        updateError,
-      );
+      console.error(`❌ Error updating project status for ${projectId}:`, updateError)
     }
 
     // Rethrow для логирования в catch блоке выше
-    throw error;
+    throw error
   }
 }
 
@@ -344,46 +294,43 @@ async function retryWithBackoff<T>(
   maxAttempts = 3,
   baseDelay = 1000,
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: Error
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const result = await operation();
+      const result = await operation()
       if (attempt > 1) {
-        console.log(`✅ [RETRY] ${context} succeeded on attempt ${attempt}`);
+        console.log(`✅ [RETRY] ${context} succeeded on attempt ${attempt}`)
       }
-      return result;
+      return result
     } catch (error) {
-      lastError = error as Error;
+      lastError = error as Error
 
       if (attempt === maxAttempts) {
         console.error(
           `❌ [RETRY] ${context} failed after ${maxAttempts} attempts:`,
           lastError.message,
-        );
-        break;
+        )
+        break
       }
 
       // Check if error is retryable
-      const isRetryable = shouldRetryError(error);
+      const isRetryable = shouldRetryError(error)
       if (!isRetryable) {
-        console.error(
-          `❌ [RETRY] ${context} failed with non-retryable error:`,
-          lastError.message,
-        );
-        break;
+        console.error(`❌ [RETRY] ${context} failed with non-retryable error:`, lastError.message)
+        break
       }
 
-      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000
       console.log(
         `⚠️ [RETRY] ${context} attempt ${attempt} failed, retrying in ${Math.round(delay)}ms:`,
         lastError.message,
-      );
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      )
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
 
-  throw lastError!;
+  throw lastError!
 }
 
 /**
@@ -391,13 +338,13 @@ async function retryWithBackoff<T>(
  */
 function shouldRetryError(error: any): boolean {
   // Retry on server errors (5xx)
-  if (error?.status >= 500) return true;
+  if (error?.status >= 500) return true
 
   // Retry on rate limiting
-  if (error?.status === 429) return true;
+  if (error?.status === 429) return true
 
   // Don't retry on client errors (4xx except 429)
-  if (error?.status >= 400 && error?.status < 500) return false;
+  if (error?.status >= 400 && error?.status < 500) return false
 
   // Retry on network/timeout errors
   if (
@@ -409,10 +356,10 @@ function shouldRetryError(error: any): boolean {
     error?.message?.includes("network") ||
     error?.message?.includes("timeout")
   ) {
-    return true;
+    return true
   }
 
-  return false;
+  return false
 }
 
 // ✅ Функции generateTemplateFiles, collectTemplateFiles и uploadTemplateFilesInBackground

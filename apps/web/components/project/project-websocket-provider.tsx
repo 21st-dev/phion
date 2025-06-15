@@ -1,16 +1,14 @@
-"use client";
+"use client"
 
-import React from "react";
+import React from "react"
 
 interface ProjectWebSocketProviderProps {
-  project: any;
-  initialHistory?: any[];
-  initialPendingChanges?: any[];
-  children: React.ReactNode;
+  project: any
+  initialHistory?: any[]
+  initialPendingChanges?: any[]
+  children: React.ReactNode
 }
 
-export function ProjectWebSocketProvider({
-  children,
-}: ProjectWebSocketProviderProps) {
-  return <>{children}</>;
+export function ProjectWebSocketProvider({ children }: ProjectWebSocketProviderProps) {
+  return <>{children}</>
 }

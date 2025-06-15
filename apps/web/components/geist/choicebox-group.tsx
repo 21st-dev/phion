@@ -1,16 +1,16 @@
-import React from "react";
+import React from "react"
 
 interface ChoiceboxGroupProps {
-  direction: "row" | "column";
-  label?: string;
-  showLabel?: boolean;
+  direction: "row" | "column"
+  label?: string
+  showLabel?: boolean
   onChange:
     | React.Dispatch<React.SetStateAction<string>>
-    | React.Dispatch<React.SetStateAction<string[]>>;
-  type: "radio" | "checkbox";
-  value: string | string[];
-  children: React.ReactNode;
-  disabled?: boolean;
+    | React.Dispatch<React.SetStateAction<string[]>>
+  type: "radio" | "checkbox"
+  value: string | string[]
+  children: React.ReactNode
+  disabled?: boolean
 }
 
 export const ChoiceboxGroup = ({
@@ -25,14 +25,8 @@ export const ChoiceboxGroup = ({
 }: ChoiceboxGroupProps) => {
   return (
     <div className="flex flex-col gap-2">
-      {showLabel && label && (
-        <label className="font-sans text-[13px] text-gray-900">{label}</label>
-      )}
-      <div
-        className={`flex ${
-          direction === "row" ? "flex-row" : "flex-col"
-        } gap-4`}
-      >
+      {showLabel && label && <label className="font-sans text-[13px] text-gray-900">{label}</label>}
+      <div className={`flex ${direction === "row" ? "flex-row" : "flex-col"} gap-4`}>
         {React.Children.map(children, (child) => {
           const props = disabled
             ? {
@@ -45,45 +39,45 @@ export const ChoiceboxGroup = ({
                 onChange,
                 type,
                 valueSelected: value,
-              };
-          return React.cloneElement(child as React.ReactElement<any>, props);
+              }
+          return React.cloneElement(child as React.ReactElement<any>, props)
         })}
       </div>
     </div>
-  );
-};
+  )
+}
 
 const getInputClasses = (isSelected: boolean, type: "radio" | "checkbox") => {
-  let className = "relative border w-4 h-4 duration-200";
+  let className = "relative border w-4 h-4 duration-200"
   if (type === "radio") {
     className +=
-      " rounded-[50%] after:w-2 after:h-2 after:rounded-[50%] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 bg-background-100";
+      " rounded-[50%] after:w-2 after:h-2 after:rounded-[50%] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 bg-background-100"
     if (isSelected) {
-      className += " border-blue-900 after:bg-blue-900 after:scale-100";
+      className += " border-blue-900 after:bg-blue-900 after:scale-100"
     } else {
-      className += " border-gray-500 after:bg-gray-500 after:scale-0";
+      className += " border-gray-500 after:bg-gray-500 after:scale-0"
     }
   } else {
-    className += " rounded inline-flex items-center justify-center";
+    className += " rounded inline-flex items-center justify-center"
     if (isSelected) {
-      className += " bg-blue-900 border-blue-900";
+      className += " bg-blue-900 border-blue-900"
     } else {
-      className += " bg-background-100 border-gray-500";
+      className += " bg-background-100 border-gray-500"
     }
   }
 
-  return className;
-};
+  return className
+}
 
 interface ChoiceboxItemProps {
-  title: string;
-  description: string;
-  value: string;
-  type?: "radio" | "checkbox";
-  valueSelected?: string | string[];
-  onChange?: (value: string | string[]) => void;
-  disabled?: boolean;
-  children?: React.ReactNode;
+  title: string
+  description: string
+  value: string
+  type?: "radio" | "checkbox"
+  valueSelected?: string | string[]
+  onChange?: (value: string | string[]) => void
+  disabled?: boolean
+  children?: React.ReactNode
 }
 
 ChoiceboxGroup.Item = ({
@@ -98,25 +92,25 @@ ChoiceboxGroup.Item = ({
 }: ChoiceboxItemProps) => {
   const isSelected = !!(typeof valueSelected === "string"
     ? value === valueSelected
-    : valueSelected?.includes(value));
+    : valueSelected?.includes(value))
 
   const onClick = () => {
     if (onChange && !disabled) {
       if (typeof valueSelected === "string") {
-        onChange(value);
+        onChange(value)
       } else {
         if (valueSelected) {
           if (isSelected) {
-            onChange(valueSelected.filter((item) => item !== value));
+            onChange(valueSelected.filter((item) => item !== value))
           } else {
-            onChange([...valueSelected, value]);
+            onChange([...valueSelected, value])
           }
         } else {
-          onChange([value]);
+          onChange([value])
         }
       }
     }
-  };
+  }
 
   return (
     <div
@@ -131,23 +125,13 @@ ChoiceboxGroup.Item = ({
         <div className="flex flex-col gap-1 font-sans text-sm">
           <span
             className={`font-medium ${
-              disabled
-                ? "text-gray-500"
-                : isSelected
-                  ? "text-blue-900"
-                  : "text-gray-1000"
+              disabled ? "text-gray-500" : isSelected ? "text-blue-900" : "text-gray-1000"
             }`}
           >
             {title}
           </span>
           <span
-            className={
-              disabled
-                ? " text-gray-500"
-                : isSelected
-                  ? "text-blue-900"
-                  : "text-gray-900"
-            }
+            className={disabled ? " text-gray-500" : isSelected ? "text-blue-900" : "text-gray-900"}
           >
             {description}
           </span>
@@ -164,9 +148,7 @@ ChoiceboxGroup.Item = ({
           <span className={getInputClasses(isSelected, type)}>
             {type === "checkbox" && (
               <svg
-                className={`shrink-0 ${
-                  isSelected ? "fill-blue-900" : "fill-background"
-                }`}
+                className={`shrink-0 ${isSelected ? "fill-blue-900" : "fill-background"}`}
                 height="16"
                 viewBox="0 0 20 20"
                 width="16"
@@ -184,14 +166,10 @@ ChoiceboxGroup.Item = ({
         </div>
       </div>
       {children && isSelected && (
-        <div
-          className={`border-t ${
-            isSelected ? "border-blue-600" : "border-gray-400"
-          }`}
-        >
+        <div className={`border-t ${isSelected ? "border-blue-600" : "border-gray-400"}`}>
           {children}
         </div>
       )}
     </div>
-  );
-};
+  )
+}

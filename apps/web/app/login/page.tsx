@@ -1,19 +1,19 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { createAuthBrowserClient } from "@shipvibes/database";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
-import React from "react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useState } from "react"
+import { createAuthBrowserClient } from "@shipvibes/database"
+import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
+import React from "react"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const Logo = () => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
 
   const baseClasses =
-    "w-16 h-16 mx-auto rounded-full flex items-center justify-center text-foreground";
+    "w-16 h-16 mx-auto rounded-full flex items-center justify-center text-foreground"
   const themeClasses = !isDark
     ? cn(
         "bg-[radial-gradient(61.35%_50.07%_at_48.58%_50%,rgb(255,255,255)_0%,rgb(235,235,235)_100%)]",
@@ -22,28 +22,23 @@ const Logo = () => {
     : cn(
         "bg-[radial-gradient(61.35%_50.07%_at_48.58%_50%,rgb(36,36,36)_0%,rgb(0,0,0)_100%)]",
         "[box-shadow:inset_0_0_0_0.5px_rgba(134,143,151,0.2),inset_1px_1px_0_-0.5px_rgba(134,143,151,0.4),inset_-1px_-1px_0_-0.5px_rgba(134,143,151,0.4)]",
-      );
+      )
 
   return (
     <div className={cn(baseClasses, themeClasses)}>
       <span className="font-light text-2xl text-foreground">V</span>
     </div>
-  );
-};
-
-interface StyledButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  loading?: boolean;
-  children: React.ReactNode;
+  )
 }
 
-const StyledButton: React.FC<StyledButtonProps> = ({
-  loading,
-  children,
-  ...props
-}) => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+interface StyledButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean
+  children: React.ReactNode
+}
+
+const StyledButton: React.FC<StyledButtonProps> = ({ loading, children, ...props }) => {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   return (
     <button
       disabled={props.disabled || loading}
@@ -73,11 +68,7 @@ const StyledButton: React.FC<StyledButtonProps> = ({
               stroke="currentColor"
               strokeWidth="4"
             ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z"
-            ></path>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
           </svg>
         ) : (
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -102,35 +93,35 @@ const StyledButton: React.FC<StyledButtonProps> = ({
         {children}
       </span>
     </button>
-  );
-};
+  )
+}
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const supabase = createAuthBrowserClient();
-  const { error: showError } = useToast();
+  const [isLoading, setIsLoading] = useState(false)
+  const supabase = createAuthBrowserClient()
+  const { error: showError } = useToast()
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
-      });
+      })
 
       if (error) {
-        console.error("Error during Google login:", error.message);
-        showError("Login failed", error.message);
+        console.error("Error during Google login:", error.message)
+        showError("Login failed", error.message)
       }
     } catch (error) {
-      console.error("Unexpected error:", error);
-      showError("Login failed", "An unexpected error occurred");
+      console.error("Unexpected error:", error)
+      showError("Login failed", "An unexpected error occurred")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative">
@@ -170,5 +161,5 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
     </div>
-  );
+  )
 }

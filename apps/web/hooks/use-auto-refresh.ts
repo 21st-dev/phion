@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query"
 
 interface UseAutoRefreshOptions {
-  enabled?: boolean;
-  refetchInterval?: number | false;
+  enabled?: boolean
+  refetchInterval?: number | false
 }
 
 export function useAutoRefresh<T>(
@@ -15,7 +15,7 @@ export function useAutoRefresh<T>(
   const {
     enabled = true,
     refetchInterval = false, // По умолчанию автообновление отключено
-  } = options;
+  } = options
 
   const query = useQuery({
     queryKey,
@@ -24,7 +24,7 @@ export function useAutoRefresh<T>(
     refetchInterval,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 30, // 30 секунд
-  });
+  })
 
   return {
     data: query.data || null,
@@ -32,5 +32,5 @@ export function useAutoRefresh<T>(
     error: query.error?.message || null,
     refresh: query.refetch,
     isRefetching: query.isFetching && !query.isLoading,
-  };
+  }
 }

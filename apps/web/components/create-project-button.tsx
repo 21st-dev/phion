@@ -1,24 +1,24 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Button } from "@/components/geist/button";
-import { CreateProjectDialog } from "@/components/create-project-dialog";
-import { PricingModal } from "@/components/pricing-dialog";
-import { useProjectLimits } from "@/hooks/use-project-limits";
+import { useState } from "react"
+import { Button } from "@/components/geist/button"
+import { CreateProjectDialog } from "@/components/create-project-dialog"
+import { PricingModal } from "@/components/pricing-dialog"
+import { useProjectLimits } from "@/hooks/use-project-limits"
 
 interface CreateProjectButtonProps {
-  trigger?: React.ReactNode;
+  trigger?: React.ReactNode
 }
 
 export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
-  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false)
   const {
     canCreateProject,
     projectCount,
     maxProjects,
     isLoading: limitsLoading,
     refetch,
-  } = useProjectLimits();
+  } = useProjectLimits()
 
   const createButton = trigger || (
     <Button
@@ -28,18 +28,13 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
       disabled={limitsLoading}
       prefix={
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M12 5v14m-7-7h14"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
+          <path d="M12 5v14m-7-7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       }
     >
       {limitsLoading ? "Loading..." : "Create New"}
     </Button>
-  );
+  )
 
   return (
     <>
@@ -48,10 +43,7 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
       ) : (
         <>
           {trigger ? (
-            <div
-              onClick={() => setShowPricingModal(true)}
-              style={{ display: "inline-block" }}
-            >
+            <div onClick={() => setShowPricingModal(true)} style={{ display: "inline-block" }}>
               {trigger}
             </div>
           ) : (
@@ -61,9 +53,9 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
           <PricingModal
             open={showPricingModal}
             onOpenChange={(open) => {
-              setShowPricingModal(open);
+              setShowPricingModal(open)
               if (!open) {
-                refetch();
+                refetch()
               }
             }}
             currentProjectCount={projectCount}
@@ -72,5 +64,5 @@ export function CreateProjectButton({ trigger }: CreateProjectButtonProps) {
         </>
       )}
     </>
-  );
+  )
 }

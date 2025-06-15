@@ -1,25 +1,23 @@
-"use client";
+"use client"
 
-import { Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
-import { Toggle } from "@/components/geist/toggle";
-import { Tooltip } from "@/components/geist/tooltip";
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+import { Toggle } from "@/components/geist/toggle"
+import { Tooltip } from "@/components/geist/tooltip"
 
 interface ThemeToggleProps {
-  className?: string;
+  className?: string
 }
 
 export function ThemeToggle({ className: _className }: ThemeToggleProps) {
-  const { setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme()
 
   const toggleTheme = () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  };
+    setTheme(resolvedTheme === "dark" ? "light" : "dark")
+  }
 
   return (
-    <Tooltip
-      text={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
-    >
+    <Tooltip text={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}>
       <Toggle
         checked={resolvedTheme === "dark"}
         onChange={toggleTheme}
@@ -30,5 +28,5 @@ export function ThemeToggle({ className: _className }: ThemeToggleProps) {
         }}
       />
     </Tooltip>
-  );
+  )
 }

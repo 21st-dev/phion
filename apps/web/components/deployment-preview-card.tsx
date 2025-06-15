@@ -1,39 +1,35 @@
-"use client";
+"use client"
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Globe, ExternalLink } from "lucide-react";
-import { useProject } from "@/components/project/project-layout-client";
-import { Spinner } from "@/components/geist/spinner";
-import { getStatusBadge } from "@/lib/deployment-utils";
-import { useEffect, useState, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Globe, ExternalLink } from "lucide-react"
+import { useProject } from "@/components/project/project-layout-client"
+import { Spinner } from "@/components/geist/spinner"
+import { getStatusBadge } from "@/lib/deployment-utils"
+import { useEffect, useState, useRef } from "react"
 
 interface DeploymentPreviewCardProps {
-  className?: string;
+  className?: string
 }
 
-export function DeploymentPreviewCard({
-  className,
-}: DeploymentPreviewCardProps) {
-  const { project, lastUpdated } = useProject();
-  const [iframeKey, setIframeKey] = useState(0);
-  const prevStatusRef = useRef(project.deploy_status);
+export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps) {
+  const { project, lastUpdated } = useProject()
+  const [iframeKey, setIframeKey] = useState(0)
+  const prevStatusRef = useRef(project.deploy_status)
 
   // Отслеживание изменения статуса для перезагрузки iframe
   useEffect(() => {
-    const prevStatus = prevStatusRef.current;
-    const currentStatus = project.deploy_status;
+    const prevStatus = prevStatusRef.current
+    const currentStatus = project.deploy_status
 
     // Если статус изменился на "ready", обновляем ключ iframe для перезагрузки
     if (prevStatus !== currentStatus && currentStatus === "ready") {
-      console.log(
-        "🔄 [DeploymentPreviewCard] Status changed to ready, reloading iframe",
-      );
-      setIframeKey((prev) => prev + 1);
+      console.log("🔄 [DeploymentPreviewCard] Status changed to ready, reloading iframe")
+      setIframeKey((prev) => prev + 1)
     }
 
-    prevStatusRef.current = currentStatus;
-  }, [project.deploy_status]);
+    prevStatusRef.current = currentStatus
+  }, [project.deploy_status])
 
   // Отладочная информация для проверки обновлений
   useEffect(() => {
@@ -42,11 +38,11 @@ export function DeploymentPreviewCard({
       netlifyUrl: project.netlify_url,
       lastUpdated: lastUpdated.toISOString(),
       iframeKey,
-    });
-  }, [project.deploy_status, project.netlify_url, lastUpdated, iframeKey]);
+    })
+  }, [project.deploy_status, project.netlify_url, lastUpdated, iframeKey])
 
-  const hasDeployUrl = project.netlify_url && project.netlify_url.trim() !== "";
-  const isBuilding = project.deploy_status === "building";
+  const hasDeployUrl = project.netlify_url && project.netlify_url.trim() !== ""
+  const isBuilding = project.deploy_status === "building"
 
   return (
     <Card className={className}>
@@ -127,5 +123,5 @@ export function DeploymentPreviewCard({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

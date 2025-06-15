@@ -58,5 +58,5 @@ export function CursorDark({ className }: { className?: string }) {
         </linearGradient>
       </defs>
     </svg>
-  );
+  )
 }

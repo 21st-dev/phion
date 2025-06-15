@@ -1,37 +1,32 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 interface ProjectNavigationProps {
-  projectId: string;
-  project?: any; // Проект с данными для определения показывать ли онбординг
+  projectId: string
+  project?: any // Проект с данными для определения показывать ли онбординг
 }
 
-export function ProjectNavigation({
-  projectId,
-  project,
-}: ProjectNavigationProps) {
+export function ProjectNavigation({ projectId, project }: ProjectNavigationProps) {
   // Скрываем Onboarding если уже есть netlify_site_id (первый деплой был сделан)
-  const showOnboarding = !project?.netlify_site_id;
+  const showOnboarding = !project?.netlify_site_id
 
   const tabs = [
     { id: "overview", label: "Overview", href: "overview" },
-    ...(showOnboarding
-      ? [{ id: "onboarding", label: "Onboarding", href: "onboarding" }]
-      : []),
+    ...(showOnboarding ? [{ id: "onboarding", label: "Onboarding", href: "onboarding" }] : []),
     { id: "settings", label: "Settings", href: "settings" },
-  ];
-  const pathname = usePathname();
+  ]
+  const pathname = usePathname()
 
   // Extract current tab from pathname
-  const currentTab = pathname.split("/").pop() || "overview";
+  const currentTab = pathname.split("/").pop() || "overview"
 
   return (
     <div className="flex space-x-6">
       {tabs.map((tab) => {
-        const isActive = currentTab === tab.href;
+        const isActive = currentTab === tab.href
 
         return (
           <Link
@@ -46,8 +41,8 @@ export function ProjectNavigation({
           >
             {tab.label}
           </Link>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

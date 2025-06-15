@@ -1,21 +1,21 @@
-import React from "react";
+import React from "react"
 
 const sizes = {
   tiny: 20,
   small: 32,
   medium: 64,
   large: 128,
-};
+}
 
-type TArcPriority = "default" | "equal";
+type TArcPriority = "default" | "equal"
 
 interface GaugeProps {
-  size?: keyof typeof sizes;
-  value: number;
-  colors?: { [name: string]: string };
-  showValue?: boolean;
-  arcPriority?: TArcPriority;
-  indeterminate?: boolean;
+  size?: keyof typeof sizes
+  value: number
+  colors?: { [name: string]: string }
+  showValue?: boolean
+  arcPriority?: TArcPriority
+  indeterminate?: boolean
 }
 
 const gapPercent = {
@@ -23,7 +23,7 @@ const gapPercent = {
   small: 6,
   medium: 5,
   large: 5,
-};
+}
 
 const rotate = {
   primary: {
@@ -54,13 +54,13 @@ const rotate = {
       large: `rotate-[calc(1turn_-_90deg_-_(0.5*5*3.6deg))]`,
     },
   },
-};
+}
 
 const defaultColors = {
   "0": "#e2162a",
   "34": "#ffae00",
   "68": "#00ac3a",
-};
+}
 
 export const Gauge = ({
   size = "medium",
@@ -70,8 +70,8 @@ export const Gauge = ({
   arcPriority = "default",
   indeterminate = false,
 }: GaugeProps) => {
-  const r = size === "tiny" ? 42.5 : 45;
-  const circumference = 2 * r * Math.PI;
+  const r = size === "tiny" ? 42.5 : 45
+  const circumference = 2 * r * Math.PI
   const primary = colors?.primary
     ? colors?.primary
     : colors[
@@ -80,7 +80,7 @@ export const Gauge = ({
             .map(Number)
             .filter((key) => key <= value),
         ).toString()
-      ];
+      ]
 
   return (
     <div
@@ -106,9 +106,7 @@ export const Gauge = ({
           strokeDashoffset="0"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`${
-            rotate.secondary[arcPriority][size]
-          } scale-y-[-1] origin-center${
+          className={`${rotate.secondary[arcPriority][size]} scale-y-[-1] origin-center${
             !colors?.secondary ? " stroke-gray-alpha-400" : ""
           }`}
           stroke={colors.secondary}
@@ -116,9 +114,7 @@ export const Gauge = ({
             indeterminate
               ? circumference
               : arcPriority === "default"
-                ? (circumference *
-                    (100 - (value === 0 ? 0 : 2 * gapPercent[size]) - value)) /
-                  100
+                ? (circumference * (100 - (value === 0 ? 0 : 2 * gapPercent[size]) - value)) / 100
                 : (circumference * (100 - 2 * gapPercent[size])) / 100 / 2
           } ${circumference}`}
         />
@@ -180,5 +176,5 @@ export const Gauge = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

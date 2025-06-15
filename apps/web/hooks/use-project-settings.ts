@@ -1,37 +1,34 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 interface UpdateProjectSettingsParams {
-  projectId: string;
-  name: string;
+  projectId: string
+  name: string
 }
 
-async function updateProjectSettings({
-  projectId,
-  name,
-}: UpdateProjectSettingsParams) {
+async function updateProjectSettings({ projectId, name }: UpdateProjectSettingsParams) {
   const response = await fetch(`/api/projects/${projectId}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ name }),
-  });
+  })
 
   if (!response.ok) {
-    throw new Error("Failed to save settings");
+    throw new Error("Failed to save settings")
   }
 
-  return response.json();
+  return response.json()
 }
 
 export function useUpdateProjectSettings() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: updateProjectSettings,
     onSuccess: () => {
       // Обновляем кеш проектов после успешного обновления
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] })
     },
-  });
+  })
 }

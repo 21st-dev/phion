@@ -1,122 +1,121 @@
-import jwt from "jsonwebtoken";
-import fetch from "node-fetch";
-import type { Response as NodeFetchResponse } from "node-fetch";
+import jwt from "jsonwebtoken"
+import fetch from "node-fetch"
+import type { Response as NodeFetchResponse } from "node-fetch"
 
 // Интерфейсы для GitHub API
 interface GitHubInstallationToken {
-  token: string;
-  expires_at: string;
-  permissions: Record<string, string>;
+  token: string
+  expires_at: string
+  permissions: Record<string, string>
 }
 
 interface GitHubRepository {
-  id: number;
-  name: string;
-  full_name: string;
-  private: boolean;
-  html_url: string;
-  clone_url: string;
-  ssh_url: string;
-  default_branch: string;
-  created_at: string;
+  id: number
+  name: string
+  full_name: string
+  private: boolean
+  html_url: string
+  clone_url: string
+  ssh_url: string
+  default_branch: string
+  created_at: string
   owner: {
-    login: string;
-    id: number;
-    type: string;
-  };
+    login: string
+    id: number
+    type: string
+  }
 }
 
 interface GitHubFileContent {
-  name: string;
-  path: string;
-  sha: string;
-  size: number;
-  url: string;
-  html_url: string;
-  git_url: string;
-  download_url: string;
-  type: string;
-  content: string;
-  encoding: string;
+  name: string
+  path: string
+  sha: string
+  size: number
+  url: string
+  html_url: string
+  git_url: string
+  download_url: string
+  type: string
+  content: string
+  encoding: string
 }
 
 interface GitHubCommit {
-  sha: string;
-  node_id: string;
-  url: string;
-  html_url: string;
+  sha: string
+  node_id: string
+  url: string
+  html_url: string
   commit: {
-    message: string;
+    message: string
     author: {
-      name: string;
-      email: string;
-      date: string;
-    };
+      name: string
+      email: string
+      date: string
+    }
     committer: {
-      name: string;
-      email: string;
-      date: string;
-    };
-  };
+      name: string
+      email: string
+      date: string
+    }
+  }
 }
 
 interface CreateFileRequest {
-  message: string;
-  content: string; // Base64 encoded
-  branch?: string;
+  message: string
+  content: string // Base64 encoded
+  branch?: string
   committer?: {
-    name: string;
-    email: string;
-  };
+    name: string
+    email: string
+  }
   author?: {
-    name: string;
-    email: string;
-  };
+    name: string
+    email: string
+  }
 }
 
 interface UpdateFileRequest extends CreateFileRequest {
-  sha: string; // Required for updates
+  sha: string // Required for updates
 }
 
 interface CreateRepositoryRequest {
-  name: string;
-  description?: string;
-  private: boolean;
-  auto_init?: boolean;
-  gitignore_template?: string;
-  license_template?: string;
+  name: string
+  description?: string
+  private: boolean
+  auto_init?: boolean
+  gitignore_template?: string
+  license_template?: string
 }
 
 export class GitHubAppService {
-  private readonly appId: string;
-  private readonly installationId: string;
-  private readonly privateKey: string;
-  private readonly baseUrl = "https://api.github.com";
-  private readonly organization = "vybcel";
+  private readonly appId: string
+  private readonly installationId: string
+  private readonly privateKey: string
+  private readonly baseUrl = "https://api.github.com"
+  private readonly organization = "vybcel"
 
   // Кэш токена для избежания частых запросов
   private tokenCache: {
-    token: string;
-    expiresAt: Date;
-  } | null = null;
+    token: string
+    expiresAt: Date
+  } | null = null
 
   constructor() {
-    this.appId = process.env.GITHUB_APP_ID || "";
-    this.installationId = process.env.GITHUB_APP_INSTALLATION_ID || "";
-    this.privateKey =
-      process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, "\n") || "";
+    this.appId = process.env.GITHUB_APP_ID || ""
+    this.installationId = process.env.GITHUB_APP_INSTALLATION_ID || ""
+    this.privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, "\n") || ""
 
     if (!this.appId || !this.installationId || !this.privateKey) {
       throw new Error(
         "Missing GitHub App configuration. Please set GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID, and GITHUB_APP_PRIVATE_KEY environment variables.",
-      );
+      )
     }
 
     console.log("✅ GitHubAppService initialized", {
       appId: this.appId,
       installationId: this.installationId,
       organization: this.organization,
-    });
+    })
   }
 
   /**
@@ -128,43 +127,40 @@ export class GitHubAppService {
     maxAttempts = 3,
     baseDelay = 1000,
   ): Promise<T> {
-    let lastError: Error;
+    let lastError: Error
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        return await operation();
+        return await operation()
       } catch (error) {
-        lastError = error as Error;
+        lastError = error as Error
 
         // Определяем, стоит ли повторять
-        const shouldRetry = this.shouldRetryError(error);
+        const shouldRetry = this.shouldRetryError(error)
 
         if (attempt === maxAttempts || !shouldRetry) {
-          console.error(
-            `❌ [RETRY] Final failure for ${context} after ${attempt} attempts:`,
-            error,
-          );
-          throw error;
+          console.error(`❌ [RETRY] Final failure for ${context} after ${attempt} attempts:`, error)
+          throw error
         }
 
-        const delay = baseDelay * Math.pow(2, attempt - 1);
+        const delay = baseDelay * Math.pow(2, attempt - 1)
         console.warn(
           `⚠️ [RETRY] Attempt ${attempt}/${maxAttempts} failed for ${context}, retrying in ${delay}ms:`,
           error instanceof Error ? error.message : error,
-        );
+        )
 
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
 
-    throw lastError!;
+    throw lastError!
   }
 
   /**
    * Определяет, стоит ли повторять запрос при данной ошибке
    */
   private shouldRetryError(error: any): boolean {
-    if (!error) return false;
+    if (!error) return false
 
     // Сетевые ошибки
     if (
@@ -173,29 +169,29 @@ export class GitHubAppService {
       error.code === "ETIMEDOUT" ||
       error.code === "ECONNREFUSED"
     ) {
-      return true;
+      return true
     }
 
     // HTTP статусы, которые стоит повторить
     if (error.status >= 500 || error.status === 429) {
-      return true;
+      return true
     }
 
-    return false;
+    return false
   }
 
   /**
    * Генерирует JWT токен для GitHub App
    */
   private generateJWT(): string {
-    const now = Math.floor(Date.now() / 1000);
+    const now = Math.floor(Date.now() / 1000)
     const payload = {
       iat: now - 60, // Issued 60 seconds ago
       exp: now + 600, // Expires in 10 minutes
       iss: this.appId, // Issuer: GitHub App ID
-    };
+    }
 
-    return jwt.sign(payload, this.privateKey, { algorithm: "RS256" });
+    return jwt.sign(payload, this.privateKey, { algorithm: "RS256" })
   }
 
   /**
@@ -204,18 +200,15 @@ export class GitHubAppService {
    */
   async getInstallationToken(): Promise<string> {
     // Проверяем кэш (оставляем больше буфера - 10 минут до истечения)
-    if (
-      this.tokenCache &&
-      this.tokenCache.expiresAt > new Date(Date.now() + 10 * 60 * 1000)
-    ) {
-      console.log("🔄 Using cached installation token");
-      return this.tokenCache.token;
+    if (this.tokenCache && this.tokenCache.expiresAt > new Date(Date.now() + 10 * 60 * 1000)) {
+      console.log("🔄 Using cached installation token")
+      return this.tokenCache.token
     }
 
     return this.withRetry(
       async () => {
-        console.log("🔑 Generating new installation token...");
-        const jwtToken = this.generateJWT();
+        console.log("🔑 Generating new installation token...")
+        const jwtToken = this.generateJWT()
 
         const response = await fetch(
           `${this.baseUrl}/app/installations/${this.installationId}/access_tokens`,
@@ -229,36 +222,36 @@ export class GitHubAppService {
             // Add timeout for token generation
             signal: AbortSignal.timeout(15000), // 15 second timeout
           },
-        );
+        )
 
         if (!response.ok) {
-          const error = await response.text();
+          const error = await response.text()
           const errorObj = new Error(
             `Failed to get installation token: ${response.status} ${error}`,
-          ) as any;
-          errorObj.status = response.status;
-          throw errorObj;
+          ) as any
+          errorObj.status = response.status
+          throw errorObj
         }
 
-        const data = (await response.json()) as GitHubInstallationToken;
+        const data = (await response.json()) as GitHubInstallationToken
 
         // Кэшируем токен (он действует 60 минут, кэшируем на 50 минут для безопасности)
         this.tokenCache = {
           token: data.token,
           expiresAt: new Date(Date.now() + 50 * 60 * 1000),
-        };
+        }
 
         console.log("✅ Generated new installation token", {
           expiresAt: data.expires_at,
           permissions: Object.keys(data.permissions || {}).length,
-        });
+        })
 
-        return data.token;
+        return data.token
       },
       "getInstallationToken",
       5, // Increased attempts for critical token generation
       3000, // Longer initial delay
-    );
+    )
   }
 
   /**
@@ -268,7 +261,7 @@ export class GitHubAppService {
     endpoint: string,
     options: any = {},
   ): Promise<NodeFetchResponse> {
-    const token = await this.getInstallationToken();
+    const token = await this.getInstallationToken()
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
@@ -279,44 +272,36 @@ export class GitHubAppService {
         "Content-Type": "application/json",
         ...options.headers,
       },
-    });
+    })
 
-    return response;
+    return response
   }
 
   /**
    * Создает новый приватный репозиторий в организации shipvibes
    */
-  async createRepository(
-    projectId: string,
-    description?: string,
-  ): Promise<GitHubRepository> {
-    const repoName = `vybcel-project-${projectId}`;
+  async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
+    const repoName = `vybcel-project-${projectId}`
 
     return this.withRetry(
       async () => {
         // Проверяем существование репозитория перед созданием
-        const existingRepo = await this.checkRepositoryExists(repoName);
+        const existingRepo = await this.checkRepositoryExists(repoName)
         if (existingRepo) {
-          console.log(
-            `⚠️ Repository ${repoName} already exists. Checking if it's orphaned...`,
-          );
+          console.log(`⚠️ Repository ${repoName} already exists. Checking if it's orphaned...`)
 
           // Попытаемся удалить существующий репозиторий
           try {
-            await this.deleteRepository(repoName);
-            console.log(`🧹 Deleted orphaned repository: ${repoName}`);
+            await this.deleteRepository(repoName)
+            console.log(`🧹 Deleted orphaned repository: ${repoName}`)
 
             // Небольшая задержка после удаления
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000))
           } catch (deleteError) {
-            console.error(
-              `❌ Failed to delete existing repository ${repoName}:`,
-              deleteError,
-            );
+            console.error(`❌ Failed to delete existing repository ${repoName}:`, deleteError)
             throw new Error(
               `Repository ${repoName} already exists and could not be deleted. Please delete it manually on GitHub or contact support.`,
-            );
+            )
           }
         }
 
@@ -325,79 +310,72 @@ export class GitHubAppService {
           description: description || `Vybcel project ${projectId}`,
           private: true,
           auto_init: true, // GitHub автоматически создаст README и initial commit
-        };
-
-        const response = await this.makeAuthenticatedRequest(
-          `/orgs/${this.organization}/repos`,
-          {
-            method: "POST",
-            body: JSON.stringify(requestBody),
-          },
-        );
-
-        if (!response.ok) {
-          const error = await response.text();
-          const errorObj = new Error(
-            `Failed to create repository: ${response.status} ${error}`,
-          ) as any;
-          errorObj.status = response.status;
-          throw errorObj;
         }
 
-        const repository = (await response.json()) as GitHubRepository;
+        const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}/repos`, {
+          method: "POST",
+          body: JSON.stringify(requestBody),
+        })
+
+        if (!response.ok) {
+          const error = await response.text()
+          const errorObj = new Error(
+            `Failed to create repository: ${response.status} ${error}`,
+          ) as any
+          errorObj.status = response.status
+          throw errorObj
+        }
+
+        const repository = (await response.json()) as GitHubRepository
 
         console.log("🎉 Created GitHub repository", {
           projectId,
           repoName: repository.name,
           repoUrl: repository.html_url,
           isPrivate: repository.private,
-        });
+        })
 
-        return repository;
+        return repository
       },
       `createRepository(${projectId})`,
       5, // Increased max attempts for critical operation
       2000, // Longer initial delay
-    );
+    )
   }
 
   /**
    * Проверяет существование репозитория
    */
-  async checkRepositoryExists(
-    repoName: string,
-  ): Promise<GitHubRepository | null> {
+  async checkRepositoryExists(repoName: string): Promise<GitHubRepository | null> {
     try {
       const response = await this.makeAuthenticatedRequest(
         `/repos/${this.organization}/${repoName}`,
-      );
+      )
 
       if (response.ok) {
-        const repository = (await response.json()) as GitHubRepository;
+        const repository = (await response.json()) as GitHubRepository
         console.log("🔍 Repository exists", {
           repoName: repository.name,
           repoUrl: repository.html_url,
           isPrivate: repository.private,
-        });
-        return repository;
+        })
+        return repository
       }
 
       if (response.status === 404) {
-        console.log("🔍 Repository does not exist", { repoName });
-        return null;
+        console.log("🔍 Repository does not exist", { repoName })
+        return null
       }
 
       // Для других ошибок выбрасываем исключение
-      const error = await response.text();
-      throw new Error(
-        `Failed to check repository existence: ${response.status} ${error}`,
-      );
+      const error = await response.text()
+      throw new Error(`Failed to check repository existence: ${response.status} ${error}`)
     } catch (error) {
       console.error("❌ Failed to check repository existence", {
         repoName,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
@@ -412,34 +390,32 @@ export class GitHubAppService {
         {
           method: "DELETE",
         },
-      );
+      )
 
       if (!response.ok) {
-        const error = await response.text();
+        const error = await response.text()
 
         // Если репозиторий уже не существует, считаем это успехом
         if (response.status === 404) {
           console.log("⚠️ Repository already deleted or not found", {
             repoName,
-          });
-          return;
+          })
+          return
         }
 
-        throw new Error(
-          `Failed to delete repository: ${response.status} ${error}`,
-        );
+        throw new Error(`Failed to delete repository: ${response.status} ${error}`)
       }
 
       console.log("🗑️ Deleted GitHub repository", {
         repoName,
         fullName: `${this.organization}/${repoName}`,
-      });
+      })
     } catch (error) {
       console.error("❌ Failed to delete GitHub repository", {
         repoName,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
@@ -454,21 +430,21 @@ export class GitHubAppService {
     sha?: string,
   ): Promise<{ sha: string; commit: GitHubCommit }> {
     try {
-      let fileSha = sha;
+      let fileSha = sha
 
       // Если SHA не предоставлен, пытаемся получить существующий файл
       if (!fileSha) {
         try {
-          const existingFile = await this.getFileContent(repoName, filePath);
-          fileSha = existingFile.sha;
-          console.log("🔍 Found existing file, using SHA for update:", fileSha);
+          const existingFile = await this.getFileContent(repoName, filePath)
+          fileSha = existingFile.sha
+          console.log("🔍 Found existing file, using SHA for update:", fileSha)
         } catch (error) {
           // Файл не существует, создаем новый (SHA не нужен)
-          console.log("📄 File does not exist, creating new file");
+          console.log("📄 File does not exist, creating new file")
         }
       }
 
-      const base64Content = Buffer.from(content, "utf8").toString("base64");
+      const base64Content = Buffer.from(content, "utf8").toString("base64")
 
       const requestBody: CreateFileRequest | UpdateFileRequest = {
         message,
@@ -483,7 +459,7 @@ export class GitHubAppService {
           email: "bot@vybcel.com",
         },
         ...(fileSha ? { sha: fileSha } : {}),
-      };
+      }
 
       const response = await this.makeAuthenticatedRequest(
         `/repos/${this.organization}/${repoName}/contents/${filePath}`,
@@ -491,16 +467,14 @@ export class GitHubAppService {
           method: "PUT",
           body: JSON.stringify(requestBody),
         },
-      );
+      )
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(
-          `Failed to create/update file: ${response.status} ${error}`,
-        );
+        const error = await response.text()
+        throw new Error(`Failed to create/update file: ${response.status} ${error}`)
       }
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as any
 
       console.log("📝 Created/updated file in GitHub", {
         repoName,
@@ -508,19 +482,19 @@ export class GitHubAppService {
         action: fileSha ? "updated" : "created",
         sha: result.content.sha,
         commitSha: result.commit.sha,
-      });
+      })
 
       return {
         sha: result.content.sha,
         commit: result.commit,
-      };
+      }
     } catch (error) {
       console.error("❌ Failed to create/update file in GitHub", {
         repoName,
         filePath,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
@@ -535,36 +509,31 @@ export class GitHubAppService {
     try {
       const response = await this.makeAuthenticatedRequest(
         `/repos/${this.organization}/${repoName}/contents/${filePath}?ref=${ref}`,
-      );
+      )
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error(`File not found: ${filePath}`);
+          throw new Error(`File not found: ${filePath}`)
         }
-        const error = await response.text();
-        throw new Error(
-          `Failed to get file content: ${response.status} ${error}`,
-        );
+        const error = await response.text()
+        throw new Error(`Failed to get file content: ${response.status} ${error}`)
       }
 
-      const fileContent = (await response.json()) as GitHubFileContent;
+      const fileContent = (await response.json()) as GitHubFileContent
 
       // Декодируем содержимое из base64
       if (fileContent.encoding === "base64") {
-        fileContent.content = Buffer.from(
-          fileContent.content,
-          "base64",
-        ).toString("utf8");
+        fileContent.content = Buffer.from(fileContent.content, "base64").toString("utf8")
       }
 
-      return fileContent;
+      return fileContent
     } catch (error) {
       console.error("❌ Failed to get file content from GitHub", {
         repoName,
         filePath,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
@@ -590,7 +559,7 @@ export class GitHubAppService {
           name: "Vybcel Bot",
           email: "bot@vybcel.com",
         },
-      };
+      }
 
       const response = await this.makeAuthenticatedRequest(
         `/repos/${this.organization}/${repoName}/contents/${filePath}`,
@@ -598,29 +567,29 @@ export class GitHubAppService {
           method: "DELETE",
           body: JSON.stringify(requestBody),
         },
-      );
+      )
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to delete file: ${response.status} ${error}`);
+        const error = await response.text()
+        throw new Error(`Failed to delete file: ${response.status} ${error}`)
       }
 
-      const result = (await response.json()) as any;
+      const result = (await response.json()) as any
 
       console.log("🗑️ Deleted file from GitHub", {
         repoName,
         filePath,
         commitSha: result.commit.sha,
-      });
+      })
 
-      return result.commit;
+      return result.commit
     } catch (error) {
       console.error("❌ Failed to delete file from GitHub", {
         repoName,
         filePath,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
@@ -631,68 +600,62 @@ export class GitHubAppService {
     try {
       const response = await this.makeAuthenticatedRequest(
         `/repos/${this.organization}/${repoName}/zipball/${ref}`,
-      );
+      )
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(
-          `Failed to download repository ZIP: ${response.status} ${error}`,
-        );
+        const error = await response.text()
+        throw new Error(`Failed to download repository ZIP: ${response.status} ${error}`)
       }
 
-      const buffer = await response.buffer();
+      const buffer = await response.buffer()
 
       console.log("🔄 Downloaded repository ZIP", {
         repoName,
         ref,
         sizeBytes: buffer.length,
-      });
+      })
 
-      return buffer;
+      return buffer
     } catch (error) {
       console.error("❌ Failed to download repository ZIP", {
         repoName,
         ref,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
   /**
    * Получает список коммитов в репозитории
    */
-  async getCommits(
-    repoName: string,
-    branch = "main",
-    limit = 30,
-  ): Promise<GitHubCommit[]> {
+  async getCommits(repoName: string, branch = "main", limit = 30): Promise<GitHubCommit[]> {
     try {
       const response = await this.makeAuthenticatedRequest(
         `/repos/${this.organization}/${repoName}/commits?sha=${branch}&per_page=${limit}`,
-      );
+      )
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to get commits: ${response.status} ${error}`);
+        const error = await response.text()
+        throw new Error(`Failed to get commits: ${response.status} ${error}`)
       }
 
-      const commits = (await response.json()) as GitHubCommit[];
+      const commits = (await response.json()) as GitHubCommit[]
 
       console.log("📊 Retrieved commits from GitHub", {
         repoName,
         branch,
         commitsCount: commits.length,
-      });
+      })
 
-      return commits;
+      return commits
     } catch (error) {
       console.error("❌ Failed to get commits from GitHub", {
         repoName,
         branch,
         error,
-      });
-      throw error;
+      })
+      throw error
     }
   }
 
@@ -702,19 +665,16 @@ export class GitHubAppService {
   async createTemporaryToken(): Promise<string> {
     // Возвращаем installation token, который действует 60 минут
     // Этого достаточно для локальных git операций
-    return this.getInstallationToken();
+    return this.getInstallationToken()
   }
 
   /**
    * Создает blob объект в GitHub
    */
-  async createBlob(
-    repoName: string,
-    content: string,
-  ): Promise<{ sha: string }> {
+  async createBlob(repoName: string, content: string): Promise<{ sha: string }> {
     return this.withRetry(
       async () => {
-        const base64Content = Buffer.from(content, "utf8").toString("base64");
+        const base64Content = Buffer.from(content, "utf8").toString("base64")
 
         const response = await this.makeAuthenticatedRequest(
           `/repos/${this.organization}/${repoName}/git/blobs`,
@@ -725,24 +685,22 @@ export class GitHubAppService {
               encoding: "base64",
             }),
           },
-        );
+        )
 
         if (!response.ok) {
-          const error = await response.text();
-          const errorObj = new Error(
-            `Failed to create blob: ${response.status} ${error}`,
-          ) as any;
-          errorObj.status = response.status;
-          throw errorObj;
+          const error = await response.text()
+          const errorObj = new Error(`Failed to create blob: ${response.status} ${error}`) as any
+          errorObj.status = response.status
+          throw errorObj
         }
 
-        const blob = (await response.json()) as { sha: string };
-        return blob;
+        const blob = (await response.json()) as { sha: string }
+        return blob
       },
       `createBlob(${repoName})`,
       3,
       1000,
-    );
+    )
   }
 
   /**
@@ -760,11 +718,11 @@ export class GitHubAppService {
           mode: "100644", // Regular file
           type: "blob",
           sha: blob.sha,
-        }));
+        }))
 
-        const requestBody: any = { tree };
+        const requestBody: any = { tree }
         if (baseTree) {
-          requestBody.base_tree = baseTree;
+          requestBody.base_tree = baseTree
         }
 
         const response = await this.makeAuthenticatedRequest(
@@ -773,24 +731,22 @@ export class GitHubAppService {
             method: "POST",
             body: JSON.stringify(requestBody),
           },
-        );
+        )
 
         if (!response.ok) {
-          const error = await response.text();
-          const errorObj = new Error(
-            `Failed to create tree: ${response.status} ${error}`,
-          ) as any;
-          errorObj.status = response.status;
-          throw errorObj;
+          const error = await response.text()
+          const errorObj = new Error(`Failed to create tree: ${response.status} ${error}`) as any
+          errorObj.status = response.status
+          throw errorObj
         }
 
-        const treeResult = (await response.json()) as { sha: string };
-        return treeResult;
+        const treeResult = (await response.json()) as { sha: string }
+        return treeResult
       },
       `createTree(${repoName})`,
       3,
       1000,
-    );
+    )
   }
 
   /**
@@ -822,24 +778,22 @@ export class GitHubAppService {
               },
             }),
           },
-        );
+        )
 
         if (!response.ok) {
-          const error = await response.text();
-          const errorObj = new Error(
-            `Failed to create commit: ${response.status} ${error}`,
-          ) as any;
-          errorObj.status = response.status;
-          throw errorObj;
+          const error = await response.text()
+          const errorObj = new Error(`Failed to create commit: ${response.status} ${error}`) as any
+          errorObj.status = response.status
+          throw errorObj
         }
 
-        const commit = (await response.json()) as { sha: string };
-        return commit;
+        const commit = (await response.json()) as { sha: string }
+        return commit
       },
       `createCommit(${repoName})`,
       3,
       1000,
-    );
+    )
   }
 
   /**
@@ -854,21 +808,19 @@ export class GitHubAppService {
             method: "PATCH",
             body: JSON.stringify({ sha }),
           },
-        );
+        )
 
         if (!response.ok) {
-          const error = await response.text();
-          const errorObj = new Error(
-            `Failed to update ref: ${response.status} ${error}`,
-          ) as any;
-          errorObj.status = response.status;
-          throw errorObj;
+          const error = await response.text()
+          const errorObj = new Error(`Failed to update ref: ${response.status} ${error}`) as any
+          errorObj.status = response.status
+          throw errorObj
         }
       },
       `updateRef(${repoName}, ${ref})`,
       3,
       1000,
-    );
+    )
   }
 
   /**
@@ -885,75 +837,64 @@ export class GitHubAppService {
             sha,
           }),
         },
-      );
+      )
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to create ref: ${response.status} ${error}`);
+        const error = await response.text()
+        throw new Error(`Failed to create ref: ${response.status} ${error}`)
       }
     } catch (error) {
-      console.error("❌ Failed to create ref", { repoName, ref, error });
-      throw error;
+      console.error("❌ Failed to create ref", { repoName, ref, error })
+      throw error
     }
   }
 
   /**
    * Получает последний commit из main ветки
    */
-  async getLatestCommit(
-    repoName: string,
-    ref = "main",
-  ): Promise<{ sha: string } | null> {
-    console.log(
-      `🔍 [getLatestCommit] Checking for latest commit in ${repoName}/${ref}`,
-    );
+  async getLatestCommit(repoName: string, ref = "main"): Promise<{ sha: string } | null> {
+    console.log(`🔍 [getLatestCommit] Checking for latest commit in ${repoName}/${ref}`)
 
     try {
-      const endpoint = `/repos/${this.organization}/${repoName}/git/refs/heads/${ref}`;
-      console.log(`🔍 [getLatestCommit] Making request to: ${endpoint}`);
+      const endpoint = `/repos/${this.organization}/${repoName}/git/refs/heads/${ref}`
+      console.log(`🔍 [getLatestCommit] Making request to: ${endpoint}`)
 
-      const response = await this.makeAuthenticatedRequest(endpoint);
+      const response = await this.makeAuthenticatedRequest(endpoint)
 
-      console.log(`🔍 [getLatestCommit] Response status: ${response.status}`);
+      console.log(`🔍 [getLatestCommit] Response status: ${response.status}`)
 
       if (!response.ok) {
         if (response.status === 404) {
           // Ветка не существует (пустой репозиторий)
-          console.log(
-            `✅ [getLatestCommit] Repository ${repoName} is empty (404), returning null`,
-          );
-          return null;
+          console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (404), returning null`)
+          return null
         }
         if (response.status === 409) {
           // Конфликт - пустой репозиторий
-          console.log(
-            `✅ [getLatestCommit] Repository ${repoName} is empty (409), returning null`,
-          );
-          return null;
+          console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (409), returning null`)
+          return null
         }
-        const error = await response.text();
-        console.log(`❌ [getLatestCommit] Error response: ${error}`);
-        throw new Error(
-          `Failed to get latest commit: ${response.status} ${error}`,
-        );
+        const error = await response.text()
+        console.log(`❌ [getLatestCommit] Error response: ${error}`)
+        throw new Error(`Failed to get latest commit: ${response.status} ${error}`)
       }
 
-      const refData = (await response.json()) as { object: { sha: string } };
-      console.log(`✅ [getLatestCommit] Found commit: ${refData.object.sha}`);
-      return { sha: refData.object.sha };
+      const refData = (await response.json()) as { object: { sha: string } }
+      console.log(`✅ [getLatestCommit] Found commit: ${refData.object.sha}`)
+      return { sha: refData.object.sha }
     } catch (error) {
       console.error("❌ [getLatestCommit] Exception caught:", {
         repoName,
         ref,
         error,
-      });
+      })
       if (error instanceof Error && error.message.includes("409")) {
         console.log(
           `✅ [getLatestCommit] Caught 409 error, repository ${repoName} is empty, returning null`,
-        );
-        return null;
+        )
+        return null
       }
-      throw error;
+      throw error
     }
   }
 
@@ -962,24 +903,22 @@ export class GitHubAppService {
    */
   async healthCheck(): Promise<{ status: "ok" | "error"; details: any }> {
     try {
-      const token = await this.getInstallationToken();
+      const token = await this.getInstallationToken()
 
       // Проверяем доступ к организации
-      const response = await this.makeAuthenticatedRequest(
-        `/orgs/${this.organization}`,
-      );
+      const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}`)
 
       if (!response.ok) {
-        const error = await response.text();
+        const error = await response.text()
         return {
           status: "error",
           details: {
             message: `Organization access failed: ${response.status} ${error}`,
           },
-        };
+        }
       }
 
-      const orgData = (await response.json()) as any;
+      const orgData = (await response.json()) as any
 
       return {
         status: "ok",
@@ -989,18 +928,18 @@ export class GitHubAppService {
           installationId: this.installationId,
           tokenExpiresAt: this.tokenCache?.expiresAt,
         },
-      };
+      }
     } catch (error) {
-      console.error("❌ GitHub health check failed", { error });
+      console.error("❌ GitHub health check failed", { error })
       return {
         status: "error",
         details: {
           error: error instanceof Error ? error.message : "Unknown error",
         },
-      };
+      }
     }
   }
 }
 
 // Экспортируем singleton instance
-export const githubAppService = new GitHubAppService();
+export const githubAppService = new GitHubAppService()

@@ -57,5 +57,5 @@ export function CursorLight({ className }: { className?: string }) {
         </linearGradient>
       </defs>
     </svg>
-  );
+  )
 }

@@ -1,30 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 
 interface SliderProps {
-  onValueChange: React.Dispatch<React.SetStateAction<number>>;
-  value: number;
+  onValueChange: React.Dispatch<React.SetStateAction<number>>
+  value: number
 }
 
 export const Slider = ({ onValueChange, value }: SliderProps) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
-    let theme;
+    let theme
     if (typeof window === "undefined") {
-      theme = "system";
+      theme = "system"
     } else {
-      theme = localStorage.getItem("theme") || "system";
+      theme = localStorage.getItem("theme") || "system"
     }
 
     if (theme === "system") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      setIsDarkMode(prefersDark);
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+      setIsDarkMode(prefersDark)
     } else {
-      setIsDarkMode(theme === "dark");
+      setIsDarkMode(theme === "dark")
     }
-  }, []);
+  }, [])
 
   return (
     <div className="w-full">
@@ -81,5 +79,5 @@ export const Slider = ({ onValueChange, value }: SliderProps) => {
         />
       </div>
     </div>
-  );
-};
+  )
+}

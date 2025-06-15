@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import React from "react";
+import React from "react"
 
 interface SpinnerProps {
-  size?: number;
-  color?: string;
+  size?: number
+  color?: string
 }
 
 const bars = [
@@ -56,7 +56,7 @@ const bars = [
     animationDelay: "-0.2s",
     transform: "rotate(330deg) translate(146%)",
   },
-];
+]
 
 export const Spinner = ({ size = 20, color = "#8f8f8f" }: SpinnerProps) => {
   return (
@@ -73,10 +73,7 @@ export const Spinner = ({ size = 20, color = "#8f8f8f" }: SpinnerProps) => {
           }
         `}
       </style>
-      <div
-        className="relative top-1/2 left-1/2"
-        style={{ width: size, height: size }}
-      >
+      <div className="relative top-1/2 left-1/2" style={{ width: size, height: size }}>
         {bars.map((item) => (
           <div
             key={item.transform}
@@ -90,5 +87,5 @@ export const Spinner = ({ size = 20, color = "#8f8f8f" }: SpinnerProps) => {
         ))}
       </div>
     </div>
-  );
-};
+  )
+}

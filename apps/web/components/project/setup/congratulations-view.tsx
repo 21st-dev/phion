@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/geist/button";
-import { Material } from "@/components/geist/material";
-import { ProjectSetupLayout } from "./setup-layout";
-import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/geist/button"
+import { Material } from "@/components/geist/material"
+import { ProjectSetupLayout } from "./setup-layout"
+import { ExternalLink } from "lucide-react"
 
 interface CongratulationsViewProps {
-  projectUrl: string;
+  projectUrl: string
 }
 
 export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
@@ -51,9 +51,7 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
         {/* Right Column - Next Steps */}
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-foreground mb-4">
-              🎉 Your site is live!
-            </h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">🎉 Your site is live!</h2>
 
             <div className="p-4 bg-muted border border-border rounded-lg mb-6">
               <div className="text-sm text-muted-foreground mb-2">
@@ -83,9 +81,7 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
                   </svg>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground">
-                    Live Updates
-                  </div>
+                  <div className="font-medium text-foreground">Live Updates</div>
                   <div className="text-sm text-muted-foreground">
                     See changes instantly as you code locally
                   </div>
@@ -177,11 +173,7 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
           </div>
 
           <div className="pt-4 border-t border-border">
-            <Button
-              size="large"
-              fullWidth
-              onClick={() => window.open(projectUrl, "_blank")}
-            >
+            <Button size="large" fullWidth onClick={() => window.open(projectUrl, "_blank")}>
               Open Live Site
               <ExternalLink className="w-4 h-4 ml-2" />
             </Button>
@@ -189,5 +181,5 @@ export function CongratulationsView({ projectUrl }: CongratulationsViewProps) {
         </div>
       </div>
     </ProjectSetupLayout>
-  );
+  )
 }

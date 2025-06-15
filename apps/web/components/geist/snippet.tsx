@@ -1,14 +1,14 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState } from "react"
 
-type TSnippetType = "success" | "warning" | "error";
+type TSnippetType = "success" | "warning" | "error"
 
 interface SnippetProps {
-  text: string | string[];
-  width?: string;
-  onCopy?: () => void;
-  prompt?: boolean;
-  dark?: boolean;
-  type?: TSnippetType;
+  text: string | string[]
+  width?: string
+  onCopy?: () => void
+  prompt?: boolean
+  dark?: boolean
+  type?: TSnippetType
 }
 
 const variant = {
@@ -37,23 +37,23 @@ const variant = {
     text: "text-red-900",
     fill: "fill-red-900",
   },
-};
+}
 
 const getVariant = (inverted: boolean, type: TSnippetType | undefined) => {
   if (inverted) {
-    return variant.inverted;
+    return variant.inverted
   }
   switch (type) {
     case "success":
-      return variant.success;
+      return variant.success
     case "warning":
-      return variant.warning;
+      return variant.warning
     case "error":
-      return variant.error;
+      return variant.error
     default:
-      return variant.default;
+      return variant.default
   }
-};
+}
 
 export const Snippet = ({
   text,
@@ -63,26 +63,24 @@ export const Snippet = ({
   dark = false,
   type,
 }: SnippetProps) => {
-  const [animation, setAnimation] = useState<boolean>(false);
-  const animationTimeout = useRef<NodeJS.Timeout | null>(null);
-  const _text = typeof text === "string" ? [text] : text;
-  const colors = getVariant(dark, type);
+  const [animation, setAnimation] = useState<boolean>(false)
+  const animationTimeout = useRef<NodeJS.Timeout | null>(null)
+  const _text = typeof text === "string" ? [text] : text
+  const colors = getVariant(dark, type)
 
   const onClick = () => {
     if (animationTimeout.current) {
-      clearTimeout(animationTimeout.current);
+      clearTimeout(animationTimeout.current)
     }
-    setAnimation(true);
-    animationTimeout.current = setTimeout(() => setAnimation(false), 2000);
+    setAnimation(true)
+    animationTimeout.current = setTimeout(() => setAnimation(false), 2000)
 
-    navigator.clipboard.writeText(
-      _text.reduce((prev, curr) => prev + "\n" + curr),
-    );
+    navigator.clipboard.writeText(_text.reduce((prev, curr) => prev + "\n" + curr))
 
     if (onCopy) {
-      onCopy();
+      onCopy()
     }
-  };
+  }
 
   return (
     <div
@@ -135,5 +133,5 @@ export const Snippet = ({
         </svg>
       </div>
     </div>
-  );
-};
+  )
+}

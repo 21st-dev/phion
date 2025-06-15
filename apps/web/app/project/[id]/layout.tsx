@@ -1,63 +1,58 @@
-import React from "react";
-import { notFound, redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { Header } from "@/components/layout/header";
-import { ProjectNavigation } from "@/components/project/project-navigation";
-import { ProjectLayoutClient } from "@/components/project/project-layout-client";
+import React from "react"
+import { notFound, redirect } from "next/navigation"
+import { cookies } from "next/headers"
+import { Header } from "@/components/layout/header"
+import { ProjectNavigation } from "@/components/project/project-navigation"
+import { ProjectLayoutClient } from "@/components/project/project-layout-client"
 import {
   getProjectById,
   getPendingChanges,
   createAuthServerClient,
   getSupabaseServerClient,
   CommitHistoryQueries,
-} from "@shipvibes/database";
+} from "@shipvibes/database"
 
 interface ProjectLayoutProps {
-  children: React.ReactNode;
-  params: Promise<{ id: string }>;
+  children: React.ReactNode
+  params: Promise<{ id: string }>
 }
 
-export default async function ProjectLayout({
-  children,
-  params,
-}: ProjectLayoutProps) {
-  const { id } = await params;
+export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
+  const { id } = await params
 
   // Получаем пользователя для Header
-  const cookieStore = await cookies();
+  const cookieStore = await cookies()
   const supabase = createAuthServerClient({
     getAll() {
-      return cookieStore.getAll();
+      return cookieStore.getAll()
     },
     setAll(cookiesToSet) {
       try {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options),
-        );
+        cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
       } catch {
         // Игнорируем ошибки установки cookies в Server Components
       }
     },
-  });
+  })
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   // Если пользователь не авторизован, перенаправляем на страницу входа
   if (!user) {
-    redirect("/login");
+    redirect("/login")
   }
 
   // Получаем историю коммитов (как в API роуте)
-  const supabaseServer = getSupabaseServerClient();
-  const commitHistoryQueries = new CommitHistoryQueries(supabaseServer);
+  const supabaseServer = getSupabaseServerClient()
+  const commitHistoryQueries = new CommitHistoryQueries(supabaseServer)
 
   const [project, commits, pendingChanges] = await Promise.all([
     getProjectById(id),
     commitHistoryQueries.getProjectCommitHistory(id),
     getPendingChanges(id),
-  ]);
+  ])
 
   // Преобразуем коммиты в формат для UI (как в API роуте)
   const history = commits.map((commit) => ({
@@ -66,7 +61,7 @@ export default async function ProjectLayout({
     created_at: commit.created_at,
     project_id: commit.project_id,
     files_count: commit.files_count || 0,
-  }));
+  }))
 
   // Логируем что получили из database queries
   console.log("🎯 [ProjectLayout] Server-side data loaded:", {
@@ -77,10 +72,10 @@ export default async function ProjectLayout({
     history: history,
     pendingChangesLength: pendingChanges?.length || 0,
     pendingChanges: pendingChanges,
-  });
+  })
 
   if (!project) {
-    notFound();
+    notFound()
   }
 
   return (
@@ -106,10 +101,8 @@ export default async function ProjectLayout({
         <div className="pt-[120px]"></div>
 
         {/* Page Content */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">{children}</div>
       </div>
     </ProjectLayoutClient>
-  );
+  )
 }

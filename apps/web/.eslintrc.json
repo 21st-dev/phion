@@ -17,4 +17,4 @@
     "react/display-name": "warn",
     "@next/next/no-img-element": "off"
   }
-} 
+}

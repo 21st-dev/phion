@@ -1,19 +1,19 @@
-import React from "react";
-import clsx from "clsx";
-import { Property } from "csstype";
-import { twMerge } from "tailwind-merge";
+import React from "react"
+import clsx from "clsx"
+import { Property } from "csstype"
+import { twMerge } from "tailwind-merge"
 
 interface SkeletonProps {
-  width?: Property.Width | number;
-  height?: Property.Height | number;
-  boxHeight?: number;
-  show?: boolean;
-  pill?: boolean;
-  rounded?: boolean;
-  squared?: boolean;
-  animated?: boolean;
-  children?: React.ReactNode;
-  className?: string;
+  width?: Property.Width | number
+  height?: Property.Height | number
+  boxHeight?: number
+  show?: boolean
+  pill?: boolean
+  rounded?: boolean
+  squared?: boolean
+  animated?: boolean
+  children?: React.ReactNode
+  className?: string
 }
 
 export const Skeleton = ({
@@ -50,12 +50,10 @@ export const Skeleton = ({
       style={{
         minHeight: height || 24,
         width: children ? "fit-content" : width,
-        marginBottom: `calc(${boxHeight || "100%"} - (${
-          typeof height === "number" ? height : 0
-        }))`,
+        marginBottom: `calc(${boxHeight || "100%"} - (${typeof height === "number" ? height : 0}))`,
       }}
     >
       {children}
     </span>
-  );
-};
+  )
+}

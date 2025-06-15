@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/geist/button";
-import { Trash2 } from "lucide-react";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/geist/button"
+import { Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -12,13 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface DeleteAllProjectsDialogProps {
-  trigger?: React.ReactNode;
-  onSuccess?: () => void;
-  variant?: "button" | "menu-item";
+  trigger?: React.ReactNode
+  onSuccess?: () => void
+  variant?: "button" | "menu-item"
 }
 
 export function DeleteAllProjectsDialog({
@@ -26,60 +26,57 @@ export function DeleteAllProjectsDialog({
   onSuccess,
   variant = "button",
 }: DeleteAllProjectsDialogProps) {
-  const router = useRouter();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const { error: showError, success: showSuccess } = useToast();
+  const router = useRouter()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { error: showError, success: showSuccess } = useToast()
 
   const confirmDeleteAllProjects = async () => {
-    setIsDeleting(true);
+    setIsDeleting(true)
     try {
       const response = await fetch("/api/projects/delete-all", {
         method: "DELETE",
-      });
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete all projects");
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete all projects")
       }
 
-      const result = await response.json();
+      const result = await response.json()
 
-      console.log("All projects deleted successfully:", result);
+      console.log("All projects deleted successfully:", result)
 
-      showSuccess(
-        "All projects deleted",
-        `Successfully deleted ${result.deletedCount} project(s)`,
-      );
+      showSuccess("All projects deleted", `Successfully deleted ${result.deletedCount} project(s)`)
 
       if (result.errors && result.errors.length > 0) {
-        console.warn("Some errors occurred during deletion:", result.errors);
+        console.warn("Some errors occurred during deletion:", result.errors)
         showError(
           "Partial deletion completed",
           `${result.errors.length} error(s) occurred during deletion`,
-        );
+        )
       }
 
       if (onSuccess) {
-        onSuccess();
+        onSuccess()
       } else {
-        router.push("/");
+        router.push("/")
         // Принудительно обновляем страницу через небольшой delay
         setTimeout(() => {
-          window.location.reload();
-        }, 500);
+          window.location.reload()
+        }, 500)
       }
     } catch (error) {
-      console.error("Error deleting all projects:", error);
+      console.error("Error deleting all projects:", error)
       showError(
         "Failed to delete projects",
         error instanceof Error ? error.message : "Please try again",
-      );
+      )
     } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
     }
-  };
+  }
 
   const defaultTrigger =
     variant === "button" ? (
@@ -97,7 +94,7 @@ export function DeleteAllProjectsDialog({
         <Trash2 className="h-4 w-4" />
         Delete All Projects (DEV)
       </div>
-    );
+    )
 
   return (
     <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -105,7 +102,7 @@ export function DeleteAllProjectsDialog({
         asChild
         onClick={(e) => {
           if (variant === "menu-item") {
-            e.stopPropagation();
+            e.stopPropagation()
           }
         }}
       >
@@ -115,9 +112,8 @@ export function DeleteAllProjectsDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete All Projects (Development)</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete ALL your projects? This action
-            cannot be undone. This will permanently delete all files,
-            publications, and history for every project you own.
+            Are you sure you want to delete ALL your projects? This action cannot be undone. This
+            will permanently delete all files, publications, and history for every project you own.
             <br />
             <br />
             <strong className="text-destructive">
@@ -146,5 +142,5 @@ export function DeleteAllProjectsDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

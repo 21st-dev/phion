@@ -1,70 +1,66 @@
-import React from "react";
-import { Tooltip } from "./tooltip";
+import React from "react"
+import { Tooltip } from "./tooltip"
 
-type TTabVariant = "primary" | "secondary";
+type TTabVariant = "primary" | "secondary"
 
 export interface ITab {
-  title?: string;
-  value: string;
-  disabled?: boolean;
-  icon?: string;
-  tooltip?: string;
+  title?: string
+  value: string
+  disabled?: boolean
+  icon?: string
+  tooltip?: string
 }
 
 interface TabsProps {
-  selected: string;
-  setSelected: React.Dispatch<React.SetStateAction<string>>;
-  tabs: ITab[];
-  disabled?: boolean;
-  variant?: TTabVariant;
+  selected: string
+  setSelected: React.Dispatch<React.SetStateAction<string>>
+  tabs: ITab[]
+  disabled?: boolean
+  variant?: TTabVariant
 }
 
 interface TabProps extends ITab {
-  selected: string;
-  setSelected: React.Dispatch<React.SetStateAction<string>>;
-  variant: TTabVariant;
+  selected: string
+  setSelected: React.Dispatch<React.SetStateAction<string>>
+  variant: TTabVariant
 }
 
-const getClasses = (
-  isSelected: boolean,
-  disabled: boolean,
-  variant: TTabVariant,
-) => {
+const getClasses = (isSelected: boolean, disabled: boolean, variant: TTabVariant) => {
   let classes = `relative overflow-visible box-border font-sans text-sm flex gap-0.5 duration-100 ${
     disabled ? "cursor-not-allowed" : "cursor-pointer"
-  }`;
+  }`
   if (isSelected) {
     if (variant === "primary") {
-      classes += " border-b-2 border-gray-1000 -mb-0.5";
+      classes += " border-b-2 border-gray-1000 -mb-0.5"
     } else if (variant === "secondary") {
-      classes += " bg-gray-1000";
+      classes += " bg-gray-1000"
     }
   } else {
     if (variant === "secondary") {
       if (disabled) {
-        classes += " bg-gray-200";
+        classes += " bg-gray-200"
       } else {
-        classes += " bg-gray-alpha-200";
+        classes += " bg-gray-alpha-200"
       }
     }
   }
   if (variant === "primary") {
-    classes += " pb-[5px] hover:text-gray-1000";
+    classes += " pb-[5px] hover:text-gray-1000"
   } else if (variant === "secondary") {
-    classes += " h-6 rounded-md text-[13px] px-1.5 items-center";
+    classes += " h-6 rounded-md text-[13px] px-1.5 items-center"
   }
   if (disabled) {
-    classes += isSelected ? " text-gray-1000" : " text-gray-900";
+    classes += isSelected ? " text-gray-1000" : " text-gray-900"
   } else {
     if (variant === "primary") {
-      classes += isSelected ? " text-gray-1000" : " text-gray-900";
+      classes += isSelected ? " text-gray-1000" : " text-gray-900"
     } else {
-      classes += isSelected ? " text-background-100" : " text-gray-1000";
+      classes += isSelected ? " text-background-100" : " text-gray-1000"
     }
   }
 
-  return classes;
-};
+  return classes
+}
 
 const Tab = ({
   selected,
@@ -76,7 +72,7 @@ const Tab = ({
   variant,
 }: TabProps) => {
   if (!title && !icon) {
-    return null;
+    return null
   }
 
   return (
@@ -84,15 +80,15 @@ const Tab = ({
       className={getClasses(selected === value, disabled, variant)}
       onClick={() => {
         if (!disabled) {
-          setSelected(value);
+          setSelected(value)
         }
       }}
     >
       {icon && <img src={icon} alt={title} width={16} height={16} />}
       <div>{title}</div>
     </div>
-  );
-};
+  )
+}
 
 export const Tabs = ({
   selected,
@@ -104,9 +100,7 @@ export const Tabs = ({
   return (
     <div
       className={`flex${disabled ? " cursor-not-allowed" : ""} ${
-        variant === "primary"
-          ? "gap-6 pb-[1px] border-b border-accents-2"
-          : "gap-2"
+        variant === "primary" ? "gap-6 pb-[1px] border-b border-accents-2" : "gap-2"
       }`}
     >
       {tabs.map((tab) =>
@@ -132,5 +126,5 @@ export const Tabs = ({
         ),
       )}
     </div>
-  );
-};
+  )
+}

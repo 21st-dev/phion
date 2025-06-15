@@ -1,67 +1,67 @@
-import { promisify } from "util";
-import { exec } from "child_process";
-import fetch from "node-fetch";
-import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database";
+import { promisify } from "util"
+import { exec } from "child_process"
+import fetch from "node-fetch"
+import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database"
 
-const execAsync = promisify(exec);
+const execAsync = promisify(exec)
 
 interface NetlifyCreateSiteResponse {
-  id: string;
-  url: string;
-  admin_url: string;
-  name: string;
-  ssl_url?: string;
+  id: string
+  url: string
+  admin_url: string
+  name: string
+  ssl_url?: string
   build_settings?: {
-    repo_url?: string;
-    repo_branch?: string;
-    deploy_key_id?: string;
-    cmd?: string;
-    dir?: string;
-  };
+    repo_url?: string
+    repo_branch?: string
+    deploy_key_id?: string
+    cmd?: string
+    dir?: string
+  }
 }
 
 interface NetlifyCreateSiteRequest {
-  name: string;
+  name: string
   repo?: {
-    provider: "github";
-    repo: string;
-    private: boolean;
-    branch: string;
-    installation_id: number;
-  };
+    provider: "github"
+    repo: string
+    private: boolean
+    branch: string
+    installation_id: number
+  }
   build_settings?: {
-    cmd: string;
-    dir: string;
-    env?: Record<string, string>;
-  };
+    cmd: string
+    dir: string
+    env?: Record<string, string>
+  }
 }
 
 interface NetlifyWebhookResponse {
-  id: string;
-  url: string;
-  event: string;
-  created_at: string;
+  id: string
+  url: string
+  event: string
+  created_at: string
 }
 
 interface NetlifyDeployResponse {
-  id: string;
-  url: string;
-  deploy_url: string;
-  state: "new" | "building" | "ready" | "error" | "enqueued";
-  error_message?: string;
+  id: string
+  url: string
+  deploy_url: string
+  state: "new" | "building" | "ready" | "error" | "enqueued"
+  error_message?: string
 }
 
 export class NetlifyService {
-  private accessToken: string;
-  private baseUrl = "https://api.netlify.com/api/v1";
-  private io?: any; // Socket.io instance для real-time обновлений
+  private accessToken: string
+  private baseUrl = "https://api.netlify.com/api/v1"
+  private io?: any // Socket.io instance для real-time обновлений
 
   constructor(io?: any) {
-    this.accessToken = process.env.NETLIFY_ACCESS_TOKEN!;
-    this.io = io;
+    this.accessToken = process.env.NETLIFY_ACCESS_TOKEN!
+    this.io = io
 
     if (!this.accessToken) {
-      throw new Error("NETLIFY_ACCESS_TOKEN environment variable is required");
+      throw new Error("NETLIFY_ACCESS_TOKEN environment variable is required")
     }
   }
 
@@ -70,19 +70,14 @@ export class NetlifyService {
    * Netlify автоматически получает код из GitHub репозитория
    */
   async hasProjectFiles(projectId: string): Promise<boolean> {
-    console.log(
-      `📋 GitHub архитектура: проект ${projectId} деплоится автоматически из GitHub`,
-    );
-    return true; // Всегда true, так как Netlify работает с GitHub
+    console.log(`📋 GitHub архитектура: проект ${projectId} деплоится автоматически из GitHub`)
+    return true // Всегда true, так как Netlify работает с GitHub
   }
 
   /**
    * Создать новый сайт на Netlify
    */
-  async createSite(
-    projectId: string,
-    projectName: string,
-  ): Promise<NetlifyCreateSiteResponse> {
+  async createSite(projectId: string, projectName: string): Promise<NetlifyCreateSiteResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/sites`, {
         method: "POST",
@@ -95,22 +90,20 @@ export class NetlifyService {
           created_via: "vybcel",
           session_id: projectId,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to create Netlify site: ${response.status} ${errorText}`,
-        );
+        const errorText = await response.text()
+        throw new Error(`Failed to create Netlify site: ${response.status} ${errorText}`)
       }
 
-      const data = (await response.json()) as NetlifyCreateSiteResponse;
-      console.log(`✅ Created Netlify site: ${data.url}`);
+      const data = (await response.json()) as NetlifyCreateSiteResponse
+      console.log(`✅ Created Netlify site: ${data.url}`)
 
-      return data;
+      return data
     } catch (error) {
-      console.error("❌ Error creating Netlify site:", error);
-      throw error;
+      console.error("❌ Error creating Netlify site:", error)
+      throw error
     }
   }
 
@@ -125,14 +118,10 @@ export class NetlifyService {
   ): Promise<NetlifyCreateSiteResponse> {
     try {
       // GitHub App Installation ID для организации vybcel
-      const installationId = parseInt(
-        process.env.NETLIFY_GITHUB_INSTALLATION_ID!,
-      );
+      const installationId = parseInt(process.env.NETLIFY_GITHUB_INSTALLATION_ID!)
 
       if (!installationId || isNaN(installationId)) {
-        throw new Error(
-          "NETLIFY_GITHUB_INSTALLATION_ID is required and must be a valid number",
-        );
+        throw new Error("NETLIFY_GITHUB_INSTALLATION_ID is required and must be a valid number")
       }
 
       const requestBody: NetlifyCreateSiteRequest = {
@@ -153,14 +142,14 @@ export class NetlifyService {
             NPM_VERSION: "9",
           },
         },
-      };
+      }
 
       console.log("🌐 Creating Netlify site with GitHub integration:", {
         projectId,
         repoName: githubRepoName,
         installationId,
         buildCmd: requestBody.build_settings?.cmd,
-      });
+      })
 
       const response = await fetch(`${this.baseUrl}/sites`, {
         method: "POST",
@@ -169,17 +158,15 @@ export class NetlifyService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
-      });
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Netlify API error:", errorText);
-        throw new Error(
-          `Failed to create Netlify site: ${response.status} ${errorText}`,
-        );
+        const errorText = await response.text()
+        console.error("❌ Netlify API error:", errorText)
+        throw new Error(`Failed to create Netlify site: ${response.status} ${errorText}`)
       }
 
-      const data = (await response.json()) as NetlifyCreateSiteResponse;
+      const data = (await response.json()) as NetlifyCreateSiteResponse
 
       console.log("✅ Created Netlify site with GitHub integration:", {
         siteId: data.id,
@@ -187,15 +174,15 @@ export class NetlifyService {
         adminUrl: data.admin_url,
         deployKeyId: data.build_settings?.deploy_key_id,
         repoUrl: data.build_settings?.repo_url,
-      });
+      })
 
       // НЕ настраиваем webhook здесь - это будет сделано отдельно
       // чтобы избежать race condition с сохранением netlify_site_id
 
-      return data;
+      return data
     } catch (error) {
-      console.error("❌ Error creating Netlify site with GitHub:", error);
-      throw error;
+      console.error("❌ Error creating Netlify site with GitHub:", error)
+      throw error
     }
   }
 
@@ -204,10 +191,10 @@ export class NetlifyService {
    * Вызывается отдельно после сохранения netlify_site_id в базу данных
    */
   async setupWebhookForSite(siteId: string, projectId: string): Promise<void> {
-    await this.setupWebhook(siteId, projectId);
+    await this.setupWebhook(siteId, projectId)
   }
 
-  private static ngrokUrl: string | null = null;
+  private static ngrokUrl: string | null = null
 
   /**
    * Настраивает webhook для сайта
@@ -215,48 +202,46 @@ export class NetlifyService {
   private async setupWebhook(siteId: string, projectId: string): Promise<void> {
     try {
       // В development режиме автоматически запускаем ngrok
-      let webhookUrl = process.env.WEBSOCKET_SERVER_URL;
+      let webhookUrl = process.env.WEBSOCKET_SERVER_URL
 
       if (process.env.NODE_ENV === "development" || !webhookUrl) {
         try {
-          console.log("🔗 Starting ngrok tunnel for development webhooks...");
+          console.log("🔗 Starting ngrok tunnel for development webhooks...")
 
           // Используем глобальный ngrok URL или создаем новый
           if (!NetlifyService.ngrokUrl) {
-            const ngrok = await import("@ngrok/ngrok");
+            const ngrok = await import("@ngrok/ngrok")
 
             // Запускаем ngrok туннель для порта 8080
             const listener = await ngrok.forward({
               addr: 8080,
               authtoken_from_env: true,
-            });
+            })
 
-            NetlifyService.ngrokUrl = listener.url();
-            console.log(`✅ Ngrok tunnel started: ${NetlifyService.ngrokUrl}`);
+            NetlifyService.ngrokUrl = listener.url()
+            console.log(`✅ Ngrok tunnel started: ${NetlifyService.ngrokUrl}`)
           }
 
           if (NetlifyService.ngrokUrl) {
-            webhookUrl = NetlifyService.ngrokUrl;
-            console.log(`🌐 Using ngrok URL for webhooks: ${webhookUrl}`);
+            webhookUrl = NetlifyService.ngrokUrl
+            console.log(`🌐 Using ngrok URL for webhooks: ${webhookUrl}`)
           } else {
-            throw new Error("Failed to get ngrok URL");
+            throw new Error("Failed to get ngrok URL")
           }
         } catch (error) {
-          console.error("❌ Failed to setup ngrok tunnel:", error);
-          console.log("⚠️ Falling back to localhost (webhooks will not work)");
-          webhookUrl = "http://localhost:8080";
+          console.error("❌ Failed to setup ngrok tunnel:", error)
+          console.log("⚠️ Falling back to localhost (webhooks will not work)")
+          webhookUrl = "http://localhost:8080"
         }
       }
 
-      const webhookEndpoint = `${webhookUrl}/webhooks/netlify`;
+      const webhookEndpoint = `${webhookUrl}/webhooks/netlify`
 
-      console.log(
-        `🔗 Setting up webhook for site ${siteId} → ${webhookEndpoint}`,
-      );
+      console.log(`🔗 Setting up webhook for site ${siteId} → ${webhookEndpoint}`)
 
       // Правильные события согласно документации Netlify Deploy Notifications
-      const events = ["deploy_created", "deploy_building", "deploy_failed"];
-      const webhookPromises: Promise<any>[] = [];
+      const events = ["deploy_created", "deploy_building", "deploy_failed"]
+      const webhookPromises: Promise<any>[] = []
 
       // Создаем отдельный webhook для каждого события
       for (const event of events) {
@@ -274,48 +259,45 @@ export class NetlifyService {
             },
             site_id: siteId,
           }),
-        });
+        })
 
-        webhookPromises.push(webhookPromise);
+        webhookPromises.push(webhookPromise)
       }
 
       // Выполняем все запросы параллельно
-      const responses = await Promise.all(webhookPromises);
+      const responses = await Promise.all(webhookPromises)
 
       // Проверяем результаты
-      const results: { event: string; hookId: string }[] = [];
+      const results: { event: string; hookId: string }[] = []
       for (let i = 0; i < responses.length; i++) {
-        const response = responses[i];
-        const event = events[i];
+        const response = responses[i]
+        const event = events[i]
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error(
-            `❌ Failed to setup webhook for event ${event}:`,
-            errorText,
-          );
-          continue;
+          const errorText = await response.text()
+          console.error(`❌ Failed to setup webhook for event ${event}:`, errorText)
+          continue
         }
 
-        const webhookData = (await response.json()) as NetlifyWebhookResponse;
+        const webhookData = (await response.json()) as NetlifyWebhookResponse
         results.push({
           event,
           hookId: webhookData.id,
-        });
+        })
       }
 
       if (results.length > 0) {
         console.log(`✅ Webhooks configured for site ${siteId}:`, {
           endpoint: webhookEndpoint,
           webhooks: results,
-        });
+        })
       } else {
-        console.log("⚠️ No webhooks were successfully configured");
+        console.log("⚠️ No webhooks were successfully configured")
       }
     } catch (error) {
-      console.error(`❌ Error setting up webhook for site ${siteId}:`, error);
+      console.error(`❌ Error setting up webhook for site ${siteId}:`, error)
       // Не прерываем создание сайта из-за ошибки webhook
-      console.log("⚠️ Continuing without webhook setup");
+      console.log("⚠️ Continuing without webhook setup")
     }
   }
 
@@ -325,34 +307,29 @@ export class NetlifyService {
   async checkAndUpdateDeployStatus(projectId: string): Promise<void> {
     try {
       // Получаем текущий проект
-      const supabase = getSupabaseServerClient();
-      const projectQueries = new ProjectQueries(supabase);
-      const project = await projectQueries.getProjectById(projectId);
+      const supabase = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabase)
+      const project = await projectQueries.getProjectById(projectId)
 
       if (!project || !project.netlify_site_id) {
         console.log(
           `⚠️ Cannot check status: project ${projectId} not found or missing netlify_site_id`,
-        );
-        return;
+        )
+        return
       }
 
       // Если нет deploy_id, получаем последний деплой для сайта
-      let deployInfo: NetlifyDeployResponse;
+      let deployInfo: NetlifyDeployResponse
 
       if (project.netlify_deploy_id) {
         // Используем конкретный deploy_id если есть
-        deployInfo = await this.getDeployStatus(
-          project.netlify_site_id,
-          project.netlify_deploy_id,
-        );
+        deployInfo = await this.getDeployStatus(project.netlify_site_id, project.netlify_deploy_id)
       } else {
         // Получаем последний деплой для сайта
-        deployInfo = await this.getLatestDeploy(project.netlify_site_id);
+        deployInfo = await this.getLatestDeploy(project.netlify_site_id)
       }
 
-      console.log(
-        `📊 Netlify deploy status for ${projectId}: ${deployInfo.state}`,
-      );
+      console.log(`📊 Netlify deploy status for ${projectId}: ${deployInfo.state}`)
 
       // Проверяем, изменился ли статус
       if (
@@ -360,36 +337,36 @@ export class NetlifyService {
         (deployInfo.state === "error" && project.deploy_status !== "failed")
       ) {
         // Обновляем статус в базе данных
-        const newStatus = deployInfo.state === "ready" ? "ready" : "failed";
+        const newStatus = deployInfo.state === "ready" ? "ready" : "failed"
 
         const updateData: any = {
           deploy_status: newStatus,
           netlify_deploy_id: deployInfo.id,
-        };
+        }
 
         // Получаем правильный URL сайта
         if (newStatus === "ready") {
           try {
-            const siteInfo = await this.getSite(project.netlify_site_id);
-            const finalUrl = siteInfo.ssl_url || siteInfo.url;
-            updateData.netlify_url = finalUrl;
-            console.log(`🌐 Final site URL: ${finalUrl}`);
+            const siteInfo = await this.getSite(project.netlify_site_id)
+            const finalUrl = siteInfo.ssl_url || siteInfo.url
+            updateData.netlify_url = finalUrl
+            console.log(`🌐 Final site URL: ${finalUrl}`)
           } catch (siteError) {
-            console.error(`⚠️ Could not get site info for URL: ${siteError}`);
+            console.error(`⚠️ Could not get site info for URL: ${siteError}`)
             // Fallback to deploy URL if available
             if (deployInfo.deploy_url) {
-              updateData.netlify_url = deployInfo.deploy_url;
+              updateData.netlify_url = deployInfo.deploy_url
             }
           }
         }
 
-        await projectQueries.updateProject(projectId, updateData);
+        await projectQueries.updateProject(projectId, updateData)
 
         // Логируем изменение статуса деплоя
-        const oldStatus = project.deploy_status || "building";
+        const oldStatus = project.deploy_status || "building"
         console.log(
           `🚀 Deploy status changed for project ${projectId}: ${oldStatus} -> ${newStatus}`,
-        );
+        )
 
         // Отправляем уведомление через WebSocket
         if (this.io) {
@@ -398,11 +375,11 @@ export class NetlifyService {
             status: newStatus,
             url: updateData.netlify_url,
             timestamp: new Date().toISOString(),
-          });
+          })
 
           console.log(
             `📡 Emitted deploy status update: ${newStatus} - ${updateData.netlify_url || "no URL"}`,
-          );
+          )
         }
       }
 
@@ -414,18 +391,18 @@ export class NetlifyService {
       ) {
         setTimeout(() => {
           this.checkAndUpdateDeployStatus(projectId).catch((err) => {
-            console.error(`❌ Error checking deploy status: ${err.message}`);
-          });
-        }, 10000); // Проверяем каждые 10 секунд
+            console.error(`❌ Error checking deploy status: ${err.message}`)
+          })
+        }, 10000) // Проверяем каждые 10 секунд
       }
     } catch (error) {
-      console.error(`❌ Error checking deploy status:`, error);
+      console.error(`❌ Error checking deploy status:`, error)
       // Продолжим пытаться, пока не получим ответ
       setTimeout(() => {
         this.checkAndUpdateDeployStatus(projectId).catch(() => {
           // Игнорируем ошибки внутри обработчика таймаута
-        });
-      }, 15000); // Увеличенный интервал при ошибке
+        })
+      }, 15000) // Увеличенный интервал при ошибке
     }
   }
 
@@ -434,34 +411,29 @@ export class NetlifyService {
    */
   async getLatestDeploy(siteId: string): Promise<NetlifyDeployResponse> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/sites/${siteId}/deploys?per_page=1`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${this.baseUrl}/sites/${siteId}/deploys?per_page=1`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json",
         },
-      );
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to get latest deploy: ${response.status} ${errorText}`,
-        );
+        const errorText = await response.text()
+        throw new Error(`Failed to get latest deploy: ${response.status} ${errorText}`)
       }
 
-      const deploys = (await response.json()) as NetlifyDeployResponse[];
+      const deploys = (await response.json()) as NetlifyDeployResponse[]
 
       if (!deploys || deploys.length === 0) {
-        throw new Error(`No deploys found for site ${siteId}`);
+        throw new Error(`No deploys found for site ${siteId}`)
       }
 
-      return deploys[0];
+      return deploys[0]
     } catch (error) {
-      console.error("❌ Error getting latest deploy:", error);
-      throw error;
+      console.error("❌ Error getting latest deploy:", error)
+      throw error
     }
   }
 
@@ -477,7 +449,7 @@ export class NetlifyService {
   ): Promise<NetlifyDeployResponse> {
     console.log(
       `🚀 GitHub архитектура: Netlify автоматически деплоит commit ${commitId} для сайта ${siteId}`,
-    );
+    )
 
     // Возвращаем мок ответ, так как реальный деплой происходит автоматически
     const mockResponse: NetlifyDeployResponse = {
@@ -485,55 +457,42 @@ export class NetlifyService {
       url: `https://${siteId}.netlify.app`,
       deploy_url: `https://${siteId}.netlify.app`,
       state: "building",
-    };
+    }
 
-    console.log(
-      `✅ Netlify автодеплой инициирован: ${mockResponse.deploy_url}`,
-    );
+    console.log(`✅ Netlify автодеплой инициирован: ${mockResponse.deploy_url}`)
 
     // Запускаем проверку статуса через 10 секунд (дольше, так как GitHub webhook может быть медленным)
     setTimeout(() => {
       this.checkAndUpdateDeployStatus(projectId).catch((error) => {
-        console.error(
-          `❌ Error starting deploy status check for project ${projectId}:`,
-          error,
-        );
-      });
-    }, 10000);
+        console.error(`❌ Error starting deploy status check for project ${projectId}:`, error)
+      })
+    }, 10000)
 
-    return mockResponse;
+    return mockResponse
   }
 
   /**
    * Получить статус деплоя
    */
-  async getDeployStatus(
-    siteId: string,
-    deployId: string,
-  ): Promise<NetlifyDeployResponse> {
+  async getDeployStatus(siteId: string, deployId: string): Promise<NetlifyDeployResponse> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/sites/${siteId}/deploys/${deployId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${this.baseUrl}/sites/${siteId}/deploys/${deployId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json",
         },
-      );
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to get deploy status: ${response.status} ${errorText}`,
-        );
+        const errorText = await response.text()
+        throw new Error(`Failed to get deploy status: ${response.status} ${errorText}`)
       }
 
-      return (await response.json()) as NetlifyDeployResponse;
+      return (await response.json()) as NetlifyDeployResponse
     } catch (error) {
-      console.error("❌ Error getting deploy status:", error);
-      throw error;
+      console.error("❌ Error getting deploy status:", error)
+      throw error
     }
   }
 
@@ -548,19 +507,17 @@ export class NetlifyService {
           Authorization: `Bearer ${this.accessToken}`,
           "Content-Type": "application/json",
         },
-      });
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to get site info: ${response.status} ${errorText}`,
-        );
+        const errorText = await response.text()
+        throw new Error(`Failed to get site info: ${response.status} ${errorText}`)
       }
 
-      return (await response.json()) as NetlifyCreateSiteResponse;
+      return (await response.json()) as NetlifyCreateSiteResponse
     } catch (error) {
-      console.error("❌ Error getting site info:", error);
-      throw error;
+      console.error("❌ Error getting site info:", error)
+      throw error
     }
   }
 
@@ -574,19 +531,17 @@ export class NetlifyService {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
         },
-      });
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to delete site: ${response.status} ${errorText}`,
-        );
+        const errorText = await response.text()
+        throw new Error(`Failed to delete site: ${response.status} ${errorText}`)
       }
 
-      console.log(`✅ Deleted Netlify site: ${siteId}`);
+      console.log(`✅ Deleted Netlify site: ${siteId}`)
     } catch (error) {
-      console.error("❌ Error deleting site:", error);
-      throw error;
+      console.error("❌ Error deleting site:", error)
+      throw error
     }
   }
 
@@ -595,29 +550,26 @@ export class NetlifyService {
    */
   async checkAllActiveDeployments(): Promise<void> {
     try {
-      const supabase = getSupabaseServerClient();
-      const projectQueries = new ProjectQueries(supabase);
+      const supabase = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabase)
 
       // Получаем все проекты со статусом "building"
-      const buildingProjects =
-        await projectQueries.getProjectsByDeployStatus("building");
+      const buildingProjects = await projectQueries.getProjectsByDeployStatus("building")
 
-      console.log(
-        `🔍 Found ${buildingProjects.length} projects with building status`,
-      );
+      console.log(`🔍 Found ${buildingProjects.length} projects with building status`)
 
       // Проверяем статус каждого проекта
       for (const project of buildingProjects) {
         if (project.netlify_deploy_id) {
-          console.log(`🔄 Checking status for project ${project.id}`);
-          await this.checkAndUpdateDeployStatus(project.id);
+          console.log(`🔄 Checking status for project ${project.id}`)
+          await this.checkAndUpdateDeployStatus(project.id)
 
           // Небольшая задержка между запросами, чтобы не перегружать API
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
     } catch (error) {
-      console.error("❌ Error checking all active deployments:", error);
+      console.error("❌ Error checking all active deployments:", error)
     }
   }
 
@@ -637,8 +589,8 @@ export class NetlifyService {
         status,
         message,
         timestamp: new Date().toISOString(),
-      });
-      console.log(`📡 Emitted deploy status update: ${status} - ${message}`);
+      })
+      console.log(`📡 Emitted deploy status update: ${status} - ${message}`)
     }
   }
 }

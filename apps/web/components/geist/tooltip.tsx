@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Tooltip as ReactTooltip } from "react-tooltip";
+import React, { useMemo } from "react"
+import { Tooltip as ReactTooltip } from "react-tooltip"
 
 const types = {
   success: "!bg-success !text-white",
@@ -7,17 +7,17 @@ const types = {
   error: "!bg-error !text-white",
   violet: "!bg-violet !text-white",
   default: "!bg-foreground !text-background-100",
-};
+}
 
 interface TooltipProps {
-  children: React.ReactNode;
-  text: React.ReactNode;
-  position?: "top" | "bottom" | "left" | "right";
-  delay?: boolean;
-  boxAlign?: "left" | "right" | "center";
-  type?: keyof typeof types;
-  tip?: boolean;
-  center?: boolean;
+  children: React.ReactNode
+  text: React.ReactNode
+  position?: "top" | "bottom" | "left" | "right"
+  delay?: boolean
+  boxAlign?: "left" | "right" | "center"
+  type?: keyof typeof types
+  tip?: boolean
+  center?: boolean
 }
 
 export const Tooltip = ({
@@ -31,12 +31,9 @@ export const Tooltip = ({
   center = true,
 }: TooltipProps) => {
   const id = useMemo(() => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    return Array.from(
-      { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)],
-    ).join("");
-  }, []);
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
+  }, [])
 
   return (
     <div>
@@ -46,9 +43,7 @@ export const Tooltip = ({
       <ReactTooltip
         anchorSelect={`#${id}`}
         //@ts-ignore
-        place={`${position}${
-          { left: "-start", right: "-end", center: "" }[boxAlign]
-        }`}
+        place={`${position}${{ left: "-start", right: "-end", center: "" }[boxAlign]}`}
         delayShow={delay ? 500 : 0}
         opacity={1}
         noArrow={!tip}
@@ -59,5 +54,5 @@ export const Tooltip = ({
         {text}
       </ReactTooltip>
     </div>
-  );
-};
+  )
+}
