@@ -95,7 +95,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Create a new React project with Vite. Give your project a name to get started.
+            Give your project a name to get started.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,19 +112,6 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
               autoFocus
               disabled={isCreating}
             />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Template</Label>
-            <div className="p-3 bg-muted rounded-md">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <span className="font-medium">Vite + React</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Modern React project with TypeScript, Tailwind CSS, and shadcn/ui
-              </p>
-            </div>
           </div>
         </div>
 
