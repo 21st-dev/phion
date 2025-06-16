@@ -29,19 +29,16 @@ export function DownloadStep({
     message: "Initializing...",
   })
 
-  // WebSocket для отслеживания статуса инициализации в реальном времени
   const { isConnected } = useWebSocket({
     projectId: project.id,
     onDeployStatusUpdate: (data) => {
       console.log("🔄 [DownloadStep] Deploy status update:", data)
       if (data.projectId === project.id) {
-        // Если статус изменился с "pending" на что-то другое - инициализация завершена
         if (data.status !== "pending" && isInitializing) {
           console.log("✅ [DownloadStep] Initialization completed via WebSocket")
           setIsInitializing(false)
           onInitializationComplete?.()
         }
-        // Если статус стал "pending" - началась инициализация
         else if (data.status === "pending" && !isInitializing) {
           console.log("⏳ [DownloadStep] Initialization started via WebSocket")
           setIsInitializing(true)
@@ -57,7 +54,6 @@ export function DownloadStep({
           message: data.message,
         })
 
-        // Если прогресс завершен (100%) - инициализация закончена
         if (data.progress >= 100) {
           console.log("✅ [DownloadStep] Initialization completed via progress")
           setIsInitializing(false)
@@ -67,7 +63,6 @@ export function DownloadStep({
     },
   })
 
-  // Проверяем начальный статус при монтировании компонента
   useEffect(() => {
     const checkInitialStatus = async () => {
       try {
@@ -94,12 +89,11 @@ export function DownloadStep({
     if (isInitializing || isDownloading) return
 
     setIsDownloading(true)
-    setDownloadError(false) // Reset any previous errors
+    setDownloadError(false)
 
     const url = `/api/projects/${project.id}/download`
     console.log(`🔽 [DownloadStep] Starting download from: ${url}`)
 
-    // Use proper fetch + blob approach for reliable downloads
     const downloadFile = async () => {
       try {
         const response = await fetch(url)
@@ -108,26 +102,19 @@ export function DownloadStep({
           throw new Error(`Download failed: ${response.status} ${response.statusText}`)
         }
 
-        // Get the blob from response
         const blob = await response.blob()
-
-        // Create download URL and trigger download
         const downloadUrl = window.URL.createObjectURL(blob)
         const downloadLink = document.createElement("a")
         downloadLink.href = downloadUrl
 
-        // Extract filename from Content-Disposition header
         const contentDisposition = response.headers.get("Content-Disposition")
         const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || "project.zip"
 
         downloadLink.download = filename
         downloadLink.style.display = "none"
         document.body.appendChild(downloadLink)
-
-        // Trigger download
         downloadLink.click()
 
-        // Cleanup
         setTimeout(() => {
           window.URL.revokeObjectURL(downloadUrl)
           document.body.removeChild(downloadLink)
@@ -140,7 +127,6 @@ export function DownloadStep({
         setDownloadError(true)
         throw error
       } finally {
-        // Reset downloading state after a short delay
         setTimeout(() => {
           setIsDownloading(false)
           console.log("✅ [DownloadStep] Download state reset")
@@ -148,7 +134,6 @@ export function DownloadStep({
       }
     }
 
-    // Execute the download
     downloadFile().catch((error) => {
       console.error("❌ [DownloadStep] Download failed:", error)
       setDownloadError(true)
@@ -209,22 +194,6 @@ export function DownloadStep({
           </Button>
 
           <div className="flex-1">
-            {isCompleted && !isInitializing && !downloadError && (
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <polyline points="20,6 9,17 4,12" />
-                </svg>
-                Files downloaded successfully!
-              </div>
-            )}
-
             {downloadError && (
               <div className="flex items-center gap-2 text-sm text-red-600">
                 <svg
@@ -246,11 +215,6 @@ export function DownloadStep({
             {!isInitializing && !isCompleted && !downloadError && (
               <div className="text-sm text-muted-foreground">
                 Download your project files to get started with local development.
-                {!isCompleted && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Click "Download" to get your project ZIP file.
-                  </div>
-                )}
               </div>
             )}
 
