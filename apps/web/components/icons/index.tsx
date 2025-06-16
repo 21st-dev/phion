@@ -30,42 +30,40 @@ export const Icons = {
   cursorAnimatedLogo: (props: LucideProps) => (
     <div className="pointer-events-none relative -ml-0.5 size-6 mix-blend-multiply dark:mix-blend-lighten lg:-ml-1 lg:mr-px lg:size-8">
       <img
-        alt=""
+        alt="Cursor Logo"
         width="32"
         height="32"
         decoding="async"
         className="absolute transition-opacity duration-500"
-        src="https://cursor.com/assets/videos/logo/placeholder-logo.webp"
+        src="/images/logos/cursor/cursor-logo-large.webp"
       />
-      <video
+      {/* Optional: Keep video functionality or replace with static image */}
+      <img
+        alt="Cursor Logo"
         width="32"
         height="32"
-        playsInline
-        preload="auto"
-        aria-label="Cursor video logo animation"
-        src="https://cursor.com/assets/videos/logo/logo-black.mp4"
-        poster="https://cursor.com/assets/videos/logo/placeholder-logo.webp"
+        className="absolute"
+        src="/images/logos/cursor/cursor-logo-large.webp"
       />
     </div>
   ),
   cursorIcon: (props: LucideProps) => (
     <div className="pointer-events-none relative size-5 mix-blend-multiply dark:mix-blend-lighten">
       <img
-        alt=""
+        alt="Cursor Logo"
         width="20"
         height="20"
         decoding="async"
         className="absolute transition-opacity duration-500"
-        src="https://cursor.com/assets/videos/logo/placeholder-logo.webp"
+        src="/images/logos/cursor/cursor-logo-small.webp"
       />
-      <video
+      {/* Optional: Keep video functionality or replace with static image */}
+      <img
+        alt="Cursor Logo"
         width="20"
         height="20"
-        playsInline
-        preload="auto"
-        aria-label="Cursor video logo animation"
-        src="https://cursor.com/assets/videos/logo/logo-black.mp4"
-        poster="https://cursor.com/assets/videos/logo/placeholder-logo.webp"
+        className="absolute"
+        src="/images/logos/cursor/cursor-logo-small.webp"
       />
     </div>
   ),

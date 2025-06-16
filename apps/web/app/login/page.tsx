@@ -11,21 +11,14 @@ const Logo = () => {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === "dark"
 
-  const baseClasses =
-    "w-16 h-16 mx-auto rounded-full flex items-center justify-center text-foreground"
-  const themeClasses = !isDark
-    ? cn(
-        "bg-[radial-gradient(61.35%_50.07%_at_48.58%_50%,rgb(255,255,255)_0%,rgb(235,235,235)_100%)]",
-        "[box-shadow:inset_0_0_0_0.5px_hsl(var(--border)),inset_1px_1px_0_-0.5px_hsl(var(--border)),inset_-1px_-1px_0_-0.5px_hsl(var(--border))]",
-      )
-    : cn(
-        "bg-[radial-gradient(61.35%_50.07%_at_48.58%_50%,rgb(36,36,36)_0%,rgb(0,0,0)_100%)]",
-        "[box-shadow:inset_0_0_0_0.5px_rgba(134,143,151,0.2),inset_1px_1px_0_-0.5px_rgba(134,143,151,0.4),inset_-1px_-1px_0_-0.5px_rgba(134,143,151,0.4)]",
-      )
+  // Use different images for light and dark themes if needed
+  const logoSrc = isDark
+    ? "/vybcel.png" // Dark theme logo
+    : "/vybcel_light.png" // Light theme logo
 
   return (
-    <div className={cn(baseClasses, themeClasses)}>
-      <span className="font-light text-2xl text-foreground">V</span>
+    <div className="w-32 h-32 mx-auto flex items-center justify-center">
+      <img src={logoSrc} alt="Vybcel Logo" className="w-full h-full object-contain" />
     </div>
   )
 }
@@ -78,6 +71,8 @@ const StyledButton: React.FC<StyledButtonProps> = ({ loading, children, ...props
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
   const supabase = createAuthBrowserClient()
   const { error: showError } = useToast()
 
@@ -126,7 +121,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative">
+    <div
+      className={`min-h-screen flex flex-col items-center justify-center px-4 relative ${
+        isDark ? "bg-background" : ""
+      }`}
+      style={{ backgroundColor: isDark ? undefined : "#FAFAFA" }}
+    >
       <div className="w-full max-w-sm space-y-16">
         {/* Logo */}
         <div className="text-center">
