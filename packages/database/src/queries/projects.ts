@@ -236,7 +236,7 @@ export class ProjectQueries {
     const updateData: ProjectUpdate = {
       github_repo_url: githubInfo.github_repo_url,
       github_repo_name: githubInfo.github_repo_name,
-      github_owner: githubInfo.github_owner || "vybcel",
+      github_owner: githubInfo.github_owner || "phion-dev",
     };
 
     // Сначала проверяем, сколько записей с таким ID существует
@@ -296,7 +296,7 @@ export class ProjectQueries {
    */
   async getProjectByGitHubRepo(
     repoName: string,
-    owner: string = "shipvibes"
+    owner: string = "phion-dev"
   ): Promise<ProjectRow | null> {
     const { data, error } = await this.client
       .from("projects")

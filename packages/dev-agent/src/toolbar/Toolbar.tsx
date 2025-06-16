@@ -30,9 +30,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   // Get version from global config
   const version =
-    ((window as any).VYBCEL_CONFIG?.version as string) || "unknown";
+    ((window as any).PHION_CONFIG?.version as string) || "unknown";
   const isDebugMode =
-    ((window as any).VYBCEL_CONFIG?.debug as boolean) || false;
+    ((window as any).PHION_CONFIG?.debug as boolean) || false;
 
   useEffect(() => {
     const connectToServer = async () => {
@@ -44,7 +44,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
     if (isDebugMode) {
       // Force show version on load - use dynamic version
-      showDebugMessage(`Vybcel v${version} loaded`);
+      showDebugMessage(`Phion v${version} loaded`);
 
       // Also force show detection result immediately
       setTimeout(() => {
@@ -65,10 +65,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
 
     const handleStateChange = (newState: ToolbarState) => {
-      console.log("[Vybcel Toolbar] State change:", newState);
+      console.log("[Phion Toolbar] State change:", newState);
       setState((prevState) => {
-        console.log("[Vybcel Toolbar] Current state before update:", prevState);
-        console.log("[Vybcel Toolbar] setState called with:", newState);
+        console.log("[Phion Toolbar] Current state before update:", prevState);
+        console.log("[Phion Toolbar] setState called with:", newState);
         return newState;
       });
     };
@@ -91,7 +91,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       url?: string;
       error?: string;
     }) => {
-      console.log("[Vybcel Toolbar] Preview response received:", data);
+      console.log("[Phion Toolbar] Preview response received:", data);
 
       if (data.success && data.url) {
         showDebugMessage("Got URL, trying to open...");
@@ -118,14 +118,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
               for (const cmd of commands) {
                 try {
-                  console.log(`[Vybcel Toolbar] Trying command:`, cmd);
+                  console.log(`[Phion Toolbar] Trying command:`, cmd);
                   vscode.postMessage(cmd);
                   showDebugMessage(`Tried: ${cmd.command}`);
                   opened = true;
                   break;
                 } catch (e) {
                   console.log(
-                    `[Vybcel Toolbar] Command failed:`,
+                    `[Phion Toolbar] Command failed:`,
                     cmd.command,
                     e
                   );
@@ -147,7 +147,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     break;
                   }
                 } catch (e) {
-                  console.log(`[Vybcel Toolbar] Target failed:`, target, e);
+                  console.log(`[Phion Toolbar] Target failed:`, target, e);
                 }
               }
             }
@@ -172,7 +172,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             opened = true;
           }
         } catch (error) {
-          console.error("[Vybcel Toolbar] All methods failed:", error);
+          console.error("[Phion Toolbar] All methods failed:", error);
           showDebugMessage(`All methods failed. Manual: ${data.url}`);
         }
 
@@ -189,15 +189,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     // Detect Simple Browser in Cursor
     const detectSimpleBrowser = () => {
       const userAgent = navigator.userAgent;
-      console.log("[Vybcel Toolbar] User Agent:", userAgent);
-      console.log("[Vybcel Toolbar] Window location:", window.location.href);
+      console.log("[Phion Toolbar] User Agent:", userAgent);
+
 
       const apis = {
         acquireVsCodeApi: !!(window as any).acquireVsCodeApi,
         vscode: !!(window as any).vscode,
         cursor: !!(window as any).cursor,
       };
-      console.log("[Vybcel Toolbar] Available APIs:", apis);
+      console.log("[Phion Toolbar] Available APIs:", apis);
 
       const isInCursor =
         userAgent.includes("Cursor") ||
@@ -212,7 +212,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         !!(window as any).cursor;
 
       console.log(
-        "[Vybcel Toolbar] Simple Browser detection result:",
+        "[Phion Toolbar] Simple Browser detection result:",
         isInCursor
       );
       setIsSimpleBrowser(isInCursor);
@@ -285,7 +285,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   // Debug: Log every state change
   useEffect(() => {
-    console.log("[Vybcel Toolbar] Component re-rendered with state:", {
+    console.log("[Phion Toolbar] Component re-rendered with state:", {
       pendingChanges: state.pendingChanges,
       deployStatus: state.deployStatus,
       agentConnected: state.agentConnected,
@@ -297,18 +297,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const handleSave = () => {
     console.log(
-      "[Vybcel Toolbar] handleSave called - pendingChanges:",
+      "[Phion Toolbar] handleSave called - pendingChanges:",
       state.pendingChanges,
       "isLoading:",
       isLoading
     );
     if (state.pendingChanges > 0 && !isLoading) {
-      console.log("[Vybcel Toolbar] Executing save...");
+      console.log("[Phion Toolbar] Executing save...");
       setIsLoading(true);
       client.saveAll();
     } else {
       console.log(
-        "[Vybcel Toolbar] Save blocked - pendingChanges:",
+        "[Phion Toolbar] Save blocked - pendingChanges:",
         state.pendingChanges,
         "isLoading:",
         isLoading
@@ -318,18 +318,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const handleDiscard = () => {
     console.log(
-      "[Vybcel Toolbar] handleDiscard called - pendingChanges:",
+      "[Phion Toolbar] handleDiscard called - pendingChanges:",
       state.pendingChanges,
       "isLoading:",
       isLoading
     );
     if (state.pendingChanges > 0 && !isLoading) {
-      console.log("[Vybcel Toolbar] Executing discard...");
+      console.log("[Phion Toolbar] Executing discard...");
       setIsLoading(true);
       client.discardAll();
     } else {
       console.log(
-        "[Vybcel Toolbar] Discard blocked - pendingChanges:",
+        "[Phion Toolbar] Discard blocked - pendingChanges:",
         state.pendingChanges,
         "isLoading:",
         isLoading
@@ -339,7 +339,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   const handlePreview = () => {
     console.log(
-      "[Vybcel Toolbar] handlePreview called - using local HTTP server approach"
+      "[Phion Toolbar] handlePreview called - using local HTTP server approach"
     );
     showDebugMessage("Requesting preview via local server...");
 
@@ -392,7 +392,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         if (!port3334Success) {
           showDebugMessage("❌ Local server not available");
           // Fallback to WebSocket approach
-          console.log("[Vybcel Toolbar] Falling back to WebSocket approach");
+          console.log("[Phion Toolbar] Falling back to WebSocket approach");
           client.requestPreview();
         }
       }
@@ -414,7 +414,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   }
 
   // Debug: Log button states before render
-  console.log("[Vybcel Toolbar] Rendering buttons with:", {
+  console.log("[Phion Toolbar] Rendering buttons with:", {
     pendingChanges: state.pendingChanges,
     isLoading,
     saveDisabled: state.pendingChanges === 0 || isLoading,

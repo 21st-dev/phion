@@ -22,7 +22,7 @@ export default defineConfig([
   {
     entry: ['src/toolbar/index.tsx'],
     format: ['iife'],
-    globalName: 'VybcelToolbar',
+    globalName: 'PhionToolbar',
     outDir: 'dist/toolbar',
     minify: true,
     clean: false,

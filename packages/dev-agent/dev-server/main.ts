@@ -56,16 +56,16 @@ const MockToolbar: React.FC = () => {
 
   // Add test controls to window
   useEffect(() => {
-    (window as any).vybcelTest = {
+    (window as any).phionTest = {
       setPendingChanges,
       addPendingChange: () => setPendingChanges(prev => prev + 1),
       resetPendingChanges: () => setPendingChanges(0),
     };
 
     console.log('[Test Mode] Test controls available:');
-    console.log('window.vybcelTest.setPendingChanges(3) - Set pending changes count');
-    console.log('window.vybcelTest.addPendingChange() - Add one pending change');
-    console.log('window.vybcelTest.resetPendingChanges() - Reset to 0');
+    console.log('window.phionTest.setPendingChanges(3) - Set pending changes count');
+    console.log('window.phionTest.addPendingChange() - Add one pending change');
+    console.log('window.phionTest.resetPendingChanges() - Reset to 0');
   }, []);
 
   return React.createElement(
@@ -230,7 +230,7 @@ const TestWrapper: React.FC = () => {
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes vybcel-content-margin {
+      @keyframes phion-content-margin {
         0% {
           margin: 0;
           width: 100%;
@@ -247,7 +247,7 @@ const TestWrapper: React.FC = () => {
         }
       }
 
-      @keyframes vybcel-toolbar-appear {
+      @keyframes phion-toolbar-appear {
         0% {
           opacity: 0;
         }
@@ -256,28 +256,28 @@ const TestWrapper: React.FC = () => {
         }
       }
 
-      .vybcel-container {
+      .phion-container {
         background-color: #000000;
       }
 
-      .vybcel-toolbar {
+      .phion-toolbar {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         z-index: 999999;
-        opacity: 0;
-        animation: vybcel-toolbar-appear 400ms ease-out 1.6s both;
+        opacity: 0; 
+        animation: phion-toolbar-appear 400ms ease-out 1.6s both;
       }
 
-      .vybcel-content {
+      .phion-content {
         margin: 0;
         width: 100%;
         height: 100%;
         border-radius: 0;
         box-shadow: none;
         box-sizing: border-box;
-        animation: vybcel-content-margin 600ms ease-out 1s both;
+        animation: phion-content-margin 600ms ease-out 1s both;
       }
     `;
     document.head.appendChild(style);
@@ -296,7 +296,7 @@ const TestWrapper: React.FC = () => {
         'div',
         { 
           key: 'toolbar', 
-          className: 'vybcel-toolbar',
+          className: 'phion-toolbar',
           style: { 
             backgroundColor: "#000000",
           } 
@@ -309,7 +309,7 @@ const TestWrapper: React.FC = () => {
         'div',
         {
           key: 'container',
-          className: 'vybcel-container',
+          className: 'phion-container',
           style: {
             position: "fixed",
             top: 0,
@@ -324,8 +324,8 @@ const TestWrapper: React.FC = () => {
           'div',
           {
             key: 'content',
-            id: 'vybcel-content-wrapper',
-            className: 'vybcel-content',
+            id: 'phion-content-wrapper',
+            className: 'phion-content',
             style: {
               width: "100%",
               height: "100%",
@@ -342,14 +342,14 @@ const TestWrapper: React.FC = () => {
 
 // Initialize the test environment
 function initializeTestToolbar() {
-  console.log('[Test Mode] Initializing Vybcel Toolbar Test Environment');
+  console.log('[Test Mode] Initializing Phion Toolbar Test Environment');
   
   // Store original body content
   const originalContent = Array.from(document.body.children) as Element[];
   
   // Create main container
   const rootContainer = document.createElement('div');
-  rootContainer.id = 'vybcel-test-container';
+  rootContainer.id = 'phion-test-container';
   
   // Reset body styles
   document.body.style.margin = '0';
@@ -365,10 +365,10 @@ function initializeTestToolbar() {
   
   // Move original content after render
   setTimeout(() => {
-    const contentWrapper = document.getElementById('vybcel-content-wrapper');
+    const contentWrapper = document.getElementById('phion-content-wrapper');
     if (contentWrapper) {
       originalContent.forEach((child: Element) => {
-        if ((child as HTMLElement).id !== 'vybcel-test-container') {
+        if ((child as HTMLElement).id !== 'phion-test-container') {
           contentWrapper.appendChild(child);
         }
       });

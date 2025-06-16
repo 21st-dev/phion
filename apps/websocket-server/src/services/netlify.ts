@@ -86,8 +86,8 @@ export class NetlifyService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: `vybcel-${projectId.slice(0, 8)}`,
-          created_via: "vybcel",
+          name: `phion-${projectId.slice(0, 8)}`,
+          created_via: "phion",
           session_id: projectId,
         }),
       })
@@ -117,7 +117,7 @@ export class NetlifyService {
     githubOwner: string,
   ): Promise<NetlifyCreateSiteResponse> {
     try {
-      // GitHub App Installation ID для организации vybcel
+      // GitHub App Installation ID для организации phion-dev
       const installationId = parseInt(process.env.NETLIFY_GITHUB_INSTALLATION_ID!)
 
       if (!installationId || isNaN(installationId)) {
@@ -125,7 +125,7 @@ export class NetlifyService {
       }
 
       const requestBody: NetlifyCreateSiteRequest = {
-        name: `vybcel-${projectId.slice(0, 8)}`,
+        name: `phion-${projectId.slice(0, 8)}`,
         repo: {
           provider: "github",
           repo: `${githubOwner}/${githubRepoName}`,
@@ -445,7 +445,7 @@ export class NetlifyService {
     siteId: string,
     projectId: string,
     commitId: string,
-    title: string = "Update from Vybcel",
+    title: string = "Update from Phion",
   ): Promise<NetlifyDeployResponse> {
     console.log(
       `🚀 GitHub архитектура: Netlify автоматически деплоит commit ${commitId} для сайта ${siteId}`,

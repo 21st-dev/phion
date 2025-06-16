@@ -3,7 +3,7 @@
 /**
  * Toolbar Deployment Script
  *
- * This script builds and deploys a new version of the Vybcel toolbar to R2 storage
+ * This script builds and deploys a new version of the Phion toolbar to R2 storage
  * and optionally sends push updates to active users.
  *
  * Usage:
@@ -55,7 +55,7 @@ const {
 // Show help
 if (help || !version) {
   console.log(`
-📦 Vybcel Toolbar Deployment Script
+📦 Phion Toolbar Deployment Script
 
 Usage:
   node scripts/deploy-toolbar.js --version <version> [options]

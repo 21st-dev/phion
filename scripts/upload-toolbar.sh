@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Vybcel Toolbar Upload Script
+# Phion Toolbar Upload Script
 # Usage: ./scripts/upload-toolbar.sh [version] [channel] [broadcast]
 # Example: ./scripts/upload-toolbar.sh 0.2.1 stable true
 
@@ -23,7 +23,7 @@ RELEASE_NOTES=${4:-"Toolbar update"}
 API_URL="http://localhost:3004"
 WS_URL="http://localhost:8080"
 
-echo -e "${BLUE}🚀 Vybcel Toolbar Upload Script${NC}"
+echo -e "${BLUE}🚀 Phion Toolbar Upload Script${NC}"
 echo "================================="
 
 # Validate inputs
@@ -48,11 +48,11 @@ echo ""
 
 # Step 1: Build toolbar
 echo -e "${BLUE}🔧 Step 1: Building toolbar...${NC}"
-cd packages/vite-plugin-vybcel
+cd packages/vite-plugin-phion
 pnpm build
 cd ../..
 
-TOOLBAR_FILE="packages/vite-plugin-vybcel/dist/toolbar/index.global.js"
+TOOLBAR_FILE="packages/vite-plugin-phion/dist/toolbar/index.global.js"
 
 if [ ! -f "$TOOLBAR_FILE" ]; then
     echo -e "${RED}❌ Error: Toolbar file not found at $TOOLBAR_FILE${NC}"

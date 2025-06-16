@@ -92,7 +92,7 @@ export class GitHubAppService {
   private readonly installationId: string
   private readonly privateKey: string
   private readonly baseUrl = "https://api.github.com"
-  private readonly organization = "vybcel"
+  private readonly organization = "phion-dev"
 
   // Кэш токена для избежания частых запросов
   private tokenCache: {
@@ -217,7 +217,7 @@ export class GitHubAppService {
             headers: {
               Authorization: `Bearer ${jwtToken}`,
               Accept: "application/vnd.github.v3+json",
-              "User-Agent": "Vybcel-Bot/1.0",
+              "User-Agent": "Phion-Bot/1.0",
             },
             // Add timeout for token generation
             signal: AbortSignal.timeout(15000), // 15 second timeout
@@ -268,7 +268,7 @@ export class GitHubAppService {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
-        "User-Agent": "Vybcel-Bot/1.0",
+        "User-Agent": "Phion-Bot/1.0",
         "Content-Type": "application/json",
         ...options.headers,
       },
@@ -278,10 +278,10 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает новый приватный репозиторий в организации shipvibes
+   * Создает новый приватный репозиторий в организации phion-dev 
    */
   async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
-    const repoName = `vybcel-project-${projectId}`
+    const repoName = `phion-project-${projectId}`
 
     return this.withRetry(
       async () => {
@@ -307,7 +307,7 @@ export class GitHubAppService {
 
         const requestBody: CreateRepositoryRequest = {
           name: repoName,
-          description: description || `Vybcel project ${projectId}`,
+          description: description || `Phion project ${projectId}`,
           private: true,
           auto_init: true, // GitHub автоматически создаст README и initial commit
         }
@@ -451,12 +451,12 @@ export class GitHubAppService {
         content: base64Content,
         branch: "main",
         committer: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.dev",
         },
         author: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.dev",
         },
         ...(fileSha ? { sha: fileSha } : {}),
       }
@@ -552,12 +552,12 @@ export class GitHubAppService {
         sha,
         branch: "main",
         committer: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.dev",
         },
         author: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.dev",
         },
       }
 
@@ -769,12 +769,12 @@ export class GitHubAppService {
               tree: treeSha,
               parents,
               author: {
-                name: "Vybcel Bot",
-                email: "bot@vybcel.com",
+                name: "Phion Bot",
+                email: "bot@phion.dev",
               },
               committer: {
-                name: "Vybcel Bot",
-                email: "bot@vybcel.com",
+                name: "Phion Bot",
+                email: "bot@phion.dev",
               },
             }),
           },

@@ -38,29 +38,29 @@ export class ToolbarWebSocketClient {
       })
 
       this.socket.on('connect', () => {
-        console.log('[Vybcel Toolbar] Connected to WebSocket server')
+        console.log('[Phion Toolbar] Connected to WebSocket server')
         this.authenticate()
       })
 
       this.socket.on('authenticated', (data: { success: boolean }) => {
         if (data.success) {
-          console.log('[Vybcel Toolbar] Authenticated successfully')
+          console.log('[Phion Toolbar] Authenticated successfully')
           this.setupEventListeners()
           this.requestStatus()
           resolve(true)
         } else {
-          console.error('[Vybcel Toolbar] Authentication failed')
+          console.error('[Phion Toolbar] Authentication failed')
           resolve(false)
         }
       })
 
       this.socket.on('connect_error', (error) => {
-        console.error('[Vybcel Toolbar] Connection error:', error)
+        console.error('[Phion Toolbar] Connection error:', error)
         resolve(false)
       })
 
       this.socket.on('disconnect', (reason: string) => {
-        console.log(`[Vybcel Toolbar] Disconnected from WebSocket server: ${reason}`)
+        console.log(`[Phion Toolbar] Disconnected from WebSocket server: ${reason}`)
         
         // 📊 ENHANCED DISCONNECT HANDLING
         const clientInitiated = ['io client disconnect', 'client namespace disconnect'];
@@ -73,7 +73,7 @@ export class ToolbarWebSocketClient {
         
         // Log disconnect reason for debugging
         if (!clientInitiated.includes(reason)) {
-          console.log(`[Vybcel Toolbar] Unexpected disconnect: ${reason}`)
+          console.log(`[Phion Toolbar] Unexpected disconnect: ${reason}`)
         }
       })
     })
@@ -94,13 +94,13 @@ export class ToolbarWebSocketClient {
     const processedFiles = new Set<string>()
 
     this.socket.on('file_change_staged', (data: { file?: string; filePath?: string; action: string; timestamp?: number }) => {
-      console.log('[Vybcel Toolbar] File change staged:', data)
+      console.log('[Phion Toolbar] File change staged:', data)
       
       const filePath = data.filePath || data.file || 'unknown'
       const changeKey = `${filePath}:${data.timestamp || Date.now()}`
       
       if (processedFiles.has(changeKey)) {
-        console.log('[Vybcel Toolbar] Skipping duplicate file change:', changeKey)
+        console.log('[Phion Toolbar] Skipping duplicate file change:', changeKey)
         return
       }
       
@@ -137,7 +137,7 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('save_success', () => {
-      console.log('[Vybcel Toolbar] Save success')
+      console.log('[Phion Toolbar] Save success')
       this.state = {
         ...this.state,
         pendingChanges: 0
@@ -147,7 +147,7 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('discard_success', () => {
-      console.log('[Vybcel Toolbar] Discard success')
+      console.log('[Phion Toolbar] Discard success')
       this.state = {
         ...this.state,
         pendingChanges: 0
@@ -157,7 +157,7 @@ export class ToolbarWebSocketClient {
     })
 
     this.socket.on('toolbar_status', (status: ToolbarState) => {
-      console.log('[Vybcel Toolbar] Status update:', status)
+      console.log('[Phion Toolbar] Status update:', status)
       this.state = { ...this.state, ...status }
       this.emit('stateChange', this.state)
     })
@@ -183,7 +183,7 @@ export class ToolbarWebSocketClient {
       forceUpdate?: boolean; 
       releaseNotes?: string 
     }) => {
-      console.log(`[Vybcel Toolbar] Update available: ${data.version}`)
+      console.log(`[Phion Toolbar] Update available: ${data.version}`)
       this.emit('updateAvailable', data)
     })
 
@@ -191,12 +191,12 @@ export class ToolbarWebSocketClient {
       version: string; 
       reason?: string 
     }) => {
-      console.log(`[Vybcel Toolbar] Force update required: ${data.version}`)
+      console.log(`[Phion Toolbar] Force update required: ${data.version}`)
       this.emit('forceUpdate', data)
     })
 
     this.socket.on('toolbar_reload', (data: { reason?: string }) => {
-      console.log('[Vybcel Toolbar] Reload requested from server')
+      console.log('[Phion Toolbar] Reload requested from server')
       this.emit('reloadRequested', data)
     })
 
@@ -214,7 +214,7 @@ export class ToolbarWebSocketClient {
       error?: string;
       projectId?: string;
     }) => {
-      console.log('[Vybcel Toolbar] Preview response:', data)
+      console.log('[Phion Toolbar] Preview response:', data)
       this.emit('previewResponse', data)
     })
   }
@@ -245,7 +245,7 @@ export class ToolbarWebSocketClient {
 
   requestPreview() {
     if (this.socket) {
-      console.log('[Vybcel Toolbar] Requesting preview via WebSocket...')
+      console.log('[Phion Toolbar] Requesting preview via WebSocket...')
       this.socket.emit('toolbar_open_preview')
     }
   }

@@ -401,7 +401,7 @@ app.get("/api/version", (req, res) => {
   }
 })
 
-console.log("🚀 Starting Vybcel WebSocket Server...")
+console.log("🚀 Starting Phion WebSocket Server...")
 console.log(`📡 Port: ${PORT}`)
 
 // УДАЛЕНО: extractAndSaveTemplateFiles больше не нужна
@@ -491,7 +491,7 @@ async function saveFullProjectSnapshot(projectId: string, commitMessage?: string
           projectId,
           project.name,
           project.github_repo_name,
-          "vybcel",
+          "phion-dev",
         )
 
         // Сохраняем netlify_site_id в базу данных
@@ -1931,7 +1931,7 @@ async function initializeProjectInBackground(
         project_id: projectId,
         commit_message: "Initial commit from template",
         github_commit_sha: mainCommitSha,
-        github_commit_url: `https://github.com/vybcel/${repositoryName}/commit/${mainCommitSha}`,
+        github_commit_url: `https://github.com/phion-dev/${repositoryName}/commit/${mainCommitSha}`,
         files_count: Object.keys(templateFiles).length,
       })
 
@@ -1945,7 +1945,7 @@ async function initializeProjectInBackground(
           created_at: commitRecord.created_at,
           files_count: Object.keys(templateFiles).length,
           github_commit_sha: mainCommitSha,
-          github_commit_url: `https://github.com/vybcel/${repositoryName}/commit/${mainCommitSha}`,
+          github_commit_url: `https://github.com/phion-dev/${repositoryName}/commit/${mainCommitSha}`,
         },
       })
       console.log(`✅ [INIT_BG] commit_created event sent for initial commit`)
@@ -2083,13 +2083,13 @@ async function collectTemplateFiles(
           const packageJson = JSON.parse(content)
           packageJson.name = projectName.toLowerCase().replace(/\s+/g, "-")
           content = JSON.stringify(packageJson, null, 2)
-        } else if (item.name === "vybcel.config.json") {
+        } else if (item.name === "phion.config.json") {
           // Заменяем PROJECT_ID в конфигурационном файле
           content = content.replace(/__PROJECT_ID__/g, projectId)
 
           // Заменяем WS_URL в зависимости от окружения
           const wsUrl =
-            process.env.NODE_ENV === "production" ? "wss://api.vybcel.com" : "ws://localhost:8080"
+            process.env.NODE_ENV === "production" ? "wss://api.phion.dev" : "ws://localhost:8080"
           content = content.replace(/__WS_URL__/g, wsUrl)
 
           // Заменяем DEBUG_MODE в зависимости от окружения
@@ -2126,7 +2126,7 @@ app.post("/api/projects/create-repository", async (req, res) => {
     // Создаем GitHub репозиторий
     const repository = await githubAppService.createRepository(
       projectId,
-      `Vybcel project: ${projectName}`,
+      `Phion project: ${projectName}`,
     )
 
     console.log(`✅ [CREATE_REPO] GitHub repository created: ${repository.html_url}`)
@@ -2138,7 +2138,7 @@ app.post("/api/projects/create-repository", async (req, res) => {
     await projectQueries.updateGitHubInfo(projectId, {
       github_repo_url: repository.html_url,
       github_repo_name: repository.name,
-      github_owner: "vybcel",
+      github_owner: "phion-dev",
     })
 
     res.status(200).json({
@@ -2146,7 +2146,7 @@ app.post("/api/projects/create-repository", async (req, res) => {
       repository: {
         html_url: repository.html_url,
         name: repository.name,
-        owner: "vybcel",
+        owner: "phion-dev",
       },
     })
   } catch (error) {
@@ -2209,7 +2209,7 @@ async function completeProjectInitialization(
     console.log(`🔄 [COMPLETE_INIT] Creating GitHub repository...`)
     const repository = await githubAppService.createRepository(
       projectId,
-      `Vybcel project: ${projectName}`,
+      `Phion project: ${projectName}`,
     )
 
     // Update project with GitHub info
@@ -2218,7 +2218,7 @@ async function completeProjectInitialization(
     await projectQueries.updateGitHubInfo(projectId, {
       github_repo_url: repository.html_url,
       github_repo_name: repository.name,
-      github_owner: "vybcel",
+      github_owner: "phion-dev",
     })
 
     console.log(`✅ [COMPLETE_INIT] GitHub repository created: ${repository.html_url}`)

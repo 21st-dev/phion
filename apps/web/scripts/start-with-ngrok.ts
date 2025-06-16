@@ -4,7 +4,7 @@ import { spawn } from "child_process"
 import { ngrokService } from "../lib/ngrok-service"
 
 async function startWithNgrok() {
-  console.log("🚀 Starting Vybcel Web with ngrok tunnel...\n")
+  console.log("🚀 Starting Phion Web with ngrok tunnel...\n")
 
   try {
     // 1. Сначала запускаем ngrok туннель

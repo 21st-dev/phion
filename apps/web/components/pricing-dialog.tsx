@@ -169,7 +169,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
         <div className="px-6">
           {/* Plan Card */}
           <div className="border rounded-lg p-5 mb-4 bg-background">
-            <div className="font-medium mb-1">21st.dev & Vybcel Pro</div>
+            <div className="font-medium mb-1">21st.dev & Phion Pro</div>
             <div className="text-2xl font-bold mb-2">
               ${isYearly ? yearlyPrice : monthlyPrice}{" "}
               <span className="text-base font-normal text-muted-foreground">
@@ -219,7 +219,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
 
           {/* Info box */}
           <div className="rounded bg-muted p-3 text-xs text-muted-foreground mb-4">
-            Vybcel is part of the 21st.dev ecosystem. Your Vybcel subscription gives you access to
+            Phion is part of the 21st.dev ecosystem. Your Phion subscription gives you access to
             all 21st.dev tools including{" "}
             <a
               href="https://21st.dev"

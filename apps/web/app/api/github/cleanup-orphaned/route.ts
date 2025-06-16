@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     console.log("🔍 [CLEANUP] Starting orphaned repositories scan...")
 
-    // Получаем все репозитории vybcel-project-* из GitHub
+    // Получаем все репозитории phion-project-* из GitHub
     const githubRepositories = await githubAppService.findOrphanedRepositories()
 
     // Получаем все проекты из базы данных

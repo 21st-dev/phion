@@ -180,7 +180,7 @@ export class ProjectQueries {
     const updateData = {
       github_repo_url: githubInfo.github_repo_url,
       github_repo_name: githubInfo.github_repo_name,
-      github_owner: githubInfo.github_owner || "vybcel",
+      github_owner: githubInfo.github_owner || "phion-dev",
     };
 
     // Сначала проверяем, сколько записей с таким ID существует
@@ -242,7 +242,7 @@ export class ProjectQueries {
   /**
    * Получить проекты по GitHub репозиторию
    */
-  async getProjectByGitHubRepo(repoName, owner = "shipvibes") {
+  async getProjectByGitHubRepo(repoName, owner = "phion-dev") {
     const { data, error } = await this.client
       .from("projects")
       .select("*")

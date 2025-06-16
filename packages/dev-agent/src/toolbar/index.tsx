@@ -4,7 +4,7 @@ import { Toolbar } from "./Toolbar";
 
 declare global {
   interface Window {
-    VYBCEL_CONFIG: {
+    PHION_CONFIG: {
       projectId: string;
       websocketUrl: string;
       position: "top" | "bottom";
@@ -12,7 +12,7 @@ declare global {
       autoUpdate: boolean;
       updateChannel: "stable" | "beta" | "dev";
     };
-    VYBCEL_TOOLBAR_INSTANCE?: {
+    PHION_TOOLBAR_INSTANCE?: {
       root: any;
       version: string;
       destroy: () => void;
@@ -30,7 +30,7 @@ const SimpleWrapper: React.FC<{
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @keyframes vybcel-content-margin {
+      @keyframes phion-content-margin {
         0% {
           margin: 0;
           width: 100%;
@@ -47,7 +47,7 @@ const SimpleWrapper: React.FC<{
         }
       }
 
-      @keyframes vybcel-toolbar-appear {
+      @keyframes phion-toolbar-appear {
         0% {
           opacity: 0;
         }
@@ -56,28 +56,28 @@ const SimpleWrapper: React.FC<{
         }
       }
 
-      .vybcel-container {
+      .phion-container {
         background-color: #000000;
       }
 
-      .vybcel-toolbar {
+      .phion-toolbar {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         z-index: 999999;
         opacity: 0;
-        animation: vybcel-toolbar-appear 400ms ease-out 1.6s both;
+        animation: phion-toolbar-appear 400ms ease-out 1.6s both;
       }
 
-      .vybcel-content {
+      .phion-content {
         margin: 0;
         width: 100%;
         height: 100%;
         border-radius: 0;
         box-shadow: none;
         box-sizing: border-box;
-        animation: vybcel-content-margin 600ms ease-out 1s both;
+        animation: phion-content-margin 600ms ease-out 1s both;
       }
     `;
     document.head.appendChild(style);
@@ -93,7 +93,7 @@ const SimpleWrapper: React.FC<{
       "div",
       {
         key: "toolbar",
-        className: "vybcel-toolbar",
+        className: "phion-toolbar",
         style: {
           backgroundColor: "#000000",
         },
@@ -110,7 +110,7 @@ const SimpleWrapper: React.FC<{
       "div",
       {
         key: "container",
-        className: "vybcel-container",
+        className: "phion-container",
         style: {
           position: "fixed",
           top: 0,
@@ -123,8 +123,8 @@ const SimpleWrapper: React.FC<{
       // Content wrapper
       React.createElement("div", {
         key: "content",
-        id: "vybcel-content-wrapper",
-        className: "vybcel-content",
+        id: "phion-content-wrapper",
+        className: "phion-content",
         style: {
           width: "100%",
           height: "100%",
@@ -139,43 +139,43 @@ const SimpleWrapper: React.FC<{
 
 // Initialize toolbar when DOM is ready
 function initializeToolbar() {
-  if (!window.VYBCEL_CONFIG) {
-    console.error("[Vybcel Toolbar] Configuration not found");
+  if (!window.PHION_CONFIG) {
+    console.error("[Phion Toolbar] Configuration not found");
     return;
   }
 
-  const { projectId, websocketUrl, position, version } = window.VYBCEL_CONFIG;
+  const { projectId, websocketUrl, position, version } = window.PHION_CONFIG;
 
   // Check if toolbar already exists and is the same version
-  if (window.VYBCEL_TOOLBAR_INSTANCE?.version === version) {
-    console.log("[Vybcel Toolbar] Already initialized with version", version);
+  if (window.PHION_TOOLBAR_INSTANCE?.version === version) {
+    console.log("[Phion Toolbar] Already initialized with version", version);
     return;
   }
 
   // Check if initialization is already in progress
-  if ((window as any).VYBCEL_TOOLBAR_INITIALIZING) {
-    console.log("[Vybcel Toolbar] Initialization already in progress");
+  if ((window as any).PHION_TOOLBAR_INITIALIZING) {
+    console.log("[Phion Toolbar] Initialization already in progress");
     return;
   }
 
   // Mark as initializing
-  (window as any).VYBCEL_TOOLBAR_INITIALIZING = true;
+  (window as any).PHION_TOOLBAR_INITIALIZING = true;
 
   try {
     // Cleanup existing instance
-    if (window.VYBCEL_TOOLBAR_INSTANCE) {
-      console.log("[Vybcel Toolbar] Cleaning up existing instance");
-      window.VYBCEL_TOOLBAR_INSTANCE.destroy();
+    if (window.PHION_TOOLBAR_INSTANCE) {
+      console.log("[Phion Toolbar] Cleaning up existing instance");
+      window.PHION_TOOLBAR_INSTANCE.destroy();
     }
 
-    console.log("[Vybcel Init] Starting simple toolbar initialization...");
+    console.log("[Phion Init] Starting simple toolbar initialization...");
 
     // Store original body content
     const originalContent = Array.from(document.body.children) as Element[];
 
     // Create main container for React rendering
     const rootContainer = document.createElement("div");
-    rootContainer.id = "vybcel-root-container";
+    rootContainer.id = "phion-root-container";
 
     // Reset body styles to prevent conflicts
     document.body.style.margin = "0";
@@ -188,7 +188,7 @@ function initializeToolbar() {
     // Create React root and render
     const root = createRoot(rootContainer);
 
-    console.log("[Vybcel Init] Rendering simple wrapper...");
+    console.log("[Phion Init] Rendering simple wrapper...");
     root.render(
       React.createElement(SimpleWrapper, {
         projectId,
@@ -199,36 +199,36 @@ function initializeToolbar() {
 
     // Move original content to the content wrapper after render
     setTimeout(() => {
-      const contentWrapper = document.getElementById("vybcel-content-wrapper");
+      const contentWrapper = document.getElementById("phion-content-wrapper");
       if (contentWrapper) {
         originalContent.forEach((child: Element) => {
-          if ((child as HTMLElement).id !== "vybcel-root-container") {
+          if ((child as HTMLElement).id !== "phion-root-container") {
             contentWrapper.appendChild(child);
           }
         });
-        console.log("[Vybcel Init] Content moved successfully");
+        console.log("[Phion Init] Content moved successfully");
       }
     }, 100);
 
     // Store instance for cleanup
-    window.VYBCEL_TOOLBAR_INSTANCE = {
+    window.PHION_TOOLBAR_INSTANCE = {
       root,
       version,
       destroy: () => {
         root.unmount();
         rootContainer.remove();
-        delete window.VYBCEL_TOOLBAR_INSTANCE;
+        delete window.PHION_TOOLBAR_INSTANCE;
       },
     };
 
     console.log(
-      `[Vybcel Init] Simple toolbar v${version} initialized successfully`
+      `[Phion Init] Simple toolbar v${version} initialized successfully`
     );
   } catch (error) {
-    console.error("[Vybcel Toolbar] Initialization failed:", error);
+    console.error("[Phion Toolbar] Initialization failed:", error);
   } finally {
     // Always clear initialization flag
-    delete (window as any).VYBCEL_TOOLBAR_INITIALIZING;
+    delete (window as any).PHION_TOOLBAR_INITIALIZING;
   }
 }
 

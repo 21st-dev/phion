@@ -90,7 +90,7 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
       }
     } catch (error) {
       if (config?.debug) {
-        console.warn("[vybcel-plugin] Update check failed:", error)
+        console.warn("[phion-plugin] Update check failed:", error)
       }
     }
 
@@ -114,11 +114,11 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
         }
 
         cachedToolbarCode = code
-        console.log(`[vybcel-plugin] Updated to toolbar version ${version.version}`)
+        console.log(`[phion-plugin] Updated to toolbar version ${version.version}`)
         return code
       }
     } catch (error) {
-      console.warn("[vybcel-plugin] Failed to download toolbar update:", error)
+      console.warn("[phion-plugin] Failed to download toolbar update:", error)
     }
 
     return null
@@ -149,10 +149,10 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
 
           console.log(`[Phion] Toolbar enabled: ${toolbarEnabled}`)
         } catch (error) {
-          console.warn("[vybcel-plugin] Failed to read config:", error)
+          console.warn("[phion-plugin] Failed to read config:", error)
         }
       } else {
-        console.log(`[Vybcel] Config file not found at: ${configFilePath}`)
+        console.log(`[Phion] Config file not found at: ${configFilePath}`)
       }
     },
 
@@ -175,15 +175,15 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
           }
 
           if (config?.debug) {
-            console.log(`[Vybcel] Creating toolbar config...`)
-            console.log(`[Vybcel] Config object:`, config)
-            console.log(`[Vybcel] Final toolbar config:`, toolbarConfig)
+            console.log(`[Phion] Creating toolbar config...`)
+            console.log(`[Phion] Config object:`, config)
+            console.log(`[Phion] Final toolbar config:`, toolbarConfig)
           }
 
           res.writeHead(200, { "Content-Type": "application/javascript" })
           res.end(`window.PHION_CONFIG = ${JSON.stringify(toolbarConfig)};`)
         } catch (err) {
-          console.error("[Vybcel] Error serving config:", err)
+          console.error("[Phion] Error serving config:", err)
           res.writeHead(500, { "Content-Type": "text/plain" })
           res.end("Error generating toolbar config")
         }
@@ -201,7 +201,7 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
               const updateCheck = await checkForUpdates()
               if (updateCheck?.hasUpdate && updateCheck.latestVersion) {
                 if (config?.debug) {
-                  console.log(`[Vybcel] Using latest toolbar from ${updateCheck.latestVersion.url}`)
+                  console.log(`[Phion] Using latest toolbar from ${updateCheck.latestVersion.url}`)
                 }
                 const updatedCode = await downloadToolbarUpdate(updateCheck.latestVersion)
                 if (updatedCode) {
@@ -212,7 +212,7 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
           } catch (fetchError) {
             if (config?.debug) {
               console.log(
-                `[Vybcel] Could not fetch remote toolbar: ${
+                `[Phion] Could not fetch remote toolbar: ${
                   fetchError instanceof Error ? fetchError.message : String(fetchError)
                 }`,
               )
@@ -224,7 +224,7 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
             const toolbarPath = findToolbarBundle()
             if (toolbarPath) {
               if (config?.debug) {
-                console.log(`[Vybcel] Using local toolbar from ${toolbarPath}`)
+                console.log(`[Phion] Using local toolbar from ${toolbarPath}`)
               }
               toolbarCode = readFileSync(toolbarPath, "utf-8")
             }
@@ -234,12 +234,12 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
             res.writeHead(200, { "Content-Type": "application/javascript" })
             res.end(toolbarCode)
           } else {
-            console.error("[Vybcel] Toolbar bundle not found")
+            console.error("[Phion] Toolbar bundle not found")
             res.writeHead(404, { "Content-Type": "text/plain" })
             res.end("Toolbar bundle not found")
           }
         } catch (err) {
-          console.error("[Vybcel] Error serving toolbar:", err)
+          console.error("[Phion] Error serving toolbar:", err)
           res.writeHead(500, { "Content-Type": "text/plain" })
           res.end("Error loading toolbar")
         }

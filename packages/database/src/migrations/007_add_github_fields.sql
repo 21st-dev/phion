@@ -10,7 +10,7 @@
 ALTER TABLE projects 
 ADD COLUMN IF NOT EXISTS github_repo_url TEXT,
 ADD COLUMN IF NOT EXISTS github_repo_name TEXT,
-ADD COLUMN IF NOT EXISTS github_owner TEXT DEFAULT 'shipvibes';
+ADD COLUMN IF NOT EXISTS github_owner TEXT DEFAULT 'phion';
 
 -- Создаем индексы для быстрого поиска
 CREATE INDEX IF NOT EXISTS idx_projects_github_repo_name ON projects(github_repo_name);
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS commit_history (
   github_commit_url TEXT NOT NULL,
   commit_message TEXT NOT NULL,
   files_count INTEGER DEFAULT 0,
-  committed_by TEXT DEFAULT 'Shipvibes Bot',
+  committed_by TEXT DEFAULT 'Phion Bot',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -58,9 +58,9 @@ ON commit_history(project_id, github_commit_sha);
 -- 4. КОММЕНТАРИИ ДЛЯ ДОКУМЕНТАЦИИ
 -- ========================================
 
-COMMENT ON COLUMN projects.github_repo_url IS 'URL GitHub репозитория (https://github.com/shipvibes/shipvibes-project-{id})';
-COMMENT ON COLUMN projects.github_repo_name IS 'Имя GitHub репозитория (shipvibes-project-{id})';
-COMMENT ON COLUMN projects.github_owner IS 'Владелец GitHub репозитория (организация shipvibes)';
+COMMENT ON COLUMN projects.github_repo_url IS 'URL GitHub репозитория (https://github.com/phion-dev/phion-project-{id})';
+COMMENT ON COLUMN projects.github_repo_name IS 'Имя GitHub репозитория (phion-project-{id})';
+COMMENT ON COLUMN projects.github_owner IS 'Владелец GitHub репозитория (организация phion)';
 
 COMMENT ON COLUMN file_history.github_commit_sha IS 'SHA коммита в GitHub где сохранен файл';
 COMMENT ON COLUMN file_history.github_commit_url IS 'URL коммита в GitHub';
