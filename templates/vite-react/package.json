@@ -1,5 +1,5 @@
 {
-  "name": "vybcel-project",
+  "name": "phion-project",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "sync": "vybcel",
+    "sync": "phion",
     "start": "pnpm install && node scripts/start-with-browser.js",
-    "fix": "node scripts/fix-vybcel.js",
+    "fix": "node scripts/fix-phion.js",
     "setup:browser": "node scripts/install-browser-extension.js",
     "clear:ports": "node -e \"require('child_process').exec(process.platform === 'win32' ? 'for /f \\\"tokens=5\\\" %a in (\\'netstat -ano ^| findstr :5173\\') do taskkill /F /PID %a' : 'lsof -ti:5173 | xargs kill -9 2>/dev/null || true'); console.log('✅ Dev ports cleared!');\"",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -54,7 +54,7 @@
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.0.0",
-    "vybcel": "latest"
+    "phion": "latest"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

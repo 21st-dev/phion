@@ -13,12 +13,12 @@ const Logo = () => {
 
   // Use different images for light and dark themes if needed
   const logoSrc = isDark
-    ? "/vybcel.png" // Dark theme logo
-    : "/vybcel_light.png" // Light theme logo
+    ? "/phion.png" // Dark theme logo
+    : "/phion_light.png" // Light theme logo
 
   return (
     <div className="w-32 h-32 mx-auto flex items-center justify-center">
-      <img src={logoSrc} alt="Vybcel Logo" className="w-full h-full object-contain" />
+      <img src={logoSrc} alt="Phion Logo" className="w-full h-full object-contain" />
     </div>
   )
 }
@@ -136,7 +136,7 @@ export default function LoginPage() {
         {/* Main Message */}
         <div className="text-center space-y-8">
           <h1 className="text-4xl font-extralight text-foreground tracking-tight leading-tight">
-            Vybcel - Vibecode OS
+            Phion
           </h1>
 
           <p className="text-lg font-light text-muted-foreground leading-relaxed">

@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(0)
 
   return (
     <TooltipProvider>
@@ -20,9 +20,7 @@ function App() {
             <div className="w-16 h-16 bg-foreground rounded-full mx-auto flex items-center justify-center">
               <span className="text-background text-2xl font-light">V</span>
             </div>
-            <h1 className="text-4xl font-extralight text-foreground">
-              Code OS
-            </h1>
+            <h1 className="text-4xl font-extralight text-foreground">Code OS</h1>
             <p className="text-xl font-light text-muted-foreground max-w-lg mx-auto">
               Just craft in Cursor. We handle everything else.
             </p>
@@ -31,9 +29,7 @@ function App() {
           {/* AI Instructions */}
           <div className="space-y-8">
             <div className="bg-muted/50 rounded-lg p-8 space-y-6">
-              <h2 className="text-2xl font-light text-foreground">
-                Start coding with AI
-              </h2>
+              <h2 className="text-2xl font-light text-foreground">Start coding with AI</h2>
 
               <div className="space-y-4 text-left">
                 <div className="flex items-start gap-4">
@@ -42,9 +38,7 @@ function App() {
                   </div>
                   <div>
                     <p className="font-medium text-foreground">Press Cmd+I</p>
-                    <p className="text-muted-foreground font-light">
-                      Open AI chat to start
-                    </p>
+                    <p className="text-muted-foreground font-light">Open AI chat to start</p>
                   </div>
                 </div>
 
@@ -53,9 +47,7 @@ function App() {
                     1
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">
-                      Ask + OpenAI O3
-                    </p>
+                    <p className="font-medium text-foreground">Ask + OpenAI O3</p>
                     <p className="text-muted-foreground font-light">
                       Plan features like "Build a contact form"
                     </p>
@@ -67,9 +59,7 @@ function App() {
                     2
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">
-                      Agent + Claude
-                    </p>
+                    <p className="font-medium text-foreground">Agent + Claude</p>
                     <p className="text-muted-foreground font-light">
                       Switch mode and say "Build it now"
                     </p>
@@ -89,9 +79,7 @@ function App() {
 
             {/* Simple Demo */}
             <div className="space-y-4">
-              <p className="text-lg font-light text-muted-foreground">
-                Try this example:
-              </p>
+              <p className="text-lg font-light text-muted-foreground">Try this example:</p>
               <Button
                 onClick={() => setCount(count + 1)}
                 variant="outline"
@@ -106,9 +94,7 @@ function App() {
 
             {/* Documentation Link */}
             <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                Want to learn more?
-              </h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Want to learn more?</h3>
               <p className="text-muted-foreground font-light mb-4">
                 Explore all AI modes and advanced features in the official guide
               </p>
@@ -125,14 +111,12 @@ function App() {
 
           {/* Footer */}
           <div className="pt-16">
-            <p className="text-sm font-light text-muted-foreground">
-              Powered by Vybcel
-            </p>
+            <p className="text-sm font-light text-muted-foreground">Powered by Phion</p>
           </div>
         </div>
       </div>
     </TooltipProvider>
-  );
+  )
 }
 
-export default App;
+export default App

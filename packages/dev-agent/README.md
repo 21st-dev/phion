@@ -1,18 +1,18 @@
-# vybcel
+# phion
 
-Vybcel Development Agent for file synchronization between your local project and Vybcel platform.
+Phion Development Agent for file synchronization between your local project and Phion platform.
 
 ## Installation
 
 ```bash
-pnpm add vybcel
+pnpm add phion
 ```
 
 ## Usage
 
 ### Using config file (recommended)
 
-Create `vybcel.config.json` in your project root:
+Create `phion.config.json` in your project root:
 
 ```json
 {
@@ -25,47 +25,47 @@ Create `vybcel.config.json` in your project root:
 Then run the agent:
 
 ```bash
-vybcel
+phion
 ```
 
 ### Using command line arguments
 
 ```bash
-vybcel your-project-id
+phion your-project-id
 ```
 
 ### Using environment variables
 
 ```bash
-export VYBCEL_PROJECT_ID=your-project-id
-export VYBCEL_WS_URL=ws://localhost:8080
-vybcel
+export PHION_PROJECT_ID=your-project-id
+export PHION_WS_URL=ws://localhost:8080
+phion
 ```
 
 ## Configuration
 
-### vybcel.config.json
+### phion.config.json
 
-- `projectId` (required) - Your Vybcel project ID
+- `projectId` (required) - Your Phion project ID
 - `wsUrl` (optional) - WebSocket server URL (default: `ws://localhost:8080`)
 - `debug` (optional) - Debug mode (default: `false`)
 
 ### Environment variables
 
-- `VYBCEL_PROJECT_ID` - Project ID
-- `VYBCEL_WS_URL` - WebSocket server URL
+- `PHION_PROJECT_ID` - Project ID
+- `PHION_WS_URL` - WebSocket server URL
 
 ## Auto Updates
 
 To get the latest agent updates, regularly update the package:
 
 ```bash
-pnpm update vybcel
+pnpm update phion
 ```
 
 ## Features
 
-- 🔄 **Real-time sync** of files with Vybcel platform
+- 🔄 **Real-time sync** of files with Phion platform
 - 🔗 **Git integration** for rolling back changes and syncing with GitHub
 - 📁 **Smart file watching** with automatic exclusion of build folders
 - 🚀 **Auto-reconnection** when connection is lost
@@ -83,8 +83,8 @@ If you experience issues with the agent:
 1. Check your internet connection
 2. Make sure WebSocket server is running
 3. Verify your Project ID is correct
-4. Restart agent: `Ctrl+C` and run `vybcel` again
+4. Restart agent: `Ctrl+C` and run `phion` again
 
 ---
 
-Made with ❤️ by [21st Labs](https://21st.dev) | [Vybcel.com](https://vybcel.com)
+Made with ❤️ by [21st Labs](https://21st.dev) | [Phion.dev](https://phion.dev)

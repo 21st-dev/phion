@@ -79,8 +79,8 @@ src/
 You have access to beautiful, ready-to-use components:
 
 ```typescript
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const MyPage = () => {
   return (
@@ -92,14 +92,14 @@ const MyPage = () => {
         <Button onClick={() => alert("Hello!")}>Click me</Button>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 ```
 
 ### Adding Icons
 
 ```typescript
-import { Heart, Star, User } from "lucide-react";
+import { Heart, Star, User } from "lucide-react"
 
 const IconExample = () => {
   return (
@@ -108,8 +108,8 @@ const IconExample = () => {
       <Star className="h-6 w-6 text-yellow-500" />
       <User className="h-6 w-6 text-blue-500" />
     </div>
-  );
-};
+  )
+}
 ```
 
 ### Styling Your Website
@@ -120,13 +120,11 @@ Use simple class names to style your content:
 const MyComponent = () => {
   return (
     <div className="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">
-        Beautiful Design
-      </h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Beautiful Design</h2>
       <p className="text-gray-600">Easy to make beautiful websites.</p>
     </div>
-  );
-};
+  )
+}
 ```
 
 ## 🛠 Available Commands
@@ -140,7 +138,7 @@ const MyComponent = () => {
 
 ## ⚙️ Configuration Options
 
-You can customize your development experience in `vybcel.config.json`:
+You can customize your development experience in `phion.config.json`:
 
 ```json
 {

@@ -1,9 +1,9 @@
 {
-  "name": "vybcel-dev-tools",
-  "displayName": "Vybcel Dev Tools",
-  "description": "Tools for Vybcel development: auto-open browser, optimize workspace, monitor server, clear ports",
+  "name": "phion-dev-tools",
+  "displayName": "Phion Dev Tools",
+  "description": "Tools for Phion development: auto-open browser, optimize workspace, monitor server, clear ports",
   "version": "0.0.5",
-  "publisher": "vybcel",
+  "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -17,24 +17,24 @@
   "contributes": {
     "commands": [
       {
-        "command": "vybcel.startProject",
-        "title": "Vybcel: Start Project"
+        "command": "phion.startProject",
+        "title": "Phion: Start Project"
       },
       {
-        "command": "vybcel.openPreview",
-        "title": "Vybcel: Open Preview"
+        "command": "phion.openPreview",
+        "title": "Phion: Open Preview"
       },
       {
-        "command": "vybcel.clearPortsAndOpen",
-        "title": "Vybcel: Fix Connection and Open Preview"
+        "command": "phion.clearPortsAndOpen",
+        "title": "Phion: Fix Connection and Open Preview"
       },
       {
-        "command": "vybcel.fixConnection",
-        "title": "Vybcel: Fix Connection Issues"
+        "command": "phion.fixConnection",
+        "title": "Phion: Fix Connection Issues"
       },
       {
-        "command": "vybcel.resetProjectHistory",
-        "title": "Vybcel: Reset Project History (for testing)"
+        "command": "phion.resetProjectHistory",
+        "title": "Phion: Reset Project History (for testing)"
       }
     ]
   },

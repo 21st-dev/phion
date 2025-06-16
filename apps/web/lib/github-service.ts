@@ -92,7 +92,7 @@ export class GitHubAppService {
   private readonly installationId: string
   private readonly privateKey: string
   private readonly baseUrl = "https://api.github.com"
-  private readonly organization = "vybcel"
+  private readonly organization = "phion-dev"
 
   // Кэш для installation токенов
   private tokenCache: {
@@ -224,7 +224,7 @@ export class GitHubAppService {
             headers: {
               Authorization: `Bearer ${jwtToken}`,
               Accept: "application/vnd.github.v3+json",
-              "User-Agent": "Vybcel-Bot/1.0",
+              "User-Agent": "Phion-Bot/1.0",
             },
             // Add timeout for token generation
             signal: AbortSignal.timeout(15000), // 15 second timeout
@@ -275,7 +275,7 @@ export class GitHubAppService {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
-        "User-Agent": "Vybcel-Bot/1.0",
+        "User-Agent": "Phion-Bot/1.0",
         "Content-Type": "application/json",
         ...options.headers,
       },
@@ -285,10 +285,10 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает новый приватный репозиторий в организации vybcel
+   * Создает новый приватный репозиторий в организации phion-dev
    */
   async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
-    const repoName = `vybcel-project-${projectId}`
+    const repoName = `phion-project-${projectId}`
 
     return this.withRetry(
       async () => {
@@ -314,7 +314,7 @@ export class GitHubAppService {
 
         const requestBody: CreateRepositoryRequest = {
           name: repoName,
-          description: description || `Vybcel project ${projectId}`,
+          description: description || `Phion project ${projectId}`,
           private: true,
           auto_init: true, // Создаем с initial commit чтобы Git Tree API работал
         }
@@ -423,18 +423,17 @@ export class GitHubAppService {
     try {
       console.log("🔍 Searching for orphaned repositories...")
 
-      // Получаем все репозитории vybcel-project-* из GitHub
+      // Получаем все репозитории phion-project-* из GitHub
       const allRepos = await this.listOrganizationRepositories()
-      const vybcelRepos = allRepos.filter(
-        (repo) =>
-          repo.name.startsWith("vybcel-project-") && repo.owner?.login === this.organization,
+      const phionRepos = allRepos.filter(
+        (repo) => repo.name.startsWith("phion-project-") && repo.owner?.login === this.organization,
       )
 
-      console.log(`🔍 Found ${vybcelRepos.length} vybcel repositories in GitHub`)
+      console.log(`🔍 Found ${phionRepos.length} phion repositories in GitHub`)
 
       // TODO: Здесь нужно будет добавить проверку с базой данных
       // Для начала возвращаем все найденные репозитории для ручной проверки
-      return vybcelRepos
+      return phionRepos
     } catch (error) {
       console.error("❌ Failed to find orphaned repositories", { error })
       throw error
@@ -459,12 +458,12 @@ export class GitHubAppService {
         content: base64Content,
         branch: "main",
         committer: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.com",
         },
         author: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.com",
         },
         ...(sha ? { sha } : {}),
       }
@@ -633,12 +632,12 @@ export class GitHubAppService {
         sha,
         branch: "main",
         committer: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.com",
         },
         author: {
-          name: "Vybcel Bot",
-          email: "bot@vybcel.com",
+          name: "Phion Bot",
+          email: "bot@phion.com",
         },
       }
 
@@ -818,7 +817,9 @@ export class GitHubAppService {
       for (let i = 0; i < fileEntries.length; i += CHUNK_SIZE) {
         const chunk = fileEntries.slice(i, i + CHUNK_SIZE)
         console.log(
-          `📦 Processing blob chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(fileEntries.length / CHUNK_SIZE)} (${chunk.length} files)`,
+          `📦 Processing blob chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(
+            fileEntries.length / CHUNK_SIZE,
+          )} (${chunk.length} files)`,
         )
 
         const blobPromises = chunk.map(async ([filePath, content]) => {
@@ -888,12 +889,12 @@ export class GitHubAppService {
             tree: tree.sha,
             parents: [parentCommitSha], // Указываем parent commit
             author: {
-              name: "Vybcel Bot",
-              email: "bot@vybcel.com",
+              name: "Phion Bot",
+              email: "bot@phion.com",
             },
             committer: {
-              name: "Vybcel Bot",
-              email: "bot@vybcel.com",
+              name: "Phion Bot",
+              email: "bot@phion.com",
             },
           }),
         },

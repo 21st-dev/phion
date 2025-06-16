@@ -11,10 +11,10 @@ const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Read debug mode from vybcel config
+// Read debug mode from phion config
 let DEBUG_MODE = false;
 try {
-  const configPath = join(process.cwd(), "vybcel.config.json");
+  const configPath = join(process.cwd(), "phion.config.json");
   if (existsSync(configPath)) {
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     DEBUG_MODE = config.debug === true;
@@ -24,7 +24,7 @@ try {
 }
 
 if (DEBUG_MODE) {
-  console.log("🚀 Starting Vybcel development environment (DEBUG MODE)...\n");
+  console.log("🚀 Starting Phion development environment (DEBUG MODE)...\n");
 } else {
   console.log("🚀 Starting your project...\n");
 }
@@ -39,10 +39,10 @@ async function commandExists(command) {
   }
 }
 
-// Simple function to ensure vybcel is available
-async function ensureVybcel() {
+// Simple function to ensure phion is available
+async function ensurePhion() {
   if (DEBUG_MODE) {
-    console.log("✅ Vybcel will be installed/updated by pnpm install");
+    console.log("✅ Phion will be installed/updated by pnpm install");
   }
   // No need to check versions - package.json has "latest" so pnpm install handles it
   return true;
@@ -177,7 +177,7 @@ async function checkExtensionInstalled() {
     const cursorExtensionsDir = join(homedir(), ".cursor", "extensions");
     const installedExtensionDir = join(
       cursorExtensionsDir,
-      "vybcel-auto-browser-0.0.5"
+      "phion-auto-browser-0.0.5"
     );
     return existsSync(installedExtensionDir);
   } catch (error) {
@@ -185,12 +185,12 @@ async function checkExtensionInstalled() {
   }
 }
 
-// Check if extension is active by testing if Vybcel commands are available
+// Check if extension is active by testing if Phion commands are available
 async function checkExtensionActive() {
   try {
-    // Try to get list of available commands and check if Vybcel commands exist
+    // Try to get list of available commands and check if Phion commands exist
     const result = await execAsync(
-      'cursor --command "workbench.action.showCommands" --args "vybcel"'
+      'cursor --command "workbench.action.showCommands" --args "phion"'
     );
     return true;
   } catch (error) {
@@ -267,8 +267,8 @@ async function main() {
     process.exit(1);
   }
 
-  // Check vybcel availability
-  await ensureVybcel();
+  // Check phion availability
+  await ensurePhion();
 
   // Setup browser extension
   const extensionReady = await ensureBrowserExtension();
@@ -299,10 +299,10 @@ async function main() {
     if (!DEBUG_MODE) {
       console.log("\n💡 Browser tips:");
       console.log("   • Browser should open automatically in 10-20 seconds");
-      console.log("   • If not: Press Cmd+Shift+P → 'Vybcel: Open Preview'");
+      console.log("   • If not: Press Cmd+Shift+P → 'Phion: Open Preview'");
       console.log("   • Or visit: http://localhost:5173");
       console.log(
-        "   • Need help? Press Cmd+Shift+P → 'Vybcel: Fix Connection Issues'"
+        "   • Need help? Press Cmd+Shift+P → 'Phion: Fix Connection Issues'"
       );
     }
   }, 8000);

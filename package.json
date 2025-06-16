@@ -10,9 +10,9 @@
   "scripts": {
     "_comment": "🚀 DEV COMMANDS: dev = turbo (websocket+packages) + web с ngrok, dev:basic = turbo все, dev:all = legacy",
     "build": "turbo build",
-    "dev": "concurrently \"turbo dev --filter=!@shipvibes/web --filter=!vybcel\" \"cd apps/web && pnpm dev:ngrok\"",
-    "dev:basic": "turbo dev --filter=!vybcel",
-    "dev:all": "concurrently \"turbo dev --filter=!vybcel\" \"cd apps/websocket-server && pnpm dev\"",
+    "dev": "concurrently \"turbo dev --filter=!@shipvibes/web --filter=!phion\" \"cd apps/web && pnpm dev:ngrok\"",
+    "dev:basic": "turbo dev --filter=!phion",
+    "dev:all": "concurrently \"turbo dev --filter=!phion\" \"cd apps/websocket-server && pnpm dev\"",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "clean": "turbo clean",

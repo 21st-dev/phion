@@ -17,7 +17,7 @@ let AUTO_OPTIMIZE_WORKSPACE = true;
 
 const debugLog = (msg) => {
   if (DEBUG_MODE) {
-    console.log(`[Vybcel][DEBUG] ${msg}`);
+    console.log(`[Phion][DEBUG] ${msg}`);
   }
 };
 
@@ -27,7 +27,7 @@ function updateDebugMode() {
     if (!workspaceFolders || workspaceFolders.length === 0) return;
 
     const rootPath = workspaceFolders[0].uri.fsPath;
-    const configPath = path.join(rootPath, "vybcel.config.json");
+    const configPath = path.join(rootPath, "phion.config.json");
 
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -52,7 +52,7 @@ function hasProjectBeenStarted(context) {
   if (!workspaceFolders || workspaceFolders.length === 0) return true;
 
   const workspaceId = workspaceFolders[0].uri.fsPath;
-  const startedProjects = context.globalState.get("vybcelStartedProjects", []);
+  const startedProjects = context.globalState.get("phionStartedProjects", []);
 
   debugLog(`Checking if project was started before: ${workspaceId}`);
   debugLog(`Previously started projects: ${JSON.stringify(startedProjects)}`);
@@ -68,11 +68,11 @@ function markProjectAsStarted(context) {
   if (!workspaceFolders || workspaceFolders.length === 0) return;
 
   const workspaceId = workspaceFolders[0].uri.fsPath;
-  const startedProjects = context.globalState.get("vybcelStartedProjects", []);
+  const startedProjects = context.globalState.get("phionStartedProjects", []);
 
   if (!startedProjects.includes(workspaceId)) {
     startedProjects.push(workspaceId);
-    context.globalState.update("vybcelStartedProjects", startedProjects);
+    context.globalState.update("phionStartedProjects", startedProjects);
     debugLog(`Marked project as started: ${workspaceId}`);
   }
 }
@@ -81,9 +81,9 @@ function markProjectAsStarted(context) {
  * Reset started project history (for testing)
  */
 function resetProjectHistory(context) {
-  context.globalState.update("vybcelStartedProjects", []);
+  context.globalState.update("phionStartedProjects", []);
   debugLog("Project history reset");
-  vscode.window.showInformationMessage("Vybcel: Project history cleared");
+  vscode.window.showInformationMessage("Phion: Project history cleared");
 }
 
 /**
@@ -396,18 +396,18 @@ async function fixConnectionCommand() {
 }
 
 /**
- * Check if this is a Vybcel project
+ * Check if this is a Phion project
  */
-function isVybcelProject() {
+function isPhionProject() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) return false;
 
   const rootPath = workspaceFolders[0].uri.fsPath;
-  const vybcelConfigPath = path.join(rootPath, "vybcel.config.json");
+  const phionConfigPath = path.join(rootPath, "phion.config.json");
   const packageJsonPath = path.join(rootPath, "package.json");
 
-  // Check for vybcel.config.json or vybcel in package.json
-  if (fs.existsSync(vybcelConfigPath)) {
+  // Check for phion.config.json or phion in package.json
+  if (fs.existsSync(phionConfigPath)) {
     return true;
   }
 
@@ -415,7 +415,7 @@ function isVybcelProject() {
     try {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
       return !!(
-        packageJson.dependencies?.vybcel || packageJson.devDependencies?.vybcel
+        packageJson.dependencies?.phion || packageJson.devDependencies?.phion
       );
     } catch (error) {
       return false;
@@ -431,11 +431,11 @@ function isVybcelProject() {
 function activate(context) {
   updateDebugMode();
   debugLog("Extension activated (debug mode ON)");
-  console.log("🚀 Vybcel extension activated");
+  console.log("🚀 Phion extension activated");
 
-  // Check if this is a Vybcel project and start monitoring
-  if (isVybcelProject()) {
-    debugLog("🎯 Vybcel project detected!");
+  // Check if this is a Phion project and start monitoring
+  if (isPhionProject()) {
+    debugLog("🎯 Phion project detected!");
 
     // First check if server is already running
     checkWebsiteServer().then((isServerActive) => {
@@ -452,7 +452,7 @@ function activate(context) {
       if (AUTO_START_NEW_PROJECT && !hasProjectBeenStarted(context)) {
         debugLog("New project detected - auto-starting...");
         vscode.window.showInformationMessage(
-          "🎉 New Vybcel project detected! Auto-starting..."
+          "🎉 New Phion project detected! Auto-starting..."
         );
 
         // Auto-start project with small delay
@@ -470,32 +470,32 @@ function activate(context) {
       }
     });
   } else {
-    debugLog("Not a Vybcel project - extension inactive");
+    debugLog("Not a Phion project - extension inactive");
   }
 
   // Register commands
   const startProjectCommand = vscode.commands.registerCommand(
-    "vybcel.startProject",
+    "phion.startProject",
     () => startProject(context, false)
   );
 
   const openPreviewCommand = vscode.commands.registerCommand(
-    "vybcel.openPreview",
+    "phion.openPreview",
     openPreview
   );
 
   const clearPortsCommand = vscode.commands.registerCommand(
-    "vybcel.clearPortsAndOpen",
+    "phion.clearPortsAndOpen",
     clearPortsAndOpenPreview
   );
 
   const fixConnectionCommand = vscode.commands.registerCommand(
-    "vybcel.fixConnection",
+    "phion.fixConnection",
     fixConnectionCommand
   );
 
   const resetHistoryCommand = vscode.commands.registerCommand(
-    "vybcel.resetProjectHistory",
+    "phion.resetProjectHistory",
     () => resetProjectHistory(context)
   );
 
@@ -517,7 +517,7 @@ function deactivate() {
     clearInterval(serverCheckInterval);
     serverCheckInterval = null;
   }
-  console.log("👋 Vybcel extension deactivated");
+  console.log("👋 Phion extension deactivated");
 }
 
 module.exports = {

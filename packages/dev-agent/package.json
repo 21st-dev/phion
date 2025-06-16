@@ -1,12 +1,12 @@
 {
-  "name": "vybcel",
-  "version": "1.1.27",
-  "description": "Vybcel Development Agent and Vite Plugin for seamless code sync and auto-deploy",
+  "name": "phion",
+  "version": "0.0.1",
+  "description": "Phion Development Agent and Vite Plugin for seamless code sync and auto-deploy",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
   "bin": {
-    "vybcel": "dist/cli.mjs"
+    "phion": "dist/cli.mjs"
   },
   "scripts": {
     "build": "tsup",
@@ -24,7 +24,7 @@
     "auto-deploy",
     "code-sync"
   ],
-  "author": "Vybcel Team",
+  "author": "Phion Team",
   "license": "MIT",
   "dependencies": {
     "chokidar": "^3.5.3",

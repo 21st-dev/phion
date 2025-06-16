@@ -1,7 +1,12 @@
-export { VybcelAgent, type AgentConfig, type FileChange, type FileDelete } from "./agent.js";
-export { getCurrentVersion, checkForUpdates, isNewerVersion, type VersionInfo } from "./version-checker.js";
-export { openPreview, detectVSCode, type VSCodeConfig } from "./vscode-utils.js";
+export { PhionAgent, type AgentConfig, type FileChange, type FileDelete } from "./agent.js"
+export { getCurrentVersion, checkForUpdates } from "./version-checker.js"
+export { openPreview, detectVSCode, type VSCodeConfig } from "./vscode-utils.js"
 
 // Vite plugin exports
-export { vybcelPlugin as plugin } from "./plugin.js";
-export type { VybcelConfig, VybcelPluginOptions, ToolbarVersion, UpdateCheckResponse } from "./types.js"; 
+export { phionPlugin as plugin } from "./plugin.js"
+export type {
+  PhionConfig,
+  PhionPluginOptions,
+  ToolbarVersion,
+  UpdateCheckResponse,
+} from "./types.js"

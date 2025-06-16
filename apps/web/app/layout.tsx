@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
-  title: "Vybcel - Vibecode OS",
+  title: "Phion",
   description:
     "Just craft in Cursor. We handle versioning, publishing, architecture rules, and everything else. Focus on creating, not configuring.",
 }

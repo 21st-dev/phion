@@ -1,32 +1,39 @@
-export interface VybcelConfig {
+export interface PhionConfig {
   projectId: string
   wsUrl?: string
   debug?: boolean
   toolbar?: {
     enabled?: boolean
-    position?: 'top' | 'bottom'
+    position?: "top" | "bottom"
+    autoOpen?: boolean
     autoUpdate?: boolean
-    updateChannel?: 'stable' | 'beta' | 'dev'
+    updateChannel?: "stable" | "beta" | "dev"
   }
+  autoSync?: boolean
+  autoStart?: "first" | "always" | "never"
 }
 
-export interface VybcelPluginOptions {
+export interface PhionPluginOptions {
   configPath?: string
   websocketUrl?: string
+  toolbarUrl?: string
+  debug?: boolean
+  enabled?: boolean
+  autoUpdateToolbar?: boolean
   autoUpdate?: boolean
   updateEndpoint?: string
 }
 
 export interface ToolbarState {
   pendingChanges: number
-  deployStatus: 'ready' | 'building' | 'failed' | 'pending'
+  deployStatus: "ready" | "building" | "failed" | "pending"
   agentConnected: boolean
   netlifyUrl?: string
 }
 
 export interface WebSocketEvents {
   // Outgoing events
-  authenticate: { projectId: string; clientType: 'toolbar' }
+  authenticate: { projectId: string; clientType: "toolbar" }
   save_all_changes: void
   discard_all_changes: void
   toolbar_get_status: void
@@ -43,17 +50,12 @@ export interface WebSocketEvents {
 
 export interface ToolbarVersion {
   version: string
-  build: number
-  channel: 'stable' | 'beta' | 'dev'
   url: string
-  checksum: string
-  releaseNotes?: string
-  timestamp: number
+  checksum?: string
 }
 
 export interface UpdateCheckResponse {
   hasUpdate: boolean
-  currentVersion: string
   latestVersion?: ToolbarVersion
-  forceUpdate?: boolean
-} 
+  currentVersion: string
+}

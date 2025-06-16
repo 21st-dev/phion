@@ -19,7 +19,7 @@ const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-console.log("📦 Installing Vybcel Auto Browser Extension for Cursor...");
+console.log("📦 Installing Phion Auto Browser Extension for Cursor...");
 
 const extensionDir = join(__dirname, "auto-browser-extension");
 const packageJsonPath = join(extensionDir, "package.json");
@@ -121,7 +121,7 @@ try {
   // Create extension directory in Cursor extensions
   const targetExtensionDir = join(
     cursorExtensionsDir,
-    "vybcel-auto-browser-0.0.5"
+    "phion-auto-browser-0.0.5"
   );
 
   console.log("🔄 Copying extension to Cursor extensions directory...");
@@ -129,10 +129,10 @@ try {
 
   // Remove old versions if they exist
   const oldVersionDirs = [
-    join(cursorExtensionsDir, "vybcel-auto-browser-0.0.1"),
-    join(cursorExtensionsDir, "vybcel-auto-browser-0.0.2"),
-    join(cursorExtensionsDir, "vybcel-auto-browser-0.0.3"),
-    join(cursorExtensionsDir, "vybcel-auto-browser-0.0.4"),
+    join(cursorExtensionsDir, "phion-auto-browser-0.0.1"),
+    join(cursorExtensionsDir, "phion-auto-browser-0.0.2"),
+    join(cursorExtensionsDir, "phion-auto-browser-0.0.3"),
+    join(cursorExtensionsDir, "phion-auto-browser-0.0.4"),
   ];
 
   for (const oldVersionDir of oldVersionDirs) {
@@ -168,8 +168,8 @@ try {
 
   console.log("");
   console.log("💡 Manual commands (if needed):");
-  console.log("   • Cmd+Shift+P → 'Vybcel: Start Project'");
-  console.log("   • Cmd+Shift+P → 'Vybcel: Open Preview'");
+  console.log("   • Cmd+Shift+P → 'Phion: Start Project'");
+  console.log("   • Cmd+Shift+P → 'Phion: Open Preview'");
 } catch (error) {
   console.log("❌ Failed to install extension:", error.message);
   console.log("");
