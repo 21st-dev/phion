@@ -98,7 +98,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={onClick}
         tabIndex={0}
         className={cn(
-          "flex justify-center items-center gap-2 duration-150",
+          "flex justify-center items-center gap-2 duration-150 ",
           sizes[+svgOnly][size],
           disabled || loading
             ? "bg-[#f2f2f2] dark:bg-[#1a1a1a] text-[#8f8f8f] fill-[#8f8f8f] border border-[#ebebeb] dark:border-[#2e2e2e] cursor-not-allowed"
@@ -115,7 +115,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {loading ? (
           <Spinner size={iconSize} />
         ) : prefix ? (
-          <span className="flex items-center justify-center mr-2">
+          <span className="flex items-center justify-center">
             {React.isValidElement(prefix)
               ? React.cloneElement(prefix as React.ReactElement, {
                   width: iconSize,

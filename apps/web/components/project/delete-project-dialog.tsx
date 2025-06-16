@@ -49,9 +49,8 @@ export function DeleteProjectDialog({
 
       if (onSuccess) {
         onSuccess()
-      } else {
-        router.push("/")
       }
+      // No redirect needed - user stays on dashboard
     } catch (error) {
       console.error("Error deleting project:", error)
       showError("Failed to delete project", "Please try again")
