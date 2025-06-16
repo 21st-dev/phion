@@ -17,10 +17,7 @@ function App() {
         <div className="max-w-2xl mx-auto text-center space-y-16">
           {/* Header */}
           <div className="space-y-6">
-            <div className="w-16 h-16 bg-foreground rounded-full mx-auto flex items-center justify-center">
-              <span className="text-background text-2xl font-light">V</span>
-            </div>
-            <h1 className="text-4xl font-extralight text-foreground">Code OS</h1>
+            <h1 className="text-4xl font-extralight text-foreground">Phion</h1>
             <p className="text-xl font-light text-muted-foreground max-w-lg mx-auto">
               Just craft in Cursor. We handle everything else.
             </p>

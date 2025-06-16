@@ -7,22 +7,6 @@ import { createAuthBrowserClient } from "@shipvibes/database"
 import { useTheme } from "next-themes"
 import React, { useState } from "react"
 
-const Logo = () => {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
-
-  // Use different images for light and dark themes if needed
-  const logoSrc = isDark
-    ? "/phion.png" // Dark theme logo
-    : "/phion_light.png" // Light theme logo
-
-  return (
-    <div className="w-32 h-32 mx-auto flex items-center justify-center">
-      <img src={logoSrc} alt="Phion Logo" className="w-full h-full object-contain" />
-    </div>
-  )
-}
-
 interface StyledButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
   children: React.ReactNode
@@ -128,11 +112,6 @@ export default function LoginPage() {
       style={{ backgroundColor: isDark ? undefined : "#FAFAFA" }}
     >
       <div className="w-full max-w-sm space-y-16">
-        {/* Logo */}
-        <div className="text-center">
-          <Logo />
-        </div>
-
         {/* Main Message */}
         <div className="text-center space-y-8">
           <h1 className="text-4xl font-extralight text-foreground tracking-tight leading-tight">
