@@ -4,6 +4,7 @@ import { Avatar } from "@/components/geist/avatar"
 import { Button } from "@/components/geist/button"
 import { ThemeSwitcher } from "@/components/geist/theme-switcher"
 import { PricingModal } from "@/components/pricing-dialog"
+import { Logo } from "@/components/brand"
 import { useProjectLimits } from "@/hooks/use-project-limits"
 import { useSupabase } from "@/lib/supabase/client"
 import type { ProjectRow } from "@shipvibes/database"
@@ -53,6 +54,7 @@ export function Header({ user, project }: HeaderProps) {
           {/* Logo и навигация */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
+              <Logo width={20} height={20} />
               <span className="text-gray-1000 font-semibold text-sm">Phion</span>
             </Link>
 

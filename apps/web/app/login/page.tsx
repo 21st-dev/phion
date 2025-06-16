@@ -1,5 +1,6 @@
 "use client"
 
+import { Logo } from "@/components/brand"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -113,9 +114,9 @@ export default function LoginPage() {
     >
       <div className="w-full max-w-sm space-y-16">
         {/* Main Message */}
-        <div className="text-center space-y-8">
-          <h1 className="text-4xl font-extralight text-foreground tracking-tight leading-tight">
-            Phion
+        <div className="text-center space-y-8 flex flex-col items-center">
+          <h1 className="text-4xl font-extralight text-foreground tracking-tight leading-tight flex items-center gap-2">
+            <Logo width={30} height={30} /> Phion
           </h1>
 
           <p className="text-lg font-light text-muted-foreground leading-relaxed">

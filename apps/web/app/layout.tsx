@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   title: "Phion",
   description:
     "Just craft in Cursor. We handle versioning, publishing, architecture rules, and everything else. Focus on creating, not configuring.",
+  icons: {
+    icon: "/light.ico",
+    shortcut: "/light.ico",
+    apple: "/light.ico",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
