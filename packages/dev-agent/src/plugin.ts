@@ -114,7 +114,9 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
         }
 
         cachedToolbarCode = code
-        console.log(`[phion-plugin] Updated to toolbar version ${version.version}`)
+        if (config?.debug) {
+          console.log(`[phion-plugin] Updated to toolbar version ${version.version}`)
+        }
         return code
       }
     } catch (error) {
@@ -130,29 +132,17 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
     configResolved(resolvedConfig) {
       // Read phion config
       const configFilePath = resolve(resolvedConfig.root, configPath)
-      console.log(`[Phion] Looking for config at: ${configFilePath}`)
-
       if (existsSync(configFilePath)) {
         try {
           const configContent = readFileSync(configFilePath, "utf-8")
           config = JSON.parse(configContent)
 
-          console.log(`[Phion] Config loaded:`, {
-            projectId: config?.projectId,
-            wsUrl: config?.wsUrl,
-            toolbarEnabled: config?.toolbar?.enabled,
-          })
-
           // Check if toolbar is enabled
           toolbarEnabled =
             config?.toolbar?.enabled !== false && process.env.PHION_TOOLBAR !== "false"
-
-          console.log(`[Phion] Toolbar enabled: ${toolbarEnabled}`)
         } catch (error) {
           console.warn("[phion-plugin] Failed to read config:", error)
         }
-      } else {
-        console.log(`[Phion] Config file not found at: ${configFilePath}`)
       }
     },
 
@@ -174,13 +164,15 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
             debug: config?.debug || false,
           }
 
-          if (config?.debug) {
-            console.log(`[Phion] Creating toolbar config...`)
-            console.log(`[Phion] Config object:`, config)
-            console.log(`[Phion] Final toolbar config:`, toolbarConfig)
-          }
-
-          res.writeHead(200, { "Content-Type": "application/javascript" })
+          // Force no caching headers
+          res.writeHead(200, {
+            "Content-Type": "application/javascript",
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            Pragma: "no-cache",
+            Expires: "0",
+            ETag: `"${Date.now()}-${Math.random()}"`,
+            "Last-Modified": new Date().toUTCString(),
+          })
           res.end(`window.PHION_CONFIG = ${JSON.stringify(toolbarConfig)};`)
         } catch (err) {
           console.error("[Phion] Error serving config:", err)
@@ -200,9 +192,6 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
             if (config?.toolbar?.autoUpdate !== false) {
               const updateCheck = await checkForUpdates()
               if (updateCheck?.hasUpdate && updateCheck.latestVersion) {
-                if (config?.debug) {
-                  console.log(`[Phion] Using latest toolbar from ${updateCheck.latestVersion.url}`)
-                }
                 const updatedCode = await downloadToolbarUpdate(updateCheck.latestVersion)
                 if (updatedCode) {
                   toolbarCode = updatedCode
@@ -210,28 +199,27 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
               }
             }
           } catch (fetchError) {
-            if (config?.debug) {
-              console.log(
-                `[Phion] Could not fetch remote toolbar: ${
-                  fetchError instanceof Error ? fetchError.message : String(fetchError)
-                }`,
-              )
-            }
+            // Silently fallback to local version
           }
 
           // Fallback to local version
           if (!toolbarCode) {
             const toolbarPath = findToolbarBundle()
             if (toolbarPath) {
-              if (config?.debug) {
-                console.log(`[Phion] Using local toolbar from ${toolbarPath}`)
-              }
               toolbarCode = readFileSync(toolbarPath, "utf-8")
             }
           }
 
           if (toolbarCode) {
-            res.writeHead(200, { "Content-Type": "application/javascript" })
+            // Force no caching headers for toolbar bundle
+            res.writeHead(200, {
+              "Content-Type": "application/javascript",
+              "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+              Pragma: "no-cache",
+              Expires: "0",
+              ETag: `"${Date.now()}-${Math.random()}"`,
+              "Last-Modified": new Date().toUTCString(),
+            })
             res.end(toolbarCode)
           } else {
             console.error("[Phion] Toolbar bundle not found")
@@ -269,13 +257,25 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
     transformIndexHtml(html) {
       if (!toolbarEnabled || !config) return html
 
-      // Add cache busting timestamp
-      const timestamp = Date.now()
+      // Aggressive cache busting with timestamp + random + process PID
+      const cacheBuster = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${process.pid}`
 
-      // Inject toolbar scripts
+      // Inject toolbar scripts with multiple cache busting techniques
       const toolbarScript = `
-        <script src="/phion/config.js?v=${timestamp}"></script>
-        <script src="/phion/toolbar.js?v=${timestamp}"></script>
+        <script>
+          // Clear any cached toolbar resources
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => {
+                if (name.includes('phion') || name.includes('toolbar')) {
+                  caches.delete(name);
+                }
+              });
+            });
+          }
+        </script>
+        <script src="/phion/config.js?v=${cacheBuster}&_cb=${Date.now()}&rand=${Math.random()}"></script>
+        <script src="/phion/toolbar.js?v=${cacheBuster}&_cb=${Date.now()}&rand=${Math.random()}"></script>
       `
 
       // Insert before closing body tag

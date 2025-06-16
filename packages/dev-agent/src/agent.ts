@@ -89,7 +89,9 @@ export class PhionAgent {
     this.startFileWatcher()
 
     console.log("✅ Agent running - edit files to sync changes")
-    console.log("🌐 Local command server: http://localhost:3333")
+    if (this.config.debug) {
+      console.log("🌐 Local command server: http://localhost:3333")
+    }
     console.log("Press Ctrl+C to stop")
   }
 
@@ -116,9 +118,6 @@ export class PhionAgent {
           req.on("end", async () => {
             try {
               const { url } = JSON.parse(body)
-              if (this.config.debug) {
-                console.log(`🌐 Local server: Opening URL ${url}`)
-              }
 
               const success = await this.openUrlInSystem(url)
 
@@ -171,7 +170,9 @@ export class PhionAgent {
 
       this.httpServer.on("error", (error: any) => {
         if (error.code === "EADDRINUSE") {
-          console.log("⚠️ Port 3333 already in use, trying 3334...")
+          if (this.config.debug) {
+            console.log("⚠️ Port 3333 already in use, trying 3334...")
+          }
           this.httpServer?.listen(3334, "localhost", () => {
             if (this.config.debug) {
               console.log("🌐 Local command server started on http://localhost:3334")
@@ -393,14 +394,18 @@ export class PhionAgent {
     })
 
     this.socket.on("discard_local_changes", async (data) => {
-      console.log("🔄 [AGENT] Received discard_local_changes command from server")
-      console.log("🔄 Discarding local changes...")
+      if (this.config.debug) {
+        console.log("🔄 [AGENT] Received discard_local_changes command from server")
+        console.log("🔄 Discarding local changes...")
+      }
       await this.discardLocalChanges()
     })
 
     this.socket.on("git_pull_with_token", async (data: GitPullData) => {
-      console.log("📥 [AGENT] Received git_pull_with_token command from server")
-      console.log("📥 Syncing with latest changes...")
+      if (this.config.debug) {
+        console.log("📥 [AGENT] Received git_pull_with_token command from server")
+        console.log("📥 Syncing with latest changes...")
+      }
       await this.gitPullWithToken(data.token, data.repoUrl)
     })
 
@@ -414,11 +419,15 @@ export class PhionAgent {
 
     // Добавляем обработчики для save событий
     this.socket.on("save_success", (data) => {
-      console.log("💾 [AGENT] Save operation completed successfully")
+      if (this.config.debug) {
+        console.log("💾 [AGENT] Save operation completed successfully")
+      }
     })
 
     this.socket.on("discard_success", (data) => {
-      console.log("🔄 [AGENT] Discard operation completed successfully")
+      if (this.config.debug) {
+        console.log("🔄 [AGENT] Discard operation completed successfully")
+      }
     })
 
     this.socket.on("error", (error: Error) => {
@@ -426,7 +435,9 @@ export class PhionAgent {
     })
 
     this.socket.on("disconnect", (reason: string) => {
-      console.log(`❌ Disconnected: ${reason}`)
+      if (this.config.debug) {
+        console.log(`❌ Disconnected: ${reason}`)
+      }
       this.isConnected = false
 
       // 📊 ENHANCED DISCONNECT HANDLING - match web client logic
@@ -435,26 +446,36 @@ export class PhionAgent {
       const clientInitiated = ["io client disconnect", "client namespace disconnect"]
 
       if (serverInitiated.includes(reason)) {
-        console.log("🔄 Server-initiated disconnect, will attempt reconnection")
+        if (this.config.debug) {
+          console.log("🔄 Server-initiated disconnect, will attempt reconnection")
+        }
       } else if (networkIssues.includes(reason)) {
-        console.log("⚠️ Network issue detected, checking connection quality")
+        if (this.config.debug) {
+          console.log("⚠️ Network issue detected, checking connection quality")
+        }
       } else if (clientInitiated.includes(reason)) {
-        console.log("👋 Client-initiated disconnect, normal closure")
+        if (this.config.debug) {
+          console.log("👋 Client-initiated disconnect, normal closure")
+        }
         return // Don't attempt automatic reconnection for intentional disconnects
       }
 
       // Only reconnect for unexpected disconnects
       if (!clientInitiated.includes(reason)) {
         setTimeout(() => {
-          console.log("🔄 Attempting to reconnect...")
+          if (this.config.debug) {
+            console.log("🔄 Attempting to reconnect...")
+          }
           this.socket?.connect()
         }, 5000)
       }
     })
 
     this.socket.on("connect_error", (error: Error) => {
-      console.error("❌ Connection failed:", error.message)
-      console.log("🔄 Will retry connection...")
+      if (this.config.debug) {
+        console.error("❌ Connection failed:", error.message)
+        console.log("🔄 Will retry connection...")
+      }
     })
   }
 
@@ -488,7 +509,9 @@ export class PhionAgent {
       })
 
       this.startFileWatcher()
-      console.log("✅ Changes discarded")
+      if (this.config.debug) {
+        console.log("✅ Changes discarded")
+      }
     } catch (error) {
       console.error("❌ Error discarding changes:", (error as Error).message)
       this.socket?.emit("git_command_result", {
@@ -529,7 +552,9 @@ export class PhionAgent {
       await execAsync(`git fetch ${authenticatedUrl} main`)
       await execAsync(`git reset --hard FETCH_HEAD`)
 
-      console.log("✅ Synced with latest changes")
+      if (this.config.debug) {
+        console.log("✅ Synced with latest changes")
+      }
 
       this.socket?.emit("git_command_result", {
         projectId: this.config.projectId,
@@ -580,7 +605,9 @@ export class PhionAgent {
       })
 
       this.startFileWatcher()
-      console.log("✅ Files updated")
+      if (this.config.debug) {
+        console.log("✅ Files updated")
+      }
     } catch (error) {
       console.error("❌ Error updating files:", (error as Error).message)
       this.socket?.emit("git_command_result", {

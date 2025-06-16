@@ -1,6 +1,6 @@
 {
   "name": "phion",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Phion Development Agent and Vite Plugin for seamless code sync and auto-deploy",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",
@@ -10,9 +10,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "dev": "vite dev-server",
-    "dev:server": "vite dev-server",
-    "preview": "vite preview dev-server",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
