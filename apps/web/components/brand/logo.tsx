@@ -1,7 +1,6 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import Image from "next/image"
 import { useEffect, useState } from "react"
 
 interface LogoProps {
@@ -11,7 +10,7 @@ interface LogoProps {
 }
 
 export function Logo({ width = 32, height = 32, className = "" }: LogoProps) {
-  const { theme, resolvedTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   // Avoid hydration mismatch
@@ -28,13 +27,13 @@ export function Logo({ width = 32, height = 32, className = "" }: LogoProps) {
   const logoSrc = isDark ? "/brand/dark.png" : "/brand/light.png"
 
   return (
-    <Image
+    <img
       src={logoSrc}
       alt="Phion Logo"
       width={width}
       height={height}
       className={`object-contain ${className}`}
-      priority
+      style={{ width: `${width}px`, height: `${height}px` }}
     />
   )
 }
