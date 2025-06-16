@@ -7,9 +7,10 @@ interface LogoProps {
   width?: number
   height?: number
   className?: string
+  forceDark?: boolean
 }
 
-export function Logo({ width = 32, height = 32, className = "" }: LogoProps) {
+export function Logo({ width = 32, height = 32, className = "", forceDark = false }: LogoProps) {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -50,7 +51,7 @@ export function Logo({ width = 32, height = 32, className = "" }: LogoProps) {
     return <div className={`bg-gray-200 rounded ${className}`} style={{ width, height }} />
   }
 
-  const isDark = resolvedTheme === "dark"
+  const isDark = forceDark || resolvedTheme === "dark"
   const logoSrc = isDark ? "/brand/dark.png" : "/brand/light.png"
 
   return (

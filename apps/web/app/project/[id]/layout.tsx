@@ -39,9 +39,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Если пользователь не авторизован, перенаправляем на страницу входа
+  // Если пользователь не авторизован, перенаправляем на главную страницу
   if (!user) {
-    redirect("/login")
+    redirect("/")
   }
 
   // Получаем историю коммитов (как в API роуте)

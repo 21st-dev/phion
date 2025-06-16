@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   public: {
@@ -203,6 +197,7 @@ export type Database = {
           netlify_deploy_id: string | null
           netlify_site_id: string | null
           netlify_url: string | null
+          project_status: string | null
           template_type: string
           updated_at: string | null
           user_id: string | null
@@ -218,6 +213,7 @@ export type Database = {
           netlify_deploy_id?: string | null
           netlify_site_id?: string | null
           netlify_url?: string | null
+          project_status?: string | null
           template_type?: string
           updated_at?: string | null
           user_id?: string | null
@@ -233,18 +229,82 @@ export type Database = {
           netlify_deploy_id?: string | null
           netlify_site_id?: string | null
           netlify_url?: string | null
+          project_status?: string | null
           template_type?: string
           updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          accepts_call: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          coding_experience: string
+          created_at: string
+          dream_project: string
+          email: string
+          frustrations: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepts_call?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          coding_experience: string
+          created_at?: string
+          dream_project: string
+          email: string
+          frustrations: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepts_call?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          coding_experience?: string
+          created_at?: string
+          dream_project?: string
+          email?: string
+          frustrations?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      project_status_analytics: {
+        Row: {
+          count: number | null
+          percentage: number | null
+          project_status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      update_project_status: {
+        Args: { project_id_param: string; new_status: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
@@ -274,15 +334,13 @@ export type Tables<
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -300,12 +358,12 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -323,17 +381,15 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+  DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] | { schema: keyof Database },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof Database
   }
@@ -342,8 +398,8 @@ export type Enums<
 > = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
   ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -357,8 +413,8 @@ export type CompositeTypes<
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {
@@ -366,23 +422,19 @@ export const Constants = {
   },
 } as const
 
-// Type aliases for convenience
-export type ProjectRow = Tables<"projects">
-export type ProjectInsert = TablesInsert<"projects">
-export type ProjectUpdate = TablesUpdate<"projects">
+// Legacy type exports for backward compatibility
+export type ProjectRow = Database["public"]["Tables"]["projects"]["Row"]
+export type ProjectInsert = Database["public"]["Tables"]["projects"]["Insert"]
+export type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"]
 
-export type FileHistoryRow = Tables<"file_history">
-export type FileHistoryInsert = TablesInsert<"file_history">
-export type FileHistoryUpdate = TablesUpdate<"file_history">
+export type FileHistoryRow = Database["public"]["Tables"]["file_history"]["Row"]
+export type FileHistoryInsert = Database["public"]["Tables"]["file_history"]["Insert"]
+export type FileHistoryUpdate = Database["public"]["Tables"]["file_history"]["Update"]
 
-export type PendingChangesRow = Tables<"pending_changes">
-export type PendingChangesInsert = TablesInsert<"pending_changes">
-export type PendingChangesUpdate = TablesUpdate<"pending_changes">
+export type CommitHistoryRow = Database["public"]["Tables"]["commit_history"]["Row"]
+export type CommitHistoryInsert = Database["public"]["Tables"]["commit_history"]["Insert"]
+export type CommitHistoryUpdate = Database["public"]["Tables"]["commit_history"]["Update"]
 
-export type DeployStatusRow = Tables<"deploy_status">
-export type DeployStatusInsert = TablesInsert<"deploy_status">
-export type DeployStatusUpdate = TablesUpdate<"deploy_status">
-
-export type CommitHistoryRow = Tables<"commit_history">
-export type CommitHistoryInsert = TablesInsert<"commit_history">
-export type CommitHistoryUpdate = TablesUpdate<"commit_history">
+export type WaitlistRow = Database["public"]["Tables"]["waitlist"]["Row"]
+export type WaitlistInsert = Database["public"]["Tables"]["waitlist"]["Insert"]
+export type WaitlistUpdate = Database["public"]["Tables"]["waitlist"]["Update"]

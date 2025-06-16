@@ -44,7 +44,7 @@ export function Header({ user, project }: HeaderProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push("/login")
+    router.push("/")
   }
 
   return (
@@ -98,7 +98,7 @@ export function Header({ user, project }: HeaderProps) {
                 </Button>
               </div>
             ) : (
-              <Button type="primary" size="small" onClick={() => router.push("/login")}>
+              <Button type="primary" size="small" onClick={() => router.push("/")}>
                 Sign in
               </Button>
             )}

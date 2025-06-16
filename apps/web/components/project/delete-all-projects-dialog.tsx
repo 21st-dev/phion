@@ -59,13 +59,8 @@ export function DeleteAllProjectsDialog({
 
       if (onSuccess) {
         onSuccess()
-      } else {
-        router.push("/")
-        // Принудительно обновляем страницу через небольшой delay
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
       }
+      // No redirect needed - user stays on dashboard with empty project list
     } catch (error) {
       console.error("Error deleting all projects:", error)
       showError(

@@ -1,4 +1,6 @@
 import {
+  ArrowLeft,
+  ArrowRight,
   CalendarIcon,
   CreditCardIcon,
   Info,
@@ -347,3 +349,8 @@ export const Icons = {
     </svg>
   ),
 }
+
+// Export specific icons for use in components
+export const EnterIcon = Icons.enter
+export const ArrowLeftIcon = ArrowLeft
+export const ArrowRightIcon = ArrowRight
