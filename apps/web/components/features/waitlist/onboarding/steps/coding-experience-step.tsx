@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeftIcon, EnterIcon } from "@/components/icons"
+import { LogOut } from "lucide-react"
+import { createAuthBrowserClient } from "@shipvibes/database"
+import { useRouter } from "next/navigation"
 import type { FormData } from "@/components/features/waitlist/types"
 
 interface CodingExperienceStepProps {
@@ -49,6 +52,8 @@ export function CodingExperienceStep({
   onFormDataUpdate,
 }: CodingExperienceStepProps) {
   const [error, setError] = useState<string>("")
+  const supabase = createAuthBrowserClient()
+  const router = useRouter()
 
   const handleContinue = () => {
     if (!formData.codingExperience) {
@@ -56,6 +61,15 @@ export function CodingExperienceStep({
       return
     }
     onComplete()
+  }
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      router.push("/")
+    } catch (error) {
+      console.error("Error during logout:", error)
+    }
   }
 
   const handleValueChange = (value: string) => {
@@ -154,6 +168,15 @@ export function CodingExperienceStep({
               </kbd>
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="flex items-center gap-2 pr-1.5 bg-white/5 text-white hover:text-white hover:bg-white/15 border-none flex-row-reverse"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
 
           <Button
             onClick={handleContinue}

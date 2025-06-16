@@ -162,18 +162,7 @@ export default function HomePage() {
   }
 
   const getWaitlistStatus = () => {
-    if (!waitlistEntry) {
-      return {
-        icon: <AlertCircle className="w-5 h-5" />,
-        title: "Complete Your Application",
-        description: "You need to complete your waitlist application to get early access.",
-        buttonText: "Complete Application",
-        buttonAction: () => router.push("/waitlist"),
-        variant: "warning" as const,
-      }
-    }
-
-    const status = waitlistEntry.status || "pending"
+    const status = waitlistEntry?.status || "pending"
 
     switch (status) {
       case "approved":
@@ -209,9 +198,7 @@ export default function HomePage() {
 
   if (checkingStatus) {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-cover bg-center bg-no-repeat bg-black"
-      >
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-cover bg-center bg-no-repeat bg-black">
         <div className="relative z-10 flex flex-col items-center">
           <Spinner size={32} />
           <p className="mt-4 text-sm text-white/80">Loading...</p>
@@ -221,9 +208,7 @@ export default function HomePage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-black"
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-black">
       {/* Login/Waitlist Toggle Button - только для неавторизованных */}
       {!user && (
         <button
@@ -310,10 +295,10 @@ export default function HomePage() {
                 // Waitlist Mode
                 <div className="text-center space-y-6 max-w-[250px] mx-auto">
                   <Button
-                      type="secondary"
-                      size="small"
+                    type="secondary"
+                    size="small"
                     onClick={handleJoinWaitlist}
-                    className="w-full"
+                    className="w-full hover:bg-white/80 hover:text-black"
                     prefix={
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
                         <path
@@ -347,6 +332,18 @@ export default function HomePage() {
           ) : (
             // Авторизованный пользователь - показываем статус waitlist
             (() => {
+              // Если нет записи в waitlist - перенаправляем на заполнение формы
+              if (!waitlistEntry) {
+                router.push("/waitlist")
+                return (
+                  <div className="text-center space-y-6">
+                    <p className="text-lg font-light text-white/80 leading-relaxed">
+                      Redirecting to waitlist...
+                    </p>
+                  </div>
+                )
+              }
+
               const statusInfo = getWaitlistStatus()
 
               // For pending users, show simple message without card
@@ -380,8 +377,6 @@ export default function HomePage() {
                         ? "bg-green-500/20 border-green-500/30"
                         : statusInfo.variant === "error"
                         ? "bg-red-500/20 border-red-500/30"
-                        : statusInfo.variant === "warning"
-                        ? "bg-orange-500/20 border-orange-500/30"
                         : "bg-blue-500/20 border-blue-500/30"
                     }`}
                   >
@@ -392,8 +387,6 @@ export default function HomePage() {
                             ? "text-green-300"
                             : statusInfo.variant === "error"
                             ? "text-red-300"
-                            : statusInfo.variant === "warning"
-                            ? "text-orange-300"
                             : "text-blue-300"
                         }`}
                       >
@@ -410,8 +403,6 @@ export default function HomePage() {
                             ? "primary"
                             : statusInfo.variant === "error"
                             ? "error"
-                            : statusInfo.variant === "warning"
-                            ? "warning"
                             : "primary"
                         }
                         onClick={statusInfo.buttonAction}
