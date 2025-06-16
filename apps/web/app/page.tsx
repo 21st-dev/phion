@@ -210,7 +210,7 @@ export default function HomePage() {
   if (checkingStatus) {
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-cover bg-center bg-no-repeat"
+        className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-cover bg-center bg-no-repeat bg-black"
       >
         <div className="relative z-10 flex flex-col items-center">
           <Spinner size={32} />
