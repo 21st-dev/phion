@@ -222,7 +222,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
             Phion is part of the 21st.dev ecosystem. Your Phion subscription gives you access to
             all 21st.dev tools including{" "}
             <a
-              href="https://21st.dev"
+              href="https://21st.dev/magic"
               target="_blank"
               rel="noopener noreferrer"
               className="underline"
