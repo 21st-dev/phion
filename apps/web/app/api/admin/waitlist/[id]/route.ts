@@ -39,15 +39,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // For now, simple check - in production you might want to check admin roles
-    // TODO: Add proper admin role checking
-    const adminEmails = [
-      "serafim@shipvibes.app",
-      "admin@phion.dev",
-      // Add other admin emails here
-    ]
+    // Check if user is admin (must match the same ID used in admin layout and DB policies)
+    const ADMIN_USER_ID = "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
 
-    if (!adminEmails.includes(user.email || "")) {
+    if (user.id !== ADMIN_USER_ID) {
       return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
     }
 
