@@ -203,7 +203,7 @@ export function ProjectLayoutClient({
           // Обновляем статус проекта в реальном времени
           setProject((prev: ProjectRow) => ({
             ...prev,
-            deploy_status: data.status,
+            deploy_status: data.status as "pending" | "building" | "ready" | "failed" | "cancelled",
             netlify_url: data.url || prev.netlify_url,
             updated_at: data.timestamp || new Date().toISOString(),
           }))

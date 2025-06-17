@@ -6,7 +6,18 @@ const ADMIN_USER_ID = "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
-  const supabase = createAuthServerClient(cookieStore)
+  const supabase = createAuthServerClient({
+    getAll() {
+      return cookieStore.getAll()
+    },
+    setAll(cookiesToSet) {
+      try {
+        cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+      } catch {
+        // Игнорируем ошибки установки cookies
+      }
+    },
+  })
 
   const {
     data: { user },

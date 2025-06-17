@@ -1,136 +1,143 @@
-import { getSupabaseServerClient } from "./client";
-import { 
-  ProjectQueries, 
-  FileHistoryQueries, 
+import { getSupabaseServerClient } from "./client"
+import {
+  ProjectQueries,
+  FileHistoryQueries,
   CommitHistoryQueries,
-  PendingChangesQueries 
-} from "./queries";
-import { CreateProject, UpdateProject, CreateFileHistory } from "@shipvibes/shared";
-import { ProjectRow, FileHistoryRow, CommitHistoryRow } from "./types";
+  PendingChangesQueries,
+} from "./queries"
+import { CreateProject, UpdateProject, CreateFileHistory } from "@shipvibes/shared"
+import { ProjectRow, FileHistoryRow, CommitHistoryRow } from "./types"
 
 // Создаем экземпляры классов запросов
-const projectQueries = new ProjectQueries(getSupabaseServerClient());
-const fileHistoryQueries = new FileHistoryQueries(getSupabaseServerClient());
-const commitHistoryQueries = new CommitHistoryQueries(getSupabaseServerClient());
+const projectQueries = new ProjectQueries(getSupabaseServerClient())
+const fileHistoryQueries = new FileHistoryQueries(getSupabaseServerClient())
+const commitHistoryQueries = new CommitHistoryQueries(getSupabaseServerClient())
 
 // Экспортируем удобные функции для проектов
-export const getAllProjects = (): Promise<ProjectRow[]> => 
-  projectQueries.getAllProjects();
+export const getAllProjects = (): Promise<ProjectRow[]> => projectQueries.getAllProjects()
 
-export const getUserProjects = (userId: string): Promise<ProjectRow[]> => 
-  projectQueries.getUserProjects(userId);
+export const getUserProjects = (userId: string): Promise<ProjectRow[]> =>
+  projectQueries.getUserProjects(userId)
 
-export const getProjectById = (projectId: string): Promise<ProjectRow | null> => 
-  projectQueries.getProjectById(projectId);
+export const getProjectById = (projectId: string): Promise<ProjectRow | null> =>
+  projectQueries.getProjectById(projectId)
 
-export const createProject = (projectData: CreateProject & { user_id?: string }): Promise<ProjectRow> => 
-  projectQueries.createProject(projectData);
+export const createProject = (
+  projectData: CreateProject & { user_id: string },
+): Promise<ProjectRow> => projectQueries.createProject(projectData)
 
-export const updateProject = (projectId: string, updateData: UpdateProject): Promise<ProjectRow> => 
-  projectQueries.updateProject(projectId, updateData);
+export const updateProject = (projectId: string, updateData: UpdateProject): Promise<ProjectRow> =>
+  projectQueries.updateProject(projectId, updateData)
 
-export const deleteProject = (projectId: string): Promise<void> => 
-  projectQueries.deleteProject(projectId);
+export const deleteProject = (projectId: string): Promise<void> =>
+  projectQueries.deleteProject(projectId)
 
 export const updateDeployStatus = (
   projectId: string,
-  status: "pending" | "building" | "ready" | "failed" | "cancelled"
-): Promise<ProjectRow> => 
-  projectQueries.updateDeployStatus(projectId, status);
+  status: "pending" | "building" | "ready" | "failed" | "cancelled",
+): Promise<ProjectRow> => projectQueries.updateDeployStatus(projectId, status)
 
 export const getProjectsByDeployStatus = (
-  status: "pending" | "building" | "ready" | "failed" | "cancelled"
-): Promise<ProjectRow[]> => 
-  projectQueries.getProjectsByDeployStatus(status);
+  status: "pending" | "building" | "ready" | "failed" | "cancelled",
+): Promise<ProjectRow[]> => projectQueries.getProjectsByDeployStatus(status)
 
 // Экспортируем удобные функции для истории файлов
-export const getProjectFileHistory = (projectId: string, limit?: number, offset?: number): Promise<FileHistoryRow[]> => 
-  fileHistoryQueries.getProjectFileHistory(projectId, limit, offset);
+export const getProjectFileHistory = (
+  projectId: string,
+  limit?: number,
+  offset?: number,
+): Promise<FileHistoryRow[]> => fileHistoryQueries.getProjectFileHistory(projectId, limit, offset)
 
-export const getFileHistory = (projectId: string, filePath: string, limit?: number): Promise<FileHistoryRow[]> => 
-  fileHistoryQueries.getFileHistory(projectId, filePath, limit);
+export const getFileHistory = (
+  projectId: string,
+  filePath: string,
+  limit?: number,
+): Promise<FileHistoryRow[]> => fileHistoryQueries.getFileHistory(projectId, filePath, limit)
 
-export const createFileHistory = (historyData: CreateFileHistory): Promise<FileHistoryRow> => 
-  fileHistoryQueries.createFileHistory(historyData);
+export const createFileHistory = (historyData: CreateFileHistory): Promise<FileHistoryRow> =>
+  fileHistoryQueries.createFileHistory(historyData)
 
-export const getLatestFileVersion = (projectId: string, filePath: string): Promise<FileHistoryRow | null> => 
-  fileHistoryQueries.getLatestFileVersion(projectId, filePath);
+export const getLatestFileVersion = (
+  projectId: string,
+  filePath: string,
+): Promise<FileHistoryRow | null> => fileHistoryQueries.getLatestFileVersion(projectId, filePath)
 
-export const getFileHistoryById = (id: string): Promise<FileHistoryRow | null> => 
-  fileHistoryQueries.getFileHistoryById(id);
+export const getFileHistoryById = (id: string): Promise<FileHistoryRow | null> =>
+  fileHistoryQueries.getFileHistoryById(id)
 
-export const getLatestFileVersions = (projectId: string): Promise<FileHistoryRow[]> => 
-  fileHistoryQueries.getLatestFileVersions(projectId);
+export const getLatestFileVersions = (projectId: string): Promise<FileHistoryRow[]> =>
+  fileHistoryQueries.getLatestFileVersions(projectId)
 
 // Экспортируем классы для продвинутого использования
-export { ProjectQueries, FileHistoryQueries } from "./queries";
+export { ProjectQueries, FileHistoryQueries } from "./queries"
 
 // Import and initialize PendingChangesQueries
-const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient());
+const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient())
 
 // Export pending changes functions
-export const getPendingChanges = (projectId: string) => 
-  pendingChangesQueries.getPendingChanges(projectId);
+export const getPendingChanges = (projectId: string) =>
+  pendingChangesQueries.getPendingChanges(projectId)
 
 // GitHub функции для проектов
 export const updateGitHubData = (
   projectId: string,
   githubData: {
-    github_repo_url?: string;
-    github_repo_name?: string;
-    github_owner?: string;
-  }
+    github_repo_url?: string
+    github_repo_name?: string
+    github_owner?: string
+  },
 ): Promise<ProjectRow> =>
-  projectQueries.updateGitHubInfo(projectId, githubData as {
-    github_repo_url: string;
-    github_repo_name: string;
-    github_owner?: string;
-  });
+  projectQueries.updateGitHubInfo(
+    projectId,
+    githubData as {
+      github_repo_url: string
+      github_repo_name: string
+      github_owner?: string
+    },
+  )
 
 export const getProjectsWithGitHub = (): Promise<ProjectRow[]> =>
-  projectQueries.getProjectsWithGitHub();
+  projectQueries.getProjectsWithGitHub()
 
 // Commit history функции
 export const getProjectCommitHistory = (
   projectId: string,
   limit?: number,
-  offset?: number
+  offset?: number,
 ): Promise<CommitHistoryRow[]> =>
-  commitHistoryQueries.getProjectCommitHistory(projectId, limit, offset);
+  commitHistoryQueries.getProjectCommitHistory(projectId, limit, offset)
 
 export const createCommitHistory = (commitData: {
-  project_id: string;
-  github_commit_sha: string;
-  github_commit_url: string;
-  commit_message: string;
-  files_count?: number;
-  committed_by?: string;
-}): Promise<CommitHistoryRow> =>
-  commitHistoryQueries.createCommitHistory(commitData);
+  project_id: string
+  github_commit_sha: string
+  github_commit_url: string
+  commit_message: string
+  files_count?: number
+  committed_by?: string
+}): Promise<CommitHistoryRow> => commitHistoryQueries.createCommitHistory(commitData)
 
 export const getCommitBySha = (
   projectId: string,
-  githubCommitSha: string
+  githubCommitSha: string,
 ): Promise<CommitHistoryRow | null> =>
-  commitHistoryQueries.getCommitBySha(projectId, githubCommitSha);
+  commitHistoryQueries.getCommitBySha(projectId, githubCommitSha)
 
 export const getLatestCommit = (projectId: string): Promise<CommitHistoryRow | null> =>
-  commitHistoryQueries.getLatestCommit(projectId);
+  commitHistoryQueries.getLatestCommit(projectId)
 
 // GitHub функции для file history
 export const createFileHistoryWithGitHub = (
   historyData: CreateFileHistory & {
-    github_commit_sha?: string;
-    github_commit_url?: string;
-  }
-): Promise<FileHistoryRow> =>
-  fileHistoryQueries.createFileHistoryWithGitHub(historyData);
+    github_commit_sha?: string
+    github_commit_url?: string
+  },
+): Promise<FileHistoryRow> => fileHistoryQueries.createFileHistoryWithGitHub(historyData)
 
 export const getFilesByGitHubCommit = (
   projectId: string,
-  githubCommitSha: string
+  githubCommitSha: string,
 ): Promise<FileHistoryRow[]> =>
-  fileHistoryQueries.getFilesByGitHubCommit(projectId, githubCommitSha);
+  fileHistoryQueries.getFilesByGitHubCommit(projectId, githubCommitSha)
 
 // Экспортируем новый класс для продвинутого использования
-export { CommitHistoryQueries } from "./queries";
+export { CommitHistoryQueries } from "./queries"

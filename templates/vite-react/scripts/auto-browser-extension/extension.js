@@ -135,7 +135,7 @@ function startServerMonitoring() {
 }
 
 /**
- * Start project with pnpm start command
+ * Start project with setup script command
  */
 async function startProject(context, isAutoStart = false) {
   try {
@@ -158,7 +158,14 @@ async function startProject(context, isAutoStart = false) {
 
     // Show terminal and run command
     terminal.show()
-    terminal.sendText("pnpm start")
+
+    // Determine OS and run appropriate setup command
+    const isWindows = process.platform === "win32"
+    if (isWindows) {
+      terminal.sendText("setup.bat")
+    } else {
+      terminal.sendText("chmod +x setup.sh && ./setup.sh")
+    }
 
     // Mark project as started
     if (context) {
@@ -189,9 +196,7 @@ async function openPreview() {
     const isServerActive = await checkWebsiteServer()
 
     if (!isServerActive) {
-      vscode.window.showWarningMessage(
-        `Your website is not running. Start with 'pnpm start' first.`,
-      )
+      vscode.window.showWarningMessage(`Your website is not running. Run the setup script first.`)
       return false
     }
 
