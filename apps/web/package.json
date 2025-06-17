@@ -12,6 +12,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.3.22",
     "@calcom/embed-react": "^1.5.3",
     "@ngrok/ngrok": "^1.5.1",
     "@number-flow/react": "^0.5.10",
@@ -21,6 +22,7 @@
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-radio-group": "^1.3.7",
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.0.2",
@@ -33,6 +35,7 @@
     "@shipvibes/storage": "workspace:^",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.9",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "@tanstack/react-query": "^5.79.0",
     "@types/adm-zip": "^0.5.7",
     "@types/jsonwebtoken": "^9.0.9",
@@ -43,6 +46,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^10.0.0",
     "adm-zip": "^0.5.16",
+    "ai": "^4.3.16",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
@@ -62,6 +66,7 @@
     "react-dom": "^18.2.0",
     "react-syntax-highlighter": "^15.6.1",
     "react-tooltip": "^5.28.1",
+    "resend": "^4.6.0",
     "shiki": "^3.4.2",
     "socket.io-client": "^4.8.1",
     "sonner": "^2.0.5",
@@ -69,7 +74,8 @@
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.33.0",
