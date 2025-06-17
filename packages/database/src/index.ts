@@ -1,6 +1,5 @@
 // Главный экспорт пакета @shipvibes/database
 export * from "./client"
 export * from "./types"
-export * from "./legacy-types"
 export * from "./queries"
 export * from "./helpers"

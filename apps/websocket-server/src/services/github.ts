@@ -278,7 +278,7 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает новый приватный репозиторий в организации phion-dev 
+   * Создает новый приватный репозиторий в организации phion-dev
    */
   async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
     const repoName = `phion-project-${projectId}`
@@ -850,52 +850,100 @@ export class GitHubAppService {
   }
 
   /**
-   * Получает последний commit из main ветки
+   * Получает последний коммит из ветки
    */
   async getLatestCommit(repoName: string, ref = "main"): Promise<{ sha: string } | null> {
-    console.log(`🔍 [getLatestCommit] Checking for latest commit in ${repoName}/${ref}`)
+    return this.withRetry(async () => {
+      const response = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/commits/${ref}`,
+      )
 
-    try {
-      const endpoint = `/repos/${this.organization}/${repoName}/git/refs/heads/${ref}`
-      console.log(`🔍 [getLatestCommit] Making request to: ${endpoint}`)
-
-      const response = await this.makeAuthenticatedRequest(endpoint)
-
-      console.log(`🔍 [getLatestCommit] Response status: ${response.status}`)
+      if (response.status === 404) {
+        console.log("⚠️ Branch not found", { repoName, ref })
+        return null
+      }
 
       if (!response.ok) {
-        if (response.status === 404) {
-          // Ветка не существует (пустой репозиторий)
-          console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (404), returning null`)
-          return null
-        }
-        if (response.status === 409) {
-          // Конфликт - пустой репозиторий
-          console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (409), returning null`)
-          return null
-        }
         const error = await response.text()
-        console.log(`❌ [getLatestCommit] Error response: ${error}`)
         throw new Error(`Failed to get latest commit: ${response.status} ${error}`)
       }
 
-      const refData = (await response.json()) as { object: { sha: string } }
-      console.log(`✅ [getLatestCommit] Found commit: ${refData.object.sha}`)
-      return { sha: refData.object.sha }
-    } catch (error) {
-      console.error("❌ [getLatestCommit] Exception caught:", {
+      const commit = (await response.json()) as GitHubCommit
+
+      console.log("🔍 Got latest commit", {
         repoName,
         ref,
-        error,
+        sha: commit.sha,
+        message: commit.commit.message,
       })
-      if (error instanceof Error && error.message.includes("409")) {
-        console.log(
-          `✅ [getLatestCommit] Caught 409 error, repository ${repoName} is empty, returning null`,
-        )
-        return null
+
+      return { sha: commit.sha }
+    }, `getLatestCommit(${repoName}, ${ref})`)
+  }
+
+  /**
+   * Получает все файлы из определенного коммита
+   * Возвращает объект с путями файлов как ключами и содержимым как значениями
+   */
+  async getCommitFiles(repoName: string, commitSha: string): Promise<Record<string, string>> {
+    return this.withRetry(async () => {
+      console.log(`📥 Getting files from commit ${commitSha.substring(0, 7)}...`)
+
+      // Получаем tree для данного коммита
+      const commitResponse = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/commits/${commitSha}`,
+      )
+
+      if (!commitResponse.ok) {
+        const error = await commitResponse.text()
+        throw new Error(`Failed to get commit: ${commitResponse.status} ${error}`)
       }
-      throw error
-    }
+
+      const commit = await commitResponse.json()
+      const treeSha = commit.commit.tree.sha
+
+      // Получаем tree рекурсивно чтобы получить все файлы
+      const treeResponse = await this.makeAuthenticatedRequest(
+        `/repos/${this.organization}/${repoName}/git/trees/${treeSha}?recursive=1`,
+      )
+
+      if (!treeResponse.ok) {
+        const error = await treeResponse.text()
+        throw new Error(`Failed to get tree: ${treeResponse.status} ${error}`)
+      }
+
+      const tree = await treeResponse.json()
+      const files: Record<string, string> = {}
+
+      // Получаем содержимое каждого файла (только блобы, не директории)
+      for (const item of tree.tree) {
+        if (item.type === "blob") {
+          try {
+            // Получаем содержимое блоба
+            const blobResponse = await this.makeAuthenticatedRequest(
+              `/repos/${this.organization}/${repoName}/git/blobs/${item.sha}`,
+            )
+
+            if (blobResponse.ok) {
+              const blob = await blobResponse.json()
+
+              // Декодируем base64 содержимое
+              const content = Buffer.from(blob.content, "base64").toString("utf-8")
+              files[item.path] = content
+            } else {
+              console.warn(`⚠️ Failed to get blob for file ${item.path}`)
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error getting file ${item.path}:`, error)
+          }
+        }
+      }
+
+      console.log(
+        `✅ Retrieved ${Object.keys(files).length} files from commit ${commitSha.substring(0, 7)}`,
+      )
+      return files
+    }, `getCommitFiles(${repoName}, ${commitSha})`)
   }
 
   /**

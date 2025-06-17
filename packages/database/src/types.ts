@@ -22,6 +22,11 @@ export interface Database {
         Insert: PendingChangeInsert
         Update: PendingChangeUpdate
       }
+      waitlist: {
+        Row: WaitlistRow
+        Insert: WaitlistInsert
+        Update: WaitlistUpdate
+      }
     }
   }
 }
@@ -91,7 +96,7 @@ export interface FileHistoryInsert {
   id?: string
   project_id: string
   file_path: string
-  content: string
+  content?: string
   commit_sha?: string
   version?: number
   created_at?: string
@@ -166,6 +171,29 @@ export interface PendingChangeUpdate {
   content?: string
   action?: "added" | "modified" | "deleted"
   updated_at?: string
+}
+
+// Waitlist types
+export interface WaitlistRow {
+  id: string
+  email: string
+  name?: string
+  created_at: string
+  status?: string
+}
+
+export interface WaitlistInsert {
+  id?: string
+  email: string
+  name?: string
+  created_at?: string
+  status?: string
+}
+
+export interface WaitlistUpdate {
+  email?: string
+  name?: string
+  status?: string
 }
 
 // Локальные типы для database пакета

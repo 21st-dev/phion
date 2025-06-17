@@ -1,109 +1,137 @@
-import React, { useState, useEffect } from "react";
-import { ToolbarWebSocketClient } from "./websocket-client";
-import type { ToolbarState } from "../types";
+import React, { useState, useEffect } from "react"
+import { ToolbarWebSocketClient } from "./websocket-client"
+import type { ToolbarState, CommitInfo } from "../types"
 
 interface ToolbarProps {
-  projectId: string;
-  websocketUrl: string;
-  position: "top" | "bottom";
+  projectId: string
+  websocketUrl: string
+  position: "top" | "bottom"
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({
-  projectId,
-  websocketUrl,
-  position,
-}) => {
-  const [client] = useState(
-    () => new ToolbarWebSocketClient(projectId, websocketUrl)
-  );
+export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, position }) => {
+  const [client] = useState(() => new ToolbarWebSocketClient(projectId, websocketUrl))
   const [state, setState] = useState<ToolbarState>({
     pendingChanges: 0,
     deployStatus: "ready",
     agentConnected: false,
     netlifyUrl: undefined,
-  });
-  const [isConnected, setIsConnected] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [projectName, setProjectName] = useState("Project");
-  const [isSimpleBrowser, setIsSimpleBrowser] = useState(false);
-  const [debugMessage, setDebugMessage] = useState<string>("");
+    lastCommit: undefined,
+    commitHistory: [],
+  })
+  const [isConnected, setIsConnected] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [projectName, setProjectName] = useState("Project")
+  const [isSimpleBrowser, setIsSimpleBrowser] = useState(false)
+  const [debugMessage, setDebugMessage] = useState<string>("")
+  const [showCommitHistory, setShowCommitHistory] = useState(false)
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [showRevertProgress, setShowRevertProgress] = useState(false)
+  const [revertProgress, setRevertProgress] = useState({ stage: "", progress: 0, message: "" })
 
   // Get version from global config
-  const version =
-    ((window as any).PHION_CONFIG?.version as string) || "unknown";
-  const isDebugMode =
-    ((window as any).PHION_CONFIG?.debug as boolean) || false;
+  const version = ((window as any).PHION_CONFIG?.version as string) || "unknown"
+  const isDebugMode = ((window as any).PHION_CONFIG?.debug as boolean) || false
 
   useEffect(() => {
     const connectToServer = async () => {
-      const connected = await client.connect();
-      setIsConnected(connected);
-    };
+      const connected = await client.connect()
+      setIsConnected(connected)
+    }
 
-    connectToServer();
+    connectToServer()
 
     if (isDebugMode) {
       // Force show version on load - use dynamic version
-      showDebugMessage(`Phion v${version} loaded`);
+      showDebugMessage(`Phion v${version} loaded`)
 
       // Also force show detection result immediately
       setTimeout(() => {
-        const userAgent = navigator.userAgent;
+        const userAgent = navigator.userAgent
         const isInCursor =
           userAgent.includes("Cursor") ||
           userAgent.includes("vscode") ||
-          !!(window as any).acquireVsCodeApi;
-        showDebugMessage(
-          `Browser: ${isInCursor ? "Cursor detected" : "Regular browser"}`
-        );
-      }, 1000);
+          !!(window as any).acquireVsCodeApi
+        showDebugMessage(`Browser: ${isInCursor ? "Cursor detected" : "Regular browser"}`)
+      }, 1000)
 
       // Test debug messages work
       setTimeout(() => {
-        showDebugMessage("Debug system working! Click preview to test APIs");
-      }, 2000);
+        showDebugMessage("Debug system working! Click preview to test APIs")
+      }, 2000)
     }
 
     const handleStateChange = (newState: ToolbarState) => {
-      console.log("[Phion Toolbar] State change:", newState);
+      console.log("[Phion Toolbar] State change:", newState)
       setState((prevState) => {
-        console.log("[Phion Toolbar] Current state before update:", prevState);
-        console.log("[Phion Toolbar] setState called with:", newState);
-        return newState;
-      });
-    };
+        console.log("[Phion Toolbar] Current state before update:", prevState)
+        console.log("[Phion Toolbar] setState called with:", newState)
+        return newState
+      })
+    }
 
     const handleSaveSuccess = () => {
-      setIsLoading(false);
-    };
+      setIsLoading(false)
+    }
 
     const handleDiscardSuccess = () => {
-      setIsLoading(false);
-    };
+      setIsLoading(false)
+    }
 
-    client.on("stateChange", handleStateChange);
-    client.on("saveSuccess", handleSaveSuccess);
-    client.on("discardSuccess", handleDiscardSuccess);
+    client.on("stateChange", handleStateChange)
+    client.on("saveSuccess", handleSaveSuccess)
+    client.on("discardSuccess", handleDiscardSuccess)
+
+    // Handle AI commit message generation
+    const handleAICommitGenerated = (data: {
+      projectId: string
+      commitMessage: string
+      changesCount: number
+      files: string[]
+    }) => {
+      console.log("[Phion Toolbar] AI commit message generated:", data)
+      setIsGeneratingAI(false)
+      showDebugMessage(`AI: "${data.commitMessage}"`)
+    }
+
+    // Handle revert progress
+    const handleRevertProgress = (data: {
+      projectId: string
+      stage: string
+      progress: number
+      message: string
+      error?: string
+    }) => {
+      console.log("[Phion Toolbar] Revert progress:", data)
+      setRevertProgress({ stage: data.stage, progress: data.progress, message: data.message })
+
+      if (data.stage === "completed" || data.stage === "failed") {
+        setShowRevertProgress(false)
+        if (data.stage === "completed") {
+          showDebugMessage("✅ Reverted successfully!")
+        } else {
+          showDebugMessage("❌ Revert failed")
+        }
+      }
+    }
+
+    client.on("aiCommitMessageGenerated", handleAICommitGenerated)
+    client.on("revertProgress", handleRevertProgress)
 
     // Handle preview response from server
-    const handlePreviewResponse = (data: {
-      success: boolean;
-      url?: string;
-      error?: string;
-    }) => {
-      console.log("[Phion Toolbar] Preview response received:", data);
+    const handlePreviewResponse = (data: { success: boolean; url?: string; error?: string }) => {
+      console.log("[Phion Toolbar] Preview response received:", data)
 
       if (data.success && data.url) {
-        showDebugMessage("Got URL, trying to open...");
+        showDebugMessage("Got URL, trying to open...")
 
         // Try multiple methods to open external URL in Cursor
-        let opened = false;
+        let opened = false
 
         try {
           if (isSimpleBrowser) {
             // Method 1: Try VS Code command palette approach
             if ((window as any).acquireVsCodeApi) {
-              const vscode = (window as any).acquireVsCodeApi();
+              const vscode = (window as any).acquireVsCodeApi()
 
               // Try different VS Code commands
               const commands = [
@@ -114,40 +142,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   command: "vscode.openWith",
                   arguments: [data.url, "vscode.open"],
                 },
-              ];
+              ]
 
               for (const cmd of commands) {
                 try {
-                  console.log(`[Phion Toolbar] Trying command:`, cmd);
-                  vscode.postMessage(cmd);
-                  showDebugMessage(`Tried: ${cmd.command}`);
-                  opened = true;
-                  break;
+                  console.log(`[Phion Toolbar] Trying command:`, cmd)
+                  vscode.postMessage(cmd)
+                  showDebugMessage(`Tried: ${cmd.command}`)
+                  opened = true
+                  break
                 } catch (e) {
-                  console.log(
-                    `[Phion Toolbar] Command failed:`,
-                    cmd.command,
-                    e
-                  );
+                  console.log(`[Phion Toolbar] Command failed:`, cmd.command, e)
                 }
               }
             }
 
             // Method 2: Try window.open with different targets
             if (!opened) {
-              const targets = ["_blank", "_top", "_parent", ""];
+              const targets = ["_blank", "_top", "_parent", ""]
               for (const target of targets) {
                 try {
-                  const result = window.open(data.url, target);
+                  const result = window.open(data.url, target)
                   if (result) {
-                    showDebugMessage(
-                      `Opened with target: ${target || "default"}`
-                    );
-                    opened = true;
-                    break;
+                    showDebugMessage(`Opened with target: ${target || "default"}`)
+                    opened = true
+                    break
                   }
                 } catch (e) {
-                  console.log(`[Phion Toolbar] Target failed:`, target, e);
+                  console.log(`[Phion Toolbar] Target failed:`, target, e)
                 }
               }
             }
@@ -157,47 +179,44 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               navigator.clipboard
                 .writeText(data.url)
                 .then(() => {
-                  showDebugMessage("URL copied to clipboard! Paste to open.");
+                  showDebugMessage("URL copied to clipboard! Paste to open.")
                 })
                 .catch(() => {
-                  showDebugMessage(
-                    "Manual: " + data.url!.substring(0, 30) + "..."
-                  );
-                });
+                  showDebugMessage("Manual: " + data.url!.substring(0, 30) + "...")
+                })
             }
           } else {
             // Regular browser - simple approach
-            window.open(data.url, "_blank");
-            showDebugMessage("Opened in new tab");
-            opened = true;
+            window.open(data.url, "_blank")
+            showDebugMessage("Opened in new tab")
+            opened = true
           }
         } catch (error) {
-          console.error("[Phion Toolbar] All methods failed:", error);
-          showDebugMessage(`All methods failed. Manual: ${data.url}`);
+          console.error("[Phion Toolbar] All methods failed:", error)
+          showDebugMessage(`All methods failed. Manual: ${data.url}`)
         }
 
         if (!opened) {
-          showDebugMessage("Could not auto-open. Check logs for URL.");
+          showDebugMessage("Could not auto-open. Check logs for URL.")
         }
       } else {
-        showDebugMessage(data.error || "Preview not available");
+        showDebugMessage(data.error || "Preview not available")
       }
-    };
+    }
 
-    client.on("previewResponse", handlePreviewResponse);
+    client.on("previewResponse", handlePreviewResponse)
 
     // Detect Simple Browser in Cursor
     const detectSimpleBrowser = () => {
-      const userAgent = navigator.userAgent;
-      console.log("[Phion Toolbar] User Agent:", userAgent);
-
+      const userAgent = navigator.userAgent
+      console.log("[Phion Toolbar] User Agent:", userAgent)
 
       const apis = {
         acquireVsCodeApi: !!(window as any).acquireVsCodeApi,
         vscode: !!(window as any).vscode,
         cursor: !!(window as any).cursor,
-      };
-      console.log("[Phion Toolbar] Available APIs:", apis);
+      }
+      console.log("[Phion Toolbar] Available APIs:", apis)
 
       const isInCursor =
         userAgent.includes("Cursor") ||
@@ -209,79 +228,76 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           (userAgent.includes("Electron") || userAgent.includes("Chrome"))) ||
         !!(window as any).acquireVsCodeApi ||
         !!(window as any).vscode ||
-        !!(window as any).cursor;
+        !!(window as any).cursor
 
-      console.log(
-        "[Phion Toolbar] Simple Browser detection result:",
-        isInCursor
-      );
-      setIsSimpleBrowser(isInCursor);
+      console.log("[Phion Toolbar] Simple Browser detection result:", isInCursor)
+      setIsSimpleBrowser(isInCursor)
 
       // Show visual feedback (only in debug mode)
       if (isDebugMode) {
         if (isInCursor) {
           const availableApis = Object.entries(apis)
             .filter(([_, available]) => available)
-            .map(([name]) => name);
-          showDebugMessage(
-            `Cursor detected! APIs: ${availableApis.join(", ") || "none"}`
-          );
+            .map(([name]) => name)
+          showDebugMessage(`Cursor detected! APIs: ${availableApis.join(", ") || "none"}`)
         } else {
-          showDebugMessage("Regular browser detected");
+          showDebugMessage("Regular browser detected")
         }
       }
-    };
+    }
 
-    detectSimpleBrowser();
+    detectSimpleBrowser()
 
     // Keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
         switch (e.key) {
           case "S":
-            e.preventDefault();
-            handleSave();
-            break;
+            e.preventDefault()
+            handleSave()
+            break
           case "D":
-            e.preventDefault();
-            handleDiscard();
-            break;
+            e.preventDefault()
+            handleDiscard()
+            break
           case "P":
-            e.preventDefault();
-            handlePreview();
-            break;
+            e.preventDefault()
+            handlePreview()
+            break
         }
       }
-    };
+    }
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown)
 
     // Get project name
     const getProjectName = async () => {
       try {
-        const response = await fetch("/package.json");
+        const response = await fetch("/package.json")
         if (response.ok) {
-          const packageJson = await response.json();
-          const name = packageJson.name || "Project";
-          setProjectName(name);
+          const packageJson = await response.json()
+          const name = packageJson.name || "Project"
+          setProjectName(name)
         }
       } catch (e) {
         // Use default project name
-        setProjectName("Project");
+        setProjectName("Project")
       }
-    };
+    }
 
-    getProjectName();
+    getProjectName()
 
     return () => {
-      client.off("stateChange", handleStateChange);
-      client.off("saveSuccess", handleSaveSuccess);
-      client.off("discardSuccess", handleDiscardSuccess);
-      client.off("previewResponse", handlePreviewResponse);
-      document.removeEventListener("keydown", handleKeyDown);
-      client.disconnect();
-    };
-  }, [client]);
+      client.off("stateChange", handleStateChange)
+      client.off("saveSuccess", handleSaveSuccess)
+      client.off("discardSuccess", handleDiscardSuccess)
+      client.off("previewResponse", handlePreviewResponse)
+      client.off("aiCommitMessageGenerated", handleAICommitGenerated)
+      client.off("revertProgress", handleRevertProgress)
+      document.removeEventListener("keydown", handleKeyDown)
+      client.disconnect()
+    }
+  }, [client])
 
   // Debug: Log every state change
   useEffect(() => {
@@ -292,56 +308,101 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       netlifyUrl: state.netlifyUrl,
       isConnected,
       isLoading,
-    });
-  }, [state, isConnected, isLoading]);
+    })
+  }, [state, isConnected, isLoading])
 
   const handleSave = () => {
     console.log(
       "[Phion Toolbar] handleSave called - pendingChanges:",
       state.pendingChanges,
       "isLoading:",
-      isLoading
-    );
+      isLoading,
+    )
     if (state.pendingChanges > 0 && !isLoading) {
-      console.log("[Phion Toolbar] Executing save...");
-      setIsLoading(true);
-      client.saveAll();
+      console.log("[Phion Toolbar] Executing save...")
+      setIsLoading(true)
+      client.saveAll()
     } else {
       console.log(
         "[Phion Toolbar] Save blocked - pendingChanges:",
         state.pendingChanges,
         "isLoading:",
-        isLoading
-      );
+        isLoading,
+      )
     }
-  };
+  }
+
+  const handleSaveWithAI = () => {
+    if (state.pendingChanges > 0 && !isLoading && !isGeneratingAI) {
+      console.log("[Phion Toolbar] Executing AI save...")
+      setIsGeneratingAI(true)
+      client.saveWithAIMessage()
+    }
+  }
+
+  const handleRevertToCommit = (commitSha: string) => {
+    if (!isLoading) {
+      console.log("[Phion Toolbar] Reverting to commit:", commitSha)
+      setShowRevertProgress(true)
+      setShowCommitHistory(false)
+      client.revertToCommit(commitSha)
+    }
+  }
+
+  const getDeployStatusColor = (status: string) => {
+    switch (status) {
+      case "ready":
+        return "#10b981"
+      case "building":
+        return "#f59e0b"
+      case "failed":
+        return "#ef4444"
+      case "pending":
+        return "#8b5cf6"
+      default:
+        return "rgba(255, 255, 255, 0.5)"
+    }
+  }
+
+  const getDeployStatusText = (status: string) => {
+    switch (status) {
+      case "ready":
+        return "✅ Ready"
+      case "building":
+        return "🔨 Building"
+      case "failed":
+        return "❌ Failed"
+      case "pending":
+        return "⏳ Pending"
+      default:
+        return "Unknown"
+    }
+  }
 
   const handleDiscard = () => {
     console.log(
       "[Phion Toolbar] handleDiscard called - pendingChanges:",
       state.pendingChanges,
       "isLoading:",
-      isLoading
-    );
+      isLoading,
+    )
     if (state.pendingChanges > 0 && !isLoading) {
-      console.log("[Phion Toolbar] Executing discard...");
-      setIsLoading(true);
-      client.discardAll();
+      console.log("[Phion Toolbar] Executing discard...")
+      setIsLoading(true)
+      client.discardAll()
     } else {
       console.log(
         "[Phion Toolbar] Discard blocked - pendingChanges:",
         state.pendingChanges,
         "isLoading:",
-        isLoading
-      );
+        isLoading,
+      )
     }
-  };
+  }
 
   const handlePreview = () => {
-    console.log(
-      "[Phion Toolbar] handlePreview called - using local HTTP server approach"
-    );
-    showDebugMessage("Requesting preview via local server...");
+    console.log("[Phion Toolbar] handlePreview called - using local HTTP server approach")
+    showDebugMessage("Requesting preview via local server...")
 
     // Try local HTTP server first (ports 3333 or 3334)
     const tryOpenWithLocalServer = async (port: number) => {
@@ -352,65 +413,63 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ url: state.netlifyUrl }),
-        });
+        })
 
         if (response.ok) {
-          const result = await response.json();
+          const result = await response.json()
           if (result.success) {
-            showDebugMessage("✅ Opened via local server!");
-            return true;
+            showDebugMessage("✅ Opened via local server!")
+            return true
           } else {
-            showDebugMessage("❌ Local server failed: " + result.message);
-            return false;
+            showDebugMessage("❌ Local server failed: " + result.message)
+            return false
           }
         }
-        return false;
+        return false
       } catch (error) {
         showDebugMessage(
-          `❌ Port ${port} failed: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`
-        );
-        return false;
+          `❌ Port ${port} failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        )
+        return false
       }
-    };
+    }
 
     // Try both possible ports
     const openPreview = async () => {
       if (!state.netlifyUrl) {
-        showDebugMessage("❌ No preview URL available");
-        return;
+        showDebugMessage("❌ No preview URL available")
+        return
       }
 
-      showDebugMessage("🔍 Trying local server port 3333...");
-      const port3333Success = await tryOpenWithLocalServer(3333);
+      showDebugMessage("🔍 Trying local server port 3333...")
+      const port3333Success = await tryOpenWithLocalServer(3333)
 
       if (!port3333Success) {
-        showDebugMessage("🔍 Trying local server port 3334...");
-        const port3334Success = await tryOpenWithLocalServer(3334);
+        showDebugMessage("🔍 Trying local server port 3334...")
+        const port3334Success = await tryOpenWithLocalServer(3334)
 
         if (!port3334Success) {
-          showDebugMessage("❌ Local server not available");
+          showDebugMessage("❌ Local server not available")
           // Fallback to WebSocket approach
-          console.log("[Phion Toolbar] Falling back to WebSocket approach");
-          client.requestPreview();
+          console.log("[Phion Toolbar] Falling back to WebSocket approach")
+          client.requestPreview()
         }
       }
-    };
+    }
 
-    openPreview();
-  };
+    openPreview()
+  }
 
   // Show debug message in UI
   const showDebugMessage = (message: string) => {
-    if (!isDebugMode) return; // Only show debug messages when debug mode is enabled
+    if (!isDebugMode) return // Only show debug messages when debug mode is enabled
 
-    setDebugMessage(message);
-    setTimeout(() => setDebugMessage(""), 3000); // Clear after 3 seconds
-  };
+    setDebugMessage(message)
+    setTimeout(() => setDebugMessage(""), 3000) // Clear after 3 seconds
+  }
 
   if (!isConnected) {
-    return null;
+    return null
   }
 
   // Debug: Log button states before render
@@ -419,11 +478,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     isLoading,
     saveDisabled: state.pendingChanges === 0 || isLoading,
     discardDisabled: state.pendingChanges === 0 || isLoading,
-    saveButtonColor:
-      state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
-    discardButtonColor:
-      state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
-  });
+    saveButtonColor: state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
+    discardButtonColor: state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
+  })
 
   return (
     <div
@@ -433,8 +490,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        fontFamily:
-          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         fontSize: "14px",
         flexShrink: 0,
         position: "relative",
@@ -471,6 +527,117 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </span>
         </div>
 
+        {/* Deploy Status Indicator */}
+        <div
+          style={{
+            position: "relative",
+            display: "inline-block",
+          }}
+          onMouseEnter={() => setShowCommitHistory(true)}
+          onMouseLeave={() => setShowCommitHistory(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+              color: getDeployStatusColor(state.deployStatus),
+              border: `1px solid ${getDeployStatusColor(state.deployStatus)}`,
+              padding: "2px 6px",
+              borderRadius: "6px",
+              fontSize: "11px",
+              fontWeight: "500",
+              cursor: "pointer",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            {getDeployStatusText(state.deployStatus)}
+          </div>
+
+          {/* Commit History Popup */}
+          {showCommitHistory && state.commitHistory && state.commitHistory.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: "0",
+                zIndex: 1000,
+                backgroundColor: "rgba(0, 0, 0, 0.95)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: "8px",
+                padding: "8px",
+                minWidth: "300px",
+                maxHeight: "200px",
+                overflowY: "auto",
+                backdropFilter: "blur(12px)",
+                marginTop: "4px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: "white",
+                  marginBottom: "8px",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                  paddingBottom: "4px",
+                }}
+              >
+                📋 Recent Commits
+              </div>
+              {state.commitHistory.slice(0, 5).map((commit, index) => (
+                <div
+                  key={commit.id}
+                  style={{
+                    padding: "6px",
+                    borderRadius: "4px",
+                    marginBottom: "4px",
+                    backgroundColor:
+                      index === 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(255, 255, 255, 0.05)",
+                    cursor: index === 0 ? "default" : "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onClick={() => index > 0 && handleRevertToCommit(commit.sha)}
+                  onMouseEnter={(e) => {
+                    if (index > 0) {
+                      e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.2)"
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      index === 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(255, 255, 255, 0.05)"
+                  }}
+                >
+                  <div style={{ fontSize: "11px", color: "white", fontWeight: "500" }}>
+                    {index === 0 && "🟢 "}
+                    {commit.message.substring(0, 40)}
+                    {commit.message.length > 40 && "..."}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "10px",
+                      color: "rgba(255, 255, 255, 0.6)",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {commit.sha.substring(0, 7)} • {commit.filesCount} files •{" "}
+                    {new Date(commit.createdAt).toLocaleTimeString()}
+                  </div>
+                  {index > 0 && (
+                    <div
+                      style={{
+                        fontSize: "9px",
+                        color: "rgba(59, 130, 246, 0.8)",
+                        marginTop: "2px",
+                      }}
+                    >
+                      Click to revert to this version
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {state.pendingChanges > 0 && (
           <div
             style={{
@@ -496,8 +663,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           disabled={state.pendingChanges === 0 || isLoading}
           style={{
             backgroundColor: "rgba(255, 255, 255, 0.1)",
-            color:
-              state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
+            color: state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
             border: "1px solid rgba(255, 255, 255, 0.2)",
             borderRadius: "6px",
             padding: "6px 12px",
@@ -510,28 +676,50 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           Discard
         </button>
 
+        {/* AI Save Button */}
+        <button
+          onClick={handleSaveWithAI}
+          disabled={state.pendingChanges === 0 || isLoading || isGeneratingAI}
+          style={{
+            backgroundColor:
+              state.pendingChanges > 0 && !isGeneratingAI ? "#8b5cf6" : "rgba(255, 255, 255, 0.1)",
+            color:
+              state.pendingChanges > 0 && !isGeneratingAI ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
+            border:
+              state.pendingChanges > 0 && !isGeneratingAI
+                ? "none"
+                : "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "6px",
+            padding: "6px 10px",
+            fontSize: "12px",
+            fontWeight: "500",
+            cursor: state.pendingChanges > 0 && !isGeneratingAI ? "pointer" : "not-allowed",
+            transition: "all 0.2s",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            boxShadow:
+              state.pendingChanges > 0 && !isGeneratingAI ? "0 1px 2px rgba(0, 0, 0, 0.1)" : "none",
+          }}
+        >
+          <span>🤖</span>
+          {isGeneratingAI ? "AI..." : "AI Save"}
+        </button>
+
         <button
           onClick={handleSave}
           disabled={state.pendingChanges === 0 || isLoading}
           style={{
-            backgroundColor:
-              state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
-            color:
-              state.pendingChanges > 0 ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
-            border:
-              state.pendingChanges > 0
-                ? "none"
-                : "1px solid rgba(255, 255, 255, 0.2)",
+            backgroundColor: state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
+            color: state.pendingChanges > 0 ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
+            border: state.pendingChanges > 0 ? "none" : "1px solid rgba(255, 255, 255, 0.2)",
             borderRadius: "6px",
             padding: "6px 12px",
             fontSize: "12px",
             fontWeight: "500",
             cursor: state.pendingChanges > 0 ? "pointer" : "not-allowed",
             transition: "all 0.2s",
-            boxShadow:
-              state.pendingChanges > 0
-                ? "0 1px 2px rgba(0, 0, 0, 0.1)"
-                : "none",
+            boxShadow: state.pendingChanges > 0 ? "0 1px 2px rgba(0, 0, 0, 0.1)" : "none",
           }}
         >
           {isLoading ? "Saving..." : "Save"}
@@ -572,6 +760,64 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           </svg>
         </button>
       </div>
+
+      {/* Revert Progress Overlay */}
+      {showRevertProgress && (
+        <div
+          style={{
+            position: "fixed",
+            top: "0",
+            left: "0",
+            right: "0",
+            bottom: "0",
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderRadius: "12px",
+              padding: "24px",
+              minWidth: "300px",
+              textAlign: "center",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <div
+              style={{ fontSize: "16px", fontWeight: "600", color: "white", marginBottom: "16px" }}
+            >
+              🔄 Reverting Project
+            </div>
+            <div
+              style={{
+                width: "100%",
+                height: "8px",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                borderRadius: "4px",
+                overflow: "hidden",
+                marginBottom: "12px",
+              }}
+            >
+              <div
+                style={{
+                  width: `${revertProgress.progress}%`,
+                  height: "100%",
+                  backgroundColor: "#8b5cf6",
+                  transition: "width 0.3s ease",
+                }}
+              />
+            </div>
+            <div style={{ fontSize: "14px", color: "rgba(255, 255, 255, 0.8)" }}>
+              {revertProgress.message}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
-};
+  )
+}

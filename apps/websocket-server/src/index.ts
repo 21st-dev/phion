@@ -1,6 +1,9 @@
 import cors from "cors"
-import "dotenv/config"
+import { config } from "dotenv"
 import express from "express"
+
+// Загружаем переменные окружения из .env.local
+config({ path: ".env.local" })
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { githubAppService } from "./services/github.js"
@@ -1402,8 +1405,61 @@ io.on("connection", (socket) => {
     }
   })
 
-  // НОВЫЙ HANDLER: Открытие preview через WebSocket
-  socket.on("toolbar_open_preview", async (data) => {
+  // ✅ NEW: Get commit history for toolbar
+  socket.on("toolbar_get_commit_history", async (data) => {
+    const projectId = data?.projectId || socket.data.projectId
+    const limit = data?.limit || 10
+    const offset = data?.offset || 0
+
+    if (!projectId) {
+      socket.emit("error", { message: "Missing projectId" })
+      return
+    }
+
+    try {
+      console.log(`📜 [TOOLBAR] Getting commit history for project ${projectId}`)
+
+      const supabase = getSupabaseServerClient()
+      const commitQueries = new CommitHistoryQueries(supabase)
+
+      // Получаем историю коммитов
+      const commits = await commitQueries.getProjectCommitHistory(projectId, limit, offset)
+      const stats = await commitQueries.getCommitStats(projectId)
+
+      const formattedCommits = commits.map((commit) => ({
+        id: commit.id,
+        sha: commit.github_commit_sha,
+        message: commit.commit_message,
+        url: commit.github_commit_url,
+        filesCount: commit.files_count || 0,
+        createdAt: commit.created_at,
+        committedBy: commit.committed_by || "System",
+      }))
+
+      socket.emit("commit_history_response", {
+        commits: formattedCommits,
+        stats: {
+          totalCommits: stats.total_commits,
+          totalFilesChanged: stats.total_files_changed,
+          firstCommit: stats.first_commit,
+          lastCommit: stats.last_commit,
+        },
+        pagination: {
+          limit,
+          offset,
+          hasMore: commits.length === limit,
+        },
+      })
+
+      console.log(`✅ [TOOLBAR] Sent ${commits.length} commits to toolbar`)
+    } catch (error) {
+      console.error("❌ [TOOLBAR] Error getting commit history:", error)
+      socket.emit("error", { message: "Failed to get commit history" })
+    }
+  })
+
+  // ✅ NEW: Save with AI-generated commit message
+  socket.on("toolbar_save_with_ai_message", async (data) => {
     const projectId = data?.projectId || socket.data.projectId
 
     if (!projectId) {
@@ -1412,141 +1468,142 @@ io.on("connection", (socket) => {
     }
 
     try {
-      console.log(`🌐 [TOOLBAR] Preview open request for project ${projectId}`)
+      console.log(`🤖 [TOOLBAR] Generating AI commit message for project ${projectId}`)
 
-      const supabase = getSupabaseServerClient()
-      const projectQueries = new ProjectQueries(supabase)
+      // Генерируем AI сообщение через web API
+      const webAppUrl = process.env.WEB_APP_URL || "http://localhost:3004"
+      const aiResponse = await fetch(
+        `${webAppUrl}/api/projects/${projectId}/generate-commit-message`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      )
 
-      // Получаем данные проекта
-      const project = await projectQueries.getProjectById(projectId)
-      if (!project) {
-        socket.emit("error", { message: "Project not found" })
-        return
+      if (!aiResponse.ok) {
+        throw new Error("Failed to generate AI commit message")
       }
 
-      if (!project.netlify_url) {
-        console.log(`❌ [TOOLBAR] No preview URL for project ${projectId}`)
-        socket.emit("toolbar_preview_response", {
-          success: false,
-          error: "No preview URL available yet",
-        })
-        return
-      }
+      const aiData = await aiResponse.json()
 
-      console.log(`✅ [TOOLBAR] Preview URL for project ${projectId}: ${project.netlify_url}`)
-
-      // Отправляем URL обратно в toolbar для обработки
-      socket.emit("toolbar_preview_response", {
-        success: true,
-        url: project.netlify_url,
+      // Отправляем AI сообщение клиенту
+      socket.emit("ai_commit_message_generated", {
         projectId,
+        commitMessage: aiData.commitMessage,
+        changesCount: aiData.changesCount,
+        files: aiData.files,
       })
+
+      // Теперь сохраняем изменения с AI сообщением
+      const commitSha = await saveFullProjectSnapshot(projectId, aiData.commitMessage)
+
+      // Получаем данные коммита для уведомления
+      const supabase = getSupabaseServerClient()
+      const commitQueries = new CommitHistoryQueries(supabase)
+      const latestCommit = await commitQueries.getLatestCommit(projectId)
+
+      // Уведомляем ВСЕХ клиентов в проекте о successful save
+      io.to(`project:${projectId}`).emit("save_success", {
+        projectId,
+        commitId: commitSha,
+        timestamp: Date.now(),
+      })
+
+      // Уведомляем всех клиентов о новом коммите
+      io.to(`project:${projectId}`).emit("commit_created", {
+        projectId,
+        commit: latestCommit
+          ? {
+              id: latestCommit.id,
+              sha: latestCommit.github_commit_sha,
+              message: latestCommit.commit_message,
+              url: latestCommit.github_commit_url,
+              filesCount: latestCommit.files_count || 0,
+              createdAt: latestCommit.created_at,
+              committedBy: latestCommit.committed_by || "AI Assistant",
+            }
+          : null,
+        timestamp: Date.now(),
+      })
+
+      // Триггерим деплой ТОЛЬКО после сохранения
+      console.log(`🚀 [TOOLBAR] Triggering deploy after AI save for project ${projectId}`)
+      triggerDeploy(projectId, commitSha).catch((error) => {
+        console.error(`❌ Deploy failed for project ${projectId}:`, error)
+      })
+
+      console.log(`✅ [TOOLBAR] AI commit saved successfully: "${aiData.commitMessage}"`)
     } catch (error) {
-      console.error(`❌ [TOOLBAR] Error getting preview URL for project ${projectId}:`, error)
-      socket.emit("error", { message: "Failed to get preview URL" })
+      console.error("❌ [TOOLBAR] Error saving with AI message:", error)
+      socket.emit("error", { message: "Failed to save with AI message" })
     }
   })
 
-  // ========= TOOLBAR AUTO-UPDATE HANDLERS =========
+  // ✅ NEW: Revert to specific commit from toolbar
+  socket.on("toolbar_revert_to_commit", async (data) => {
+    const projectId = data?.projectId || socket.data.projectId
+    const targetCommitSha = data?.targetCommitSha
+    const commitMessage = data?.commitMessage
 
-  // Проверка обновлений toolbar
-  socket.on("toolbar_check_updates", async (data) => {
-    const projectId = socket.data.projectId
-    if (!projectId) {
-      socket.emit("error", { message: "Not authenticated" })
+    if (!projectId || !targetCommitSha) {
+      socket.emit("error", { message: "Missing projectId or targetCommitSha" })
       return
     }
 
     try {
-      console.log(`🔄 [TOOLBAR_UPDATE] Update check requested for project ${projectId}`)
+      console.log(
+        `🔄 [TOOLBAR] Reverting project ${projectId} to commit ${targetCommitSha.substring(0, 7)}`,
+      )
 
-      // Делаем запрос к нашему API endpoint
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}/api/toolbar/check`,
+      // Получаем данные проекта
+      const supabase = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabase)
+      const project = await projectQueries.getProjectById(projectId)
+
+      if (!project) {
+        throw new Error("Project not found")
+      }
+
+      // Вызываем наш revert endpoint
+      const revertResponse = await fetch(
+        `http://localhost:${process.env.PORT || 8080}/api/projects/revert-to-commit`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            currentVersion: data?.currentVersion || "0.1.0",
-            channel: data?.channel || "stable",
             projectId,
+            targetCommitSha,
+            commitMessage: commitMessage || `Revert to ${targetCommitSha.substring(0, 7)}`,
+            githubRepoName: project.github_repo_name,
+            githubOwner: project.github_owner || "phion",
           }),
         },
       )
 
-      if (response.ok) {
-        const updateInfo = (await response.json()) as {
-          hasUpdate: boolean
-          latestVersion?: {
-            version: string
-            releaseNotes?: string
-          }
-          forceUpdate?: boolean
-        }
-
-        if (updateInfo.hasUpdate && updateInfo.latestVersion) {
-          console.log(
-            `🚀 [TOOLBAR_UPDATE] Update available for project ${projectId}: ${updateInfo.latestVersion.version}`,
-          )
-
-          // Отправляем уведомление об обновлении
-          socket.emit("toolbar_update_available", {
-            version: updateInfo.latestVersion.version,
-            forceUpdate: updateInfo.forceUpdate || false,
-            releaseNotes: updateInfo.latestVersion.releaseNotes,
-          })
-        } else {
-          console.log(`✅ [TOOLBAR_UPDATE] No updates available for project ${projectId}`)
-        }
-      } else {
-        console.log(`❌ [TOOLBAR_UPDATE] Failed to check updates: ${response.status}`)
+      if (!revertResponse.ok) {
+        const errorData = await revertResponse.json()
+        throw new Error(errorData.error || "Failed to revert commit")
       }
+
+      const revertData = await revertResponse.json()
+      console.log(`✅ [TOOLBAR] Revert completed successfully: ${revertData.newCommitSha}`)
     } catch (error) {
-      console.error(`❌ [TOOLBAR_UPDATE] Error checking updates for project ${projectId}:`, error)
+      console.error("❌ [TOOLBAR] Error reverting to commit:", error)
+      socket.emit("error", { message: "Failed to revert to commit" })
+
+      // Отправляем ошибку прогресса
+      io.to(`project:${projectId}`).emit("revert_progress", {
+        projectId,
+        stage: "failed",
+        progress: 0,
+        message: "Revert operation failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      })
     }
-  })
-
-  // Подтверждение получения обновления
-  socket.on("toolbar_update_acknowledged", async (data) => {
-    const projectId = socket.data.projectId
-    const version = data?.version
-
-    if (!projectId || !version) {
-      return
-    }
-
-    console.log(
-      `📝 [TOOLBAR_UPDATE] Update acknowledged for project ${projectId}, version ${version}`,
-    )
-  })
-
-  // Уведомление об успешном обновлении
-  socket.on("toolbar_update_success", async (data) => {
-    const projectId = socket.data.projectId
-    const version = data?.version
-
-    if (!projectId || !version) {
-      return
-    }
-
-    console.log(
-      `✅ [TOOLBAR_UPDATE] Update successful for project ${projectId}, version ${version}`,
-    )
-  })
-
-  // Уведомление об ошибке обновления
-  socket.on("toolbar_update_error", async (data) => {
-    const projectId = socket.data.projectId
-    const version = data?.version
-    const error = data?.error
-
-    if (!projectId || !version) {
-      return
-    }
-
-    console.log(
-      `❌ [TOOLBAR_UPDATE] Update error for project ${projectId}, version ${version}: ${error}`,
-    )
   })
 
   // Обработка ошибок
@@ -1670,665 +1727,70 @@ app.post("/webhooks/netlify", async (req, res) => {
         newStatus = "failed"
         break
       case "created": // deploy_created event
-      case "building": // deploy_building event + polling
-      case "started": // legacy fallback
-      case "enqueued":
-      case "new":
+        newStatus = "building"
+        break
+      case "building": // deploy в процессе
         newStatus = "building"
         break
       default:
-        console.log(`⚠️ Unknown Netlify state: ${state}, defaulting to building`)
-        newStatus = "building"
+        console.log(`⚠️ Unknown netlify state: ${state}`)
+        return res.status(200).json({
+          message: "Unknown state, no action taken",
+          state,
+        })
     }
 
-    // 🎯 ИСПРАВЛЕНИЕ: Предотвращаем деградацию статуса
-    // Если проект уже ready, не позволяем webhook'ам building его откатить
-    if (currentStatus === "ready" && newStatus === "building") {
-      console.log(
-        `⚠️ Ignoring building status webhook for project ${projectId} - already ready (webhook delay)`,
-      )
-      return res.status(200).json({
-        success: true,
-        message: "Webhook ignored - preventing status degradation",
-        projectId,
-        currentStatus,
-        ignoredStatus: newStatus,
-      })
-    }
+    console.log(`🔄 Updating project ${projectId} status: ${currentStatus} → ${newStatus}`)
 
-    // Если проект уже failed, не позволяем building его обновить (но ready может)
-    if (currentStatus === "failed" && newStatus === "building") {
-      console.log(`⚠️ Ignoring building status webhook for project ${projectId} - already failed`)
-      return res.status(200).json({
-        success: true,
-        message: "Webhook ignored - project already failed",
-        projectId,
-        currentStatus,
-        ignoredStatus: newStatus,
-      })
-    }
-
-    // Если статус не изменился, тоже пропускаем
-    if (currentStatus === newStatus) {
-      console.log(
-        `⚠️ Skipping webhook for project ${projectId} - status unchanged (${currentStatus})`,
-      )
-      return res.status(200).json({
-        success: true,
-        message: "Webhook ignored - status unchanged",
-        projectId,
-        status: currentStatus,
-      })
-    }
-
-    console.log(`📊 Updating project ${projectId} deploy status: ${currentStatus} → ${newStatus}`)
-
-    // Обновляем проект в базе данных
+    // Обновляем статус в базе данных
     const updateData: any = {
       deploy_status: newStatus,
-      netlify_deploy_id: deploy_id,
+      updated_at: new Date().toISOString(),
     }
 
-    // Обновляем URL только если деплой успешен и URL предоставлен
-    if (newStatus === "ready" && deploy_url) {
+    // Если есть URL деплоя и статус "ready" - обновляем netlify_url
+    if (deploy_url && newStatus === "ready") {
       updateData.netlify_url = deploy_url
-      console.log(`🌐 Updating netlify_url to: ${deploy_url}`)
     }
 
-    await projectQueries.updateProject(projectId, updateData)
+    // Если есть ошибка - сохраняем её
+    if (error_message && newStatus === "failed") {
+      updateData.deploy_error = error_message
+    }
 
-    // Логируем изменение статуса деплоя
-    console.log(
-      `🚀 Deploy status change for project ${projectId}: ${currentStatus} -> ${newStatus}`,
-    )
+    const { error: updateError } = await supabase
+      .from("projects")
+      .update(updateData)
+      .eq("id", projectId)
 
-    // Отправляем уведомление через WebSocket всем подключенным клиентам проекта
+    if (updateError) {
+      console.error("❌ Error updating project status:", updateError)
+      return res.status(500).json({ error: "Database update error" })
+    }
+
+    // Отправляем WebSocket уведомление всем клиентам проекта
     io.to(`project:${projectId}`).emit("deploy_status_update", {
       projectId,
       status: newStatus,
-      url: deploy_url,
-      error: error_message,
+      message: `Deploy ${state}${error_message ? `: ${error_message}` : ""}`,
+      netlifyUrl: deploy_url,
       timestamp: new Date().toISOString(),
     })
 
-    console.log(`✅ Webhook processed successfully for project ${projectId}`)
-    console.log(`📡 Emitted deploy status update: ${newStatus} - ${deploy_url || "no URL"}`)
+    console.log(`✅ Project ${projectId} status updated and WebSocket event sent`)
 
     res.status(200).json({
       success: true,
-      message: "Webhook processed successfully",
       projectId,
-      statusChange: `${currentStatus} → ${newStatus}`,
+      oldStatus: currentStatus,
+      newStatus,
+      deployUrl: deploy_url,
     })
   } catch (error) {
-    console.error("❌ Error processing Netlify webhook:", error)
+    console.error("❌ Error handling Netlify webhook:", error)
     res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : "Unknown error",
     })
   }
 })
-
-// ✅ Добавляем новый endpoint для инициализации проекта из Next.js
-app.post("/api/projects/initialize", async (req, res) => {
-  try {
-    const { projectId, templateType, projectName, repositoryName } = req.body
-
-    if (!projectId || !templateType || !projectName || !repositoryName) {
-      return res.status(400).json({
-        error: "Missing required fields: projectId, templateType, projectName, repositoryName",
-      })
-    }
-
-    console.log(`🚀 [INIT_PROJECT] Starting project initialization for ${projectId}...`)
-
-    // Запускаем инициализацию в фоне (здесь это безопасно - Railway не засыпает)
-    initializeProjectInBackground(projectId, templateType, projectName, repositoryName).catch(
-      (error) => {
-        console.error(`❌ [INIT_PROJECT] Background initialization failed for ${projectId}:`, error)
-      },
-    )
-
-    // Немедленно отвечаем клиенту
-    res.status(200).json({
-      success: true,
-      message: "Project initialization started",
-      projectId,
-    })
-  } catch (error) {
-    console.error("❌ [INIT_PROJECT] Error starting project initialization:", error)
-    res.status(500).json({
-      error: "Failed to start project initialization",
-      details: error instanceof Error ? error.message : "Unknown error",
-    })
-  }
-})
-
-/**
- * 🚀 Фоновая инициализация проекта - перенесено из Next.js
- * Здесь безопасно работать в фоне - Railway не засыпает
- */
-async function initializeProjectInBackground(
-  projectId: string,
-  templateType: string,
-  projectName: string,
-  repositoryName: string,
-): Promise<void> {
-  console.log(`🔄 [INIT_BG] Starting template upload for ${projectId}...`)
-
-  try {
-    const supabase = getSupabaseServerClient()
-    const projectQueries = new ProjectQueries(supabase)
-    const commitHistoryQueries = new CommitHistoryQueries(supabase)
-
-    // 1. Генерируем файлы шаблона
-    console.log(`📡 [INIT_BG] Sending initialization_progress to project:${projectId}`)
-    io.to(`project:${projectId}`).emit("initialization_progress", {
-      projectId,
-      stage: "generating_files",
-      progress: 10,
-      message: "Setting up your project...",
-    })
-
-    const templateFiles = await generateTemplateFiles(projectId, templateType, projectName)
-    console.log(`📋 [INIT_BG] Generated ${Object.keys(templateFiles).length} template files`)
-
-    io.to(`project:${projectId}`).emit("initialization_progress", {
-      projectId,
-      stage: "uploading_files",
-      progress: 20,
-      message: "Uploading project files...",
-    })
-
-    const fileEntries = Object.entries(templateFiles)
-    const totalFiles = fileEntries.length
-    const chunkSize = 5
-    const totalChunks = Math.ceil(totalFiles / chunkSize)
-
-    // Получаем parent commit для создания нового коммита (теперь всегда должен существовать, т.к. auto_init: true)
-    console.log(`🔍 [INIT_BG] About to call getLatestCommit for repository: ${repositoryName}`)
-    const parentCommit = await githubAppService.getLatestCommit(repositoryName)
-    console.log(`🔍 [INIT_BG] getLatestCommit returned:`, parentCommit)
-
-    if (!parentCommit) {
-      throw new Error(
-        "Repository should be initialized with auto_init: true, but no parent commit found",
-      )
-    }
-
-    console.log(`🔍 [INIT_BG] Parent commit: ${parentCommit.sha}`)
-
-    io.to(`project:${projectId}`).emit("initialization_progress", {
-      projectId,
-      stage: "creating_blobs",
-      progress: 30,
-      message: "Processing files...",
-    })
-
-    // Создаем blobs по чанкам с прогрессом
-    const blobs: { path: string; sha: string }[] = []
-
-    for (let i = 0; i < totalChunks; i++) {
-      const startIdx = i * chunkSize
-      const endIdx = Math.min(startIdx + chunkSize, totalFiles)
-      const chunk = fileEntries.slice(startIdx, endIdx)
-
-      // Создаем blobs для текущего чанка
-      const chunkBlobs = await Promise.all(
-        chunk.map(async ([path, content]) => {
-          const blob = await githubAppService.createBlob(repositoryName, content)
-          return { path, sha: blob.sha }
-        }),
-      )
-
-      blobs.push(...chunkBlobs)
-
-      // Отправляем прогресс
-      const progressPercent = 30 + ((i + 1) / totalChunks) * 40 // 30% - 70%
-      io.to(`project:${projectId}`).emit("initialization_progress", {
-        projectId,
-        stage: "creating_blobs",
-        progress: Math.round(progressPercent),
-        message: "Processing files...",
-      })
-
-      // Небольшая задержка между чанками
-      if (i < totalChunks - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
-      }
-    }
-
-    io.to(`project:${projectId}`).emit("initialization_progress", {
-      projectId,
-      stage: "creating_commit",
-      progress: 80,
-      message: "Saving project...",
-    })
-
-    // Создаем tree и коммит (с базовым tree от parent commit)
-    console.log(`🌳 [INIT_BG] Creating tree with base tree from parent commit...`)
-    const tree = await githubAppService.createTree(repositoryName, blobs, parentCommit.sha)
-
-    console.log(`📝 [INIT_BG] Creating commit with parent: ${parentCommit.sha}`)
-    const commit = await githubAppService.createCommit(
-      repositoryName,
-      "Initial commit from template",
-      tree.sha,
-      [parentCommit.sha],
-    )
-
-    // Обновляем main ветку (теперь всегда существует благодаря auto_init: true)
-    console.log(`🔄 [INIT_BG] Updating main branch with new commit: ${commit.sha}`)
-    await githubAppService.updateRef(repositoryName, "heads/main", commit.sha)
-    console.log(`✅ [INIT_BG] Successfully updated main branch`)
-
-    console.log(`✅ [INIT_BG] Uploaded ${totalFiles} files in one commit`)
-    const mainCommitSha = commit.sha
-
-    // 3. Создаем запись в commit_history
-    if (mainCommitSha) {
-      const commitRecord = await commitHistoryQueries.createCommitHistory({
-        project_id: projectId,
-        commit_message: "Initial commit from template",
-        github_commit_sha: mainCommitSha,
-        github_commit_url: `https://github.com/phion-dev/${repositoryName}/commit/${mainCommitSha}`,
-        files_count: Object.keys(templateFiles).length,
-      })
-
-      // Отправляем WebSocket событие о создании коммита
-      console.log(`📡 [INIT_BG] Sending commit_created event to project:${projectId}`)
-      io.to(`project:${projectId}`).emit("commit_created", {
-        projectId,
-        commit: {
-          commit_id: commitRecord.id,
-          commit_message: "Initial commit from template",
-          created_at: commitRecord.created_at,
-          files_count: Object.keys(templateFiles).length,
-          github_commit_sha: mainCommitSha,
-          github_commit_url: `https://github.com/phion-dev/${repositoryName}/commit/${mainCommitSha}`,
-        },
-      })
-      console.log(`✅ [INIT_BG] commit_created event sent for initial commit`)
-    }
-
-    // 4. ✅ Обновляем статус проекта как готовый к скачиванию
-    io.to(`project:${projectId}`).emit("initialization_progress", {
-      projectId,
-      stage: "finalizing",
-      progress: 90,
-      message: "Almost ready...",
-    })
-
-    await projectQueries.updateProject(projectId, {
-      deploy_status: "ready", // Проект готов к скачиванию и разработке
-    })
-
-    // 5. 🚀 Отправляем WebSocket событие о завершении инициализации
-    console.log(`📡 [INIT_BG] Sending final initialization_progress (100%) to project:${projectId}`)
-    io.to(`project:${projectId}`).emit("initialization_progress", {
-      projectId,
-      stage: "completed",
-      progress: 100,
-      message: "Project ready for download!",
-    })
-
-    console.log(`📡 [INIT_BG] Sending deploy_status_update to project:${projectId}`)
-    io.to(`project:${projectId}`).emit("deploy_status_update", {
-      status: "ready",
-      message: "Project initialization completed",
-      projectId,
-    })
-
-    console.log(
-      `🎉 [INIT_BG] Template upload completed for ${projectId}! Project ready for development.`,
-    )
-  } catch (error) {
-    console.error(`❌ [INIT_BG] Template upload failed for ${projectId}:`, error)
-
-    try {
-      console.log(`🔄 [INIT_BG] Updating project status to failed for ${projectId}...`)
-
-      // Обновляем статус на failed
-      const supabase = getSupabaseServerClient()
-      const projectQueries = new ProjectQueries(supabase)
-      await projectQueries.updateProject(projectId, {
-        deploy_status: "failed",
-      })
-      console.log(`✅ [INIT_BG] Project status updated to failed for ${projectId}`)
-
-      // Отправляем WebSocket событие об ошибке
-      console.log(`📡 [INIT_BG] Sending deploy_status_update (failed) to project:${projectId}`)
-      io.to(`project:${projectId}`).emit("deploy_status_update", {
-        status: "failed",
-        message: "Project initialization failed",
-        projectId,
-        timestamp: new Date().toISOString(),
-      })
-      console.log(`✅ [INIT_BG] WebSocket event sent for failed initialization`)
-    } catch (updateError) {
-      console.error(`❌ [INIT_BG] Failed to update project status for ${projectId}:`, updateError)
-    }
-
-    throw error
-  }
-}
-
-/**
- * Генерирует файлы шаблона с настройками проекта
- * Перенесено из Next.js для работы в WebSocket сервере
- */
-async function generateTemplateFiles(
-  projectId: string,
-  templateType: string,
-  projectName: string,
-): Promise<Record<string, string>> {
-  console.log(`🔄 [TEMPLATE] Generating template files for ${projectId} (${templateType})`)
-
-  // Импортируем необходимые модули
-  const fs = await import("fs")
-  const path = await import("path")
-
-  // Путь к шаблону (относительно корня workspace)
-  const templatePath = path.join(process.cwd(), "..", "..", "templates", templateType)
-
-  if (!fs.existsSync(templatePath)) {
-    // Пробуем альтернативный путь
-    const alternativeTemplatePath = path.join(process.cwd(), "templates", templateType)
-    if (!fs.existsSync(alternativeTemplatePath)) {
-      throw new Error(`Template ${templateType} not found`)
-    }
-    return await collectTemplateFiles(alternativeTemplatePath, projectName, projectId)
-  }
-
-  return await collectTemplateFiles(templatePath, projectName, projectId)
-}
-
-/**
- * Собирает все файлы из шаблона и применяет необходимые трансформации
- */
-async function collectTemplateFiles(
-  templatePath: string,
-  projectName: string,
-  projectId: string,
-): Promise<Record<string, string>> {
-  const fs = await import("fs")
-  const path = await import("path")
-
-  const templateFiles: Record<string, string> = {}
-
-  function collectFiles(dirPath: string, relativePath: string = ""): void {
-    const items = fs.readdirSync(dirPath, { withFileTypes: true })
-
-    for (const item of items) {
-      // Пропускаем служебные папки
-      if (
-        item.name === "node_modules" ||
-        item.name === ".git" ||
-        item.name === "dist" ||
-        item.name === ".next"
-      ) {
-        continue
-      }
-
-      const fullPath = path.join(dirPath, item.name)
-      const relativeFilePath = relativePath ? path.join(relativePath, item.name) : item.name
-
-      if (item.isDirectory()) {
-        collectFiles(fullPath, relativeFilePath)
-      } else {
-        let content = fs.readFileSync(fullPath, "utf-8")
-
-        // Применяем трансформации для специальных файлов
-        if (item.name === "package.json") {
-          const packageJson = JSON.parse(content)
-          packageJson.name = projectName.toLowerCase().replace(/\s+/g, "-")
-          content = JSON.stringify(packageJson, null, 2)
-        } else if (item.name === "phion.config.json") {
-          // Заменяем PROJECT_ID в конфигурационном файле
-          content = content.replace(/__PROJECT_ID__/g, projectId)
-
-          // Заменяем WS_URL в зависимости от окружения
-          const wsUrl =
-            process.env.NODE_ENV === "production" ? "wss://api.phion.dev" : "ws://localhost:8080"
-          content = content.replace(/__WS_URL__/g, wsUrl)
-
-          // Заменяем DEBUG_MODE в зависимости от окружения
-          const debugMode = process.env.NODE_ENV === "production" ? "false" : "true"
-          content = content.replace(/"__DEBUG_MODE__"/g, debugMode)
-        }
-
-        // Нормализуем пути (заменяем \ на /)
-        const normalizedPath = relativeFilePath.replace(/\\/g, "/")
-        templateFiles[normalizedPath] = content
-      }
-    }
-  }
-
-  collectFiles(templatePath)
-
-  console.log(`📋 [TEMPLATE] Collected ${Object.keys(templateFiles).length} files from template`)
-  return templateFiles
-}
-
-// ✅ Добавляем endpoint для создания GitHub репозитория из Next.js
-app.post("/api/projects/create-repository", async (req, res) => {
-  try {
-    const { projectId, projectName } = req.body
-
-    if (!projectId || !projectName) {
-      return res.status(400).json({
-        error: "Missing required fields: projectId, projectName",
-      })
-    }
-
-    console.log(`🚀 [CREATE_REPO] Creating GitHub repository for project ${projectId}...`)
-
-    // Создаем GitHub репозиторий
-    const repository = await githubAppService.createRepository(
-      projectId,
-      `Phion project: ${projectName}`,
-    )
-
-    console.log(`✅ [CREATE_REPO] GitHub repository created: ${repository.html_url}`)
-
-    // Обновляем проект с GitHub данными
-    const supabase = getSupabaseServerClient()
-    const projectQueries = new ProjectQueries(supabase)
-
-    await projectQueries.updateGitHubInfo(projectId, {
-      github_repo_url: repository.html_url,
-      github_repo_name: repository.name,
-      github_owner: "phion-dev",
-    })
-
-    res.status(200).json({
-      success: true,
-      repository: {
-        html_url: repository.html_url,
-        name: repository.name,
-        owner: "phion-dev",
-      },
-    })
-  } catch (error) {
-    console.error("❌ [CREATE_REPO] Error creating GitHub repository:", error)
-    res.status(500).json({
-      error: "Failed to create GitHub repository",
-      details: error instanceof Error ? error.message : "Unknown error",
-    })
-  }
-})
-
-// ✅ NEW: Complete project initialization endpoint - handles everything in one place
-app.post("/api/projects/initialize-complete", async (req, res) => {
-  try {
-    const { projectId, projectName, templateType, userId } = req.body
-
-    if (!projectId || !projectName || !templateType || !userId) {
-      return res.status(400).json({
-        error: "Missing required fields: projectId, projectName, templateType, userId",
-      })
-    }
-
-    console.log(`🚀 [INIT_COMPLETE] Starting complete project initialization for ${projectId}...`)
-
-    // Start the complete initialization process in the background
-    // This is safe here - Railway doesn't sleep like Vercel serverless functions
-    completeProjectInitialization(projectId, projectName, templateType, userId).catch((error) => {
-      console.error(`❌ [INIT_COMPLETE] Complete initialization failed for ${projectId}:`, error)
-    })
-
-    // Immediately respond to the client
-    res.status(200).json({
-      success: true,
-      message: "Complete project initialization started",
-      projectId,
-    })
-  } catch (error) {
-    console.error("❌ [INIT_COMPLETE] Error starting complete project initialization:", error)
-    res.status(500).json({
-      error: "Failed to start complete project initialization",
-      details: error instanceof Error ? error.message : "Unknown error",
-    })
-  }
-})
-
-/**
- * ✅ Complete project initialization - handles everything in the background
- * This replaces the logic that was in the Next.js API route
- */
-async function completeProjectInitialization(
-  projectId: string,
-  projectName: string,
-  templateType: string,
-  userId: string,
-): Promise<void> {
-  try {
-    console.log(`🚀 [COMPLETE_INIT] Starting complete initialization for ${projectId}...`)
-
-    // 1. Create GitHub repository
-    console.log(`🔄 [COMPLETE_INIT] Creating GitHub repository...`)
-    const repository = await githubAppService.createRepository(
-      projectId,
-      `Phion project: ${projectName}`,
-    )
-
-    // Update project with GitHub info
-    const supabase = getSupabaseServerClient()
-    const projectQueries = new ProjectQueries(supabase)
-    await projectQueries.updateGitHubInfo(projectId, {
-      github_repo_url: repository.html_url,
-      github_repo_name: repository.name,
-      github_owner: "phion-dev",
-    })
-
-    console.log(`✅ [COMPLETE_INIT] GitHub repository created: ${repository.html_url}`)
-
-    // 2. Initialize template
-    console.log(`🔄 [COMPLETE_INIT] Starting template initialization...`)
-    await initializeProjectInBackground(projectId, templateType, projectName, repository.name)
-
-    console.log(`✅ [COMPLETE_INIT] Complete initialization finished for ${projectId}`)
-  } catch (error) {
-    console.error(`❌ [COMPLETE_INIT] Complete initialization failed for ${projectId}:`, error)
-
-    // Update project status to failed
-    try {
-      const supabase = getSupabaseServerClient()
-      const projectQueries = new ProjectQueries(supabase)
-      await projectQueries.updateProject(projectId, {
-        deploy_status: "failed",
-      })
-      console.log(`📊 Updated project ${projectId} status to failed`)
-
-      // Send WebSocket event about failure
-      io.to(`project:${projectId}`).emit("deploy_status_update", {
-        status: "failed",
-        message: "Project initialization failed",
-        projectId,
-        timestamp: new Date().toISOString(),
-      })
-    } catch (updateError) {
-      console.error(`❌ Error updating project status for ${projectId}:`, updateError)
-    }
-
-    // Rethrow for logging
-    throw error
-  }
-}
-
-/**
- * Retry helper with exponential backoff - moved here to be reused
- */
-async function retryWithBackoff<T>(
-  operation: () => Promise<T>,
-  context: string,
-  maxAttempts = 3,
-  baseDelay = 1000,
-): Promise<T> {
-  let lastError: Error
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const result = await operation()
-      if (attempt > 1) {
-        console.log(`✅ [RETRY] ${context} succeeded on attempt ${attempt}`)
-      }
-      return result
-    } catch (error) {
-      lastError = error as Error
-
-      if (attempt === maxAttempts) {
-        console.error(
-          `❌ [RETRY] ${context} failed after ${maxAttempts} attempts:`,
-          lastError.message,
-        )
-        break
-      }
-
-      // Check if error is retryable
-      const isRetryable = shouldRetryError(error)
-      if (!isRetryable) {
-        console.error(`❌ [RETRY] ${context} failed with non-retryable error:`, lastError.message)
-        break
-      }
-
-      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000
-      console.log(
-        `⚠️ [RETRY] ${context} attempt ${attempt} failed, retrying in ${Math.round(delay)}ms:`,
-        lastError.message,
-      )
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-  }
-
-  throw lastError!
-}
-
-/**
- * Determines if an error should trigger a retry
- */
-function shouldRetryError(error: any): boolean {
-  // Retry on server errors (5xx)
-  if (error?.status >= 500) return true
-
-  // Retry on rate limiting
-  if (error?.status === 429) return true
-
-  // Don't retry on client errors (4xx except 429)
-  if (error?.status >= 400 && error?.status < 500) return false
-
-  // Retry on network/timeout errors
-  if (
-    error?.code === "ENOTFOUND" ||
-    error?.code === "ECONNRESET" ||
-    error?.code === "ETIMEDOUT" ||
-    error?.name === "AbortError" ||
-    error?.message?.includes("fetch failed") ||
-    error?.message?.includes("network") ||
-    error?.message?.includes("timeout")
-  ) {
-    return true
-  }
-
-  return false
-}
