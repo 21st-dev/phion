@@ -1,8 +1,8 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useWebSocket } from "@/hooks/use-websocket"
 import type { ProjectRow } from "@shipvibes/database"
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
 
 interface ProjectContextType {
   project: ProjectRow
@@ -16,6 +16,11 @@ interface ProjectContextType {
   saveAllChanges: (commitMessage?: string) => void
   discardAllChanges: () => void
   isSaving: boolean
+  initializationProgress: {
+    progress: number
+    stage: string
+    message: string
+  }
 }
 
 const ProjectContext = createContext<ProjectContextType | null>(null)
@@ -56,6 +61,11 @@ export function ProjectLayoutClient({
   const [agentConnected, setAgentConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [isSaving, setIsSaving] = useState(false)
+  const [initializationProgress, setInitializationProgress] = useState({
+    progress: 0,
+    stage: "",
+    message: "Initializing...",
+  })
 
   // Логируем изменения pendingChanges
   useEffect(() => {
@@ -217,6 +227,20 @@ export function ProjectLayoutClient({
       },
       [project.id],
     ),
+    onInitializationProgress: useCallback(
+      (data: { projectId: string; stage: string; progress: number; message: string }) => {
+        console.log("📊 [ProjectLayout] Initialization progress:", data)
+        if (data.projectId === project.id) {
+          setInitializationProgress({
+            progress: data.progress,
+            stage: data.stage,
+            message: data.message,
+          })
+          setLastUpdated(new Date())
+        }
+      },
+      [project.id],
+    ),
     onError: useCallback((error: any) => {
       console.error("❌ [ProjectLayout] WebSocket error:", error)
       setIsSaving(false)
@@ -260,6 +284,7 @@ export function ProjectLayoutClient({
     saveAllChanges,
     discardAllChanges,
     isSaving,
+    initializationProgress,
   }
 
   return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>

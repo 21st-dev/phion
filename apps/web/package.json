@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' next dev -p 3004",
     "dev:ngrok": "tsx scripts/start-with-ngrok.ts",
+    "types": "supabase gen types --lang=typescript --project-id 'ftmuxaouauvbpjniajpp' --schema public > ./lib//supabase/types.ts",
     "build": "NODE_OPTIONS='--no-deprecation' next build",
     "start": "next start",
     "lint": "next lint",

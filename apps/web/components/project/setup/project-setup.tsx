@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useWebSocket } from "@/hooks/use-websocket"
 import type { ProjectRow } from "@shipvibes/database"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 // Material удален - не используется
 import {
   DownloadStep,
@@ -134,12 +134,12 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
   }, [project.id])
 
   // Обработчик завершения инициализации
-  const handleInitializationComplete = () => {
+  const handleInitializationComplete = useCallback(() => {
     console.log("✅ [ProjectSetup] Initialization completed")
     setSteps((prev) =>
       prev.map((step) => (step.id === "download" ? { ...step, status: "READY" } : step)),
     )
-  }
+  }, [])
 
   // Функция плавного скролла к следующему шагу
   const scrollToStep = (stepIndex: number) => {

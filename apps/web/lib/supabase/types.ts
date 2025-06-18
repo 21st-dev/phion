@@ -1,4 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   public: {
@@ -236,6 +242,87 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          accepts_call: boolean | null
+          ai_analysis_reasoning: string | null
+          ai_analysis_score: number | null
+          ai_analysis_summary: string | null
+          ai_analyzed_at: string | null
+          ai_deployment_issues: boolean | null
+          ai_experience_level: string | null
+          ai_needs_reanalysis: boolean | null
+          ai_openness_score: number | null
+          ai_uses_cursor: boolean | null
+          ai_versioning_issues: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          coding_experience: string
+          created_at: string
+          dream_project: string
+          email: string
+          frustrations: string
+          id: string
+          name: string
+          status: string | null
+          tool_dislike: string | null
+          tools_used: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepts_call?: boolean | null
+          ai_analysis_reasoning?: string | null
+          ai_analysis_score?: number | null
+          ai_analysis_summary?: string | null
+          ai_analyzed_at?: string | null
+          ai_deployment_issues?: boolean | null
+          ai_experience_level?: string | null
+          ai_needs_reanalysis?: boolean | null
+          ai_openness_score?: number | null
+          ai_uses_cursor?: boolean | null
+          ai_versioning_issues?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          coding_experience: string
+          created_at?: string
+          dream_project: string
+          email: string
+          frustrations: string
+          id?: string
+          name: string
+          status?: string | null
+          tool_dislike?: string | null
+          tools_used?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepts_call?: boolean | null
+          ai_analysis_reasoning?: string | null
+          ai_analysis_score?: number | null
+          ai_analysis_summary?: string | null
+          ai_analyzed_at?: string | null
+          ai_deployment_issues?: boolean | null
+          ai_experience_level?: string | null
+          ai_needs_reanalysis?: boolean | null
+          ai_openness_score?: number | null
+          ai_uses_cursor?: boolean | null
+          ai_versioning_issues?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          coding_experience?: string
+          created_at?: string
+          dream_project?: string
+          email?: string
+          frustrations?: string
+          id?: string
+          name?: string
+          status?: string | null
+          tool_dislike?: string | null
+          tools_used?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       project_status_analytics: {
@@ -281,8 +368,10 @@ export type Tables<
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -336,7 +425,9 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] | { schema: keyof Database },
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof Database },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof Database
   }
@@ -368,24 +459,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
-// Type aliases for convenience
-export type ProjectRow = Tables<"projects">
-export type ProjectInsert = TablesInsert<"projects">
-export type ProjectUpdate = TablesUpdate<"projects">
-
-export type FileHistoryRow = Tables<"file_history">
-export type FileHistoryInsert = TablesInsert<"file_history">
-export type FileHistoryUpdate = TablesUpdate<"file_history">
-
-export type PendingChangesRow = Tables<"pending_changes">
-export type PendingChangesInsert = TablesInsert<"pending_changes">
-export type PendingChangesUpdate = TablesUpdate<"pending_changes">
-
-export type DeployStatusRow = Tables<"deploy_status">
-export type DeployStatusInsert = TablesInsert<"deploy_status">
-export type DeployStatusUpdate = TablesUpdate<"deploy_status">
-
-export type CommitHistoryRow = Tables<"commit_history">
-export type CommitHistoryInsert = TablesInsert<"commit_history">
-export type CommitHistoryUpdate = TablesUpdate<"commit_history">

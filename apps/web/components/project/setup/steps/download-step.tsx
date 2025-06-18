@@ -2,10 +2,10 @@
 
 import { Button } from "@/components/geist/button"
 import { Material } from "@/components/geist/material"
-import { useWebSocket } from "@/hooks/use-websocket"
+import { useProject } from "@/components/project/project-layout-client"
 import NumberFlow from "@number-flow/react"
 import type { ProjectRow } from "@shipvibes/database"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 interface DownloadStepProps {
   project: ProjectRow
@@ -21,69 +21,41 @@ export function DownloadStep({
   onInitializationComplete,
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false)
-  const [isInitializing, setIsInitializing] = useState(project.deploy_status === "pending")
   const [downloadError, setDownloadError] = useState(false)
-  const [initializationProgress, setInitializationProgress] = useState({
-    progress: 0,
-    stage: "",
-    message: "Initializing...",
-  })
 
-  const { isConnected } = useWebSocket({
-    projectId: project.id,
-    onDeployStatusUpdate: (data) => {
-      console.log("🔄 [DownloadStep] Deploy status update:", data)
-      if (data.projectId === project.id) {
-        if (data.status !== "pending" && isInitializing) {
-          console.log("✅ [DownloadStep] Initialization completed via WebSocket")
-          setIsInitializing(false)
-          onInitializationComplete?.()
-        }
-        else if (data.status === "pending" && !isInitializing) {
-          console.log("⏳ [DownloadStep] Initialization started via WebSocket")
-          setIsInitializing(true)
-        }
-      }
-    },
-    onInitializationProgress: (data) => {
-      console.log("📊 [DownloadStep] Initialization progress:", data)
-      if (data.projectId === project.id) {
-        setInitializationProgress({
-          progress: data.progress,
-          stage: data.stage,
-          message: data.message,
-        })
+  // Use project context instead of creating a new WebSocket connection
+  const { project: contextProject, initializationProgress, isConnected } = useProject()
 
-        if (data.progress >= 100) {
-          console.log("✅ [DownloadStep] Initialization completed via progress")
-          setIsInitializing(false)
-          onInitializationComplete?.()
-        }
-      }
-    },
-  })
+  // Check if project is initializing based on deploy status
+  const isInitializing = contextProject.deploy_status === "pending"
 
+  // Memoize the completion callback to prevent infinite re-renders
+  const stableOnInitializationComplete = useCallback(() => {
+    onInitializationComplete?.()
+  }, [onInitializationComplete])
+
+  // Watch for initialization completion via progress
   useEffect(() => {
-    const checkInitialStatus = async () => {
-      try {
-        const response = await fetch(`/api/projects/${project.id}/status`)
-        if (response.ok) {
-          const statusData = await response.json()
-          const isPending = statusData.deploy_status === "pending"
-          setIsInitializing(isPending)
+    console.log("📊 [DownloadStep] Progress state changed:", {
+      progress: initializationProgress.progress,
+      stage: initializationProgress.stage,
+      message: initializationProgress.message,
+      isInitializing,
+    })
 
-          console.log("🔍 [DownloadStep] Initial status check:", {
-            status: statusData.deploy_status,
-            isInitializing: isPending,
-          })
-        }
-      } catch (error) {
-        console.error("Error checking initial project status:", error)
-      }
+    if (initializationProgress.progress >= 100 && isInitializing) {
+      console.log("✅ [DownloadStep] Initialization completed via progress")
+      stableOnInitializationComplete()
     }
+  }, [initializationProgress.progress, isInitializing, stableOnInitializationComplete])
 
-    checkInitialStatus()
-  }, [project.id])
+  // Watch for deploy status changes
+  useEffect(() => {
+    if (contextProject.deploy_status !== "pending" && contextProject.deploy_status !== null) {
+      console.log("✅ [DownloadStep] Initialization completed via deploy status")
+      stableOnInitializationComplete()
+    }
+  }, [contextProject.deploy_status, stableOnInitializationComplete])
 
   const handleDownload = () => {
     if (isInitializing || isDownloading) return
