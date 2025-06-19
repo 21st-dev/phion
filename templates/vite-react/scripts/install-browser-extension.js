@@ -109,7 +109,7 @@ try {
   }
 
   // Create extension directory in Cursor extensions
-  const targetExtensionDir = join(cursorExtensionsDir, "phion-auto-browser-0.0.5")
+  const targetExtensionDir = join(cursorExtensionsDir, "phion-auto-browser-0.0.7")
 
   console.log("🔄 Copying extension to Cursor extensions directory...")
   console.log(`📁 Target: ${targetExtensionDir}`)
