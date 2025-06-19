@@ -1,14 +1,22 @@
-const vscode = require("vscode")
-const http = require("http")
-const path = require("path")
-const fs = require("fs")
+import * as fs from "fs"
+import * as http from "http"
+import * as path from "path"
+import * as vscode from "vscode"
+import { startCDPRelayServer } from "./utils/cdp-relay.js"
+import { dispatchAgentCall } from "./utils/dispatch-agent-call"
+import { initializeDiagnosticCollection } from "./utils/inject-prompt-diagnostic-with-callback"
 
 // Default Vite port only
 const DEFAULT_VITE_PORT = 5173
 
 // Flag to track auto-open state
 let hasAutoOpened = false
-let serverCheckInterval = null
+let serverCheckInterval: NodeJS.Timeout | null = null
+
+// CDP Bridge server state
+let cdpBridgeServer: any = null
+let cdpBridgePort = 9223
+let consoleLogsChannel: vscode.OutputChannel | null = null
 
 let AUTO_START_NEW_PROJECT = false
 let AUTO_OPTIMIZE_WORKSPACE = true
@@ -179,7 +187,7 @@ async function startProject(context, isAutoStart = false) {
     const message = isAutoStart ? "🚀 Auto-starting your project..." : "🚀 Starting your project..."
 
     vscode.window.showInformationMessage(message)
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to start project:", error)
     vscode.window.showErrorMessage(`Could not start project: ${error.message}`)
   }
@@ -251,6 +259,92 @@ async function openPreview() {
 }
 
 /**
+ * Start CDP Bridge Server for Chrome extension integration
+ */
+async function startCDPBridge() {
+  if (cdpBridgeServer) {
+    console.log("🔗 CDP Bridge server already running")
+    return
+  }
+
+  try {
+    const httpServer = http.createServer()
+    await new Promise<void>((resolve) => httpServer.listen(cdpBridgePort, resolve))
+
+    const { cdpEndpoint, server } = await startCDPRelayServer(httpServer)
+    cdpBridgeServer = { httpServer, cdpEndpoint, server }
+
+    // Create output channel for console logs
+    if (!consoleLogsChannel) {
+      consoleLogsChannel = vscode.window.createOutputChannel("Browser Console Logs")
+    }
+
+    // Set up console log handling
+    server.setConsoleLogCallback(async (logData: any) => {
+      if (consoleLogsChannel) {
+        const timestamp = new Date().toISOString()
+        const level = logData.type || "log"
+        const args = logData.args || []
+
+        // Format console message
+        const message = args.map(JSON.stringify).join(" ")
+
+        consoleLogsChannel.appendLine(`[${timestamp}] ${level.toUpperCase()}: ${message}`)
+
+        // Call dispatchAgentCall on error messages
+        if (level === "error") {
+          try {
+            await dispatchAgentCall({
+              prompt: `Fix this console error: ${message}`,
+              mode: "agent",
+            })
+          } catch (error) {
+            console.error("Failed to dispatch agent call for error:", error)
+          }
+        }
+      }
+    })
+
+    console.log(`🔗 CDP Bridge server started on port ${cdpBridgePort}`)
+  } catch (error: any) {
+    console.error("Failed to start CDP bridge server:", error)
+    vscode.window.showErrorMessage(`Could not start CDP bridge: ${error.message}`)
+  }
+}
+
+/**
+ * Stop CDP Bridge Server
+ */
+async function stopCDPBridge() {
+  if (!cdpBridgeServer) return
+
+  try {
+    cdpBridgeServer.httpServer.close()
+    cdpBridgeServer = null
+
+    if (consoleLogsChannel) {
+      consoleLogsChannel.dispose()
+      consoleLogsChannel = null
+    }
+
+    console.log("🔗 CDP Bridge server stopped")
+  } catch (error: any) {
+    console.error("Error stopping CDP bridge server:", error)
+  }
+}
+
+/**
+ * Show console logs output channel
+ */
+function showConsoleLogs() {
+  if (consoleLogsChannel) {
+    consoleLogsChannel.show()
+  } else {
+    vscode.window.showInformationMessage("Console logs not available. Start CDP Bridge first.")
+  }
+}
+
+/**
  * Check if this is a Phion project
  */
 function isPhionProject() {
@@ -285,8 +379,17 @@ function activate(context) {
   updateConfigSettings()
   console.log("🚀 Phion extension activated")
 
+  // Initialize diagnostic collection for prompt injection
+  const diagnosticCollection = initializeDiagnosticCollection()
+  context.subscriptions.push(diagnosticCollection) // Dispose on deactivation
+
   // Check if this is a Phion project and start monitoring
   if (isPhionProject()) {
+    // Auto-start CDP bridge for all Phion projects
+    setTimeout(() => {
+      startCDPBridge()
+    }, 1000)
+
     // First check if server is already running
     checkWebsiteServer().then((isServerActive) => {
       if (isServerActive && !hasAutoOpened) {
@@ -321,8 +424,13 @@ function activate(context) {
 
   const openPreviewCommand = vscode.commands.registerCommand("phion.openPreview", openPreview)
 
+  const showConsoleLogsCommand = vscode.commands.registerCommand(
+    "phion.showConsoleLogs",
+    showConsoleLogs,
+  )
+
   // Add to subscriptions
-  context.subscriptions.push(startProjectCommand, openPreviewCommand)
+  context.subscriptions.push(startProjectCommand, openPreviewCommand, showConsoleLogsCommand)
 }
 
 /**
@@ -333,10 +441,13 @@ function deactivate() {
     clearInterval(serverCheckInterval)
     serverCheckInterval = null
   }
+
+  // Clean up CDP bridge server
+  if (cdpBridgeServer) {
+    stopCDPBridge()
+  }
+
   console.log("👋 Phion extension deactivated")
 }
 
-module.exports = {
-  activate,
-  deactivate,
-}
+export { activate, deactivate }

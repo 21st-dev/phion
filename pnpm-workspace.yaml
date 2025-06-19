@@ -1,3 +1,5 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "templates/*"
+  - "templates/vite-react/scripts/auto-browser-extension"

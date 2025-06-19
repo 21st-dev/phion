@@ -11,9 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
-  "main": "./extension.js",
+  "main": "./out/main.js",
   "contributes": {
     "commands": [
       {
@@ -23,6 +23,10 @@
       {
         "command": "phion.openPreview",
         "title": "Phion: Open Preview"
+      },
+      {
+        "command": "phion.showConsoleLogs",
+        "title": "Phion: Show Console Logs"
       }
     ]
   },
@@ -31,12 +35,21 @@
     "publish": "pnpm ovsx publish --no-dependencies --pat",
     "publish:vscode": "pnpm vsce publish --no-dependencies",
     "vscode:prepublish": "pnpm run esbuild-base --minify",
-    "esbuild-base": "esbuild \"./src/extension.js\" --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node"
+    "esbuild-base": "esbuild \"./src/extension.ts\" --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "@types/node": "^24.0.3",
+    "@types/vscode": "^1.81.0",
+    "@types/ws": "^8.18.1",
     "esbuild": "^0.25.5",
     "ovsx": "^0.10.4",
     "vsce": "^2.15.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@types/debug": "^4.1.12",
+    "debug": "^4.4.1",
+    "ws": "^8.18.2"
+  }
 }

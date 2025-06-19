@@ -15,7 +15,7 @@ console.log("📦 Installing Phion Auto Browser Extension for Cursor...")
 
 const extensionDir = join(__dirname, "auto-browser-extension")
 const packageJsonPath = join(extensionDir, "package.json")
-const extensionJsPath = join(extensionDir, "extension.js")
+const extensionJsPath = join(extensionDir, "src", "extension.ts")
 
 // Check if extension files exist
 if (!existsSync(packageJsonPath) || !existsSync(extensionJsPath)) {
