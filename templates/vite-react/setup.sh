@@ -90,12 +90,6 @@ install_linux() {
     if ! command_exists pnpm; then
         echo "⚙️ Installing pnpm..."
         curl -fsSL https://get.pnpm.io/install.sh | sh -
-        
-        export PNPM_HOME="$HOME/.local/share/pnpm"
-        export PATH="$PNPM_HOME:$PATH"
-        
-        echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.bashrc
-        echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.bashrc
     else
         echo "✅ pnpm already installed ($(pnpm --version))"
     fi
@@ -127,8 +121,11 @@ if [[ "${MACHINE}" == "Mac" ]]; then
     fi
 fi
 
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
+if [[ "$SHELL" == */zsh ]] || [[ -n "$ZSH_VERSION" ]]; then
+    source ~/.zshrc || true
+else
+    source ~/.bashrc || true
+fi
 
 echo "🔍 Checking installed versions:"
 if command_exists node; then
