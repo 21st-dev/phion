@@ -1,8 +1,8 @@
 {
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
-  "description": "Tools for Phion development: auto-open browser, optimize workspace, monitor server, clear ports",
-  "version": "0.0.5",
+  "description": "Tools for Phion development",
+  "version": "0.0.7",
   "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
@@ -26,6 +26,17 @@
       }
     ]
   },
-  "scripts": {},
-  "devDependencies": {}
+  "scripts": {
+    "package": "pnpm vsce package --no-dependencies",
+    "publish": "pnpm ovsx publish --no-dependencies --pat",
+    "publish:vscode": "pnpm vsce publish --no-dependencies",
+    "vscode:prepublish": "pnpm run esbuild-base --minify",
+    "esbuild-base": "esbuild \"./src/extension.js\" --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.5",
+    "ovsx": "^0.10.4",
+    "vsce": "^2.15.0"
+  },
+  "license": "MIT"
 }

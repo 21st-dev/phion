@@ -155,6 +155,7 @@ echo ""
 
 if command_exists pnpm; then
     pnpm install
+    node scripts/install-browser-extension.js
     echo ""
     echo "✅ Dependencies installed!"
     echo "🌐 Starting development server and sync agent..."

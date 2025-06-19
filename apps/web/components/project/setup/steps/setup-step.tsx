@@ -1,12 +1,12 @@
 "use client"
 
+import { Icons } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Icons } from "@/components/icons"
-import { CheckCircle, Clock } from "lucide-react"
-import { useWebSocket } from "@/hooks/use-websocket"
 import { useToast } from "@/hooks/use-toast"
-import { useState, useEffect } from "react"
+import { useWebSocket } from "@/hooks/use-websocket"
+import { Copy } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface SetupStepProps {
   onDeploy: () => void
@@ -68,6 +68,15 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
     } catch (error) {
       console.log("Could not open Cursor automatically")
       success("Open Cursor manually", "Launch Cursor from your Applications folder")
+    }
+  }
+
+  const handleCopyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText("chmod +x setup.sh && ./setup.sh")
+      success("Copied to clipboard", "Command copied successfully")
+    } catch (err) {
+      error("Failed to copy", "Please copy the command manually")
     }
   }
 
@@ -140,36 +149,32 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
             </div>
           </div>
 
-          {/* Step 4: Wait for auto setup */}
+          {/* Step 4: Run setup command */}
           <div>
-            <div className="text-sm font-medium text-foreground mb-2">
-              4. Wait for automatic setup
-            </div>
-            <div
-              className={`bg-muted rounded-md p-4 border transition-colors ${
-                agentConnected ? "border-primary/50 bg-primary/5" : "border-border"
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  {agentConnected ? (
-                    <CheckCircle className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Clock className="h-5 w-5 text-muted-foreground animate-pulse" />
-                  )}
-                </div>
-                <div>
-                  <div className="text-xs text-foreground">
-                    {agentConnected
-                      ? "Setup complete! Your project is now running and syncing automatically."
-                      : "Setting up your project automatically..."}
-                  </div>
-                  {!agentConnected && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Dependencies are being installed and the development server is starting
-                    </div>
-                  )}
-                </div>
+            <div className="text-sm font-medium text-foreground mb-2">4. Run this command</div>
+            <div className="bg-muted rounded-md p-4 border border-border space-y-3">
+              <div className="text-xs text-muted-foreground">
+                Open a terminal by pressing{" "}
+                <kbd className="px-2 py-1 bg-background text-foreground rounded text-xs font-mono border border-border">
+                  Cmd + Shift + `
+                </kbd>{" "}
+                or go to Terminal → New Terminal from the menu bar
+              </div>
+              <div className="bg-background border border-border rounded p-2 flex items-center justify-between">
+                <code className="text-xs font-mono text-foreground">
+                  chmod +x setup.sh && ./setup.sh
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleCopyCommand}
+                  className="h-6 w-6 p-0 ml-2 hover:bg-muted"
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Paste this command and press Enter
               </div>
             </div>
           </div>
