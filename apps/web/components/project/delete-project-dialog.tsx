@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSupabase } from "@/lib/supabase/client"
 import { Button } from "@/components/geist/button"
 import { Trash2 } from "lucide-react"
 import {
@@ -29,9 +30,22 @@ export function DeleteProjectDialog({
   variant = "button",
 }: DeleteProjectDialogProps) {
   const router = useRouter()
+  const supabase = useSupabase()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const { error: showError, success: showSuccess } = useToast()
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      }
+    }
+    getCurrentUser()
+  }, [])
 
   const confirmDeleteProject = async () => {
     setIsDeleting(true)
@@ -50,7 +64,11 @@ export function DeleteProjectDialog({
       if (onSuccess) {
         onSuccess()
       }
-      // No redirect needed - user stays on dashboard
+      
+      // Redirect to user dashboard after successful deletion
+      if (userId) {
+        router.push(`/${userId}`)
+      }
     } catch (error) {
       console.error("Error deleting project:", error)
       showError("Failed to delete project", "Please try again")

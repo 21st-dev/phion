@@ -26,11 +26,13 @@ const SimpleWrapper: React.FC<{
   websocketUrl: string;
   position: "top" | "bottom";
 }> = ({ projectId, websocketUrl, position }) => {
-  // Add CSS styles to head
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  // Add CSS styles to head and keyboard handler
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @keyframes phion-content-margin {
+      @keyframes phion-content-margin-show {
         0% {
           margin: 0;
           width: 100%;
@@ -47,17 +49,57 @@ const SimpleWrapper: React.FC<{
         }
       }
 
+      @keyframes phion-content-margin-hide {
+        0% {
+          margin: 48px 8px 8px 8px;
+          width: calc(100% - 16px);
+          height: calc(100% - 56px);
+          border-radius: 6px;
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        100% {
+          margin: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 0;
+          box-shadow: none;
+        }
+      }
+
       @keyframes phion-toolbar-appear {
         0% {
           opacity: 0;
+          transform: translateY(-100%);
         }
         100% {
           opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes phion-toolbar-disappear {
+        0% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-100%);
         }
       }
 
       .phion-container {
         background-color: #000000;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999998;
+      }
+
+      .phion-container.hidden {
+        display: none;
       }
 
       .phion-toolbar {
@@ -67,7 +109,15 @@ const SimpleWrapper: React.FC<{
         right: 0;
         z-index: 999999;
         opacity: 0;
-        animation: phion-toolbar-appear 400ms ease-out 1.6s both;
+        transform: translateY(-100%);
+      }
+
+      .phion-toolbar.visible {
+        animation: phion-toolbar-appear 400ms ease-out both;
+      }
+
+      .phion-toolbar.hidden {
+        animation: phion-toolbar-disappear 400ms ease-out both;
       }
 
       .phion-content {
@@ -77,15 +127,154 @@ const SimpleWrapper: React.FC<{
         border-radius: 0;
         box-shadow: none;
         box-sizing: border-box;
-        animation: phion-content-margin 600ms ease-out 1s both;
+        background-color: #ffffff;
+        overflow: auto;
+        position: relative;
+      }
+
+      .phion-content.visible {
+        animation: phion-content-margin-show 600ms ease-out both;
+      }
+
+      .phion-content.hidden {
+        animation: phion-content-margin-hide 600ms ease-out both;
+      }
+
+      /* Apple-style custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background-clip: content-box;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
+        background-clip: content-box;
+      }
+
+      ::-webkit-scrollbar-thumb:active {
+        background: rgba(0, 0, 0, 0.4);
+        background-clip: content-box;
+      }
+
+      /* Dark mode scrollbar */
+      @media (prefers-color-scheme: dark) {
+        ::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          background-clip: content-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+          background-clip: content-box;
+        }
+
+        ::-webkit-scrollbar-thumb:active {
+          background: rgba(255, 255, 255, 0.4);
+          background-clip: content-box;
+        }
+      }
+
+      /* Fallback for Firefox */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        * {
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
       }
     `;
     document.head.appendChild(style);
 
+    // Keyboard handler for Cmd+/ toggle
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault();
+        console.log('[Phion] Toggle toolbar, current state:', isVisible);
+        setIsVisible(prev => {
+          const newState = !prev;
+          
+          if (newState) {
+            // Show toolbar - move content to wrapper immediately, then show with delay for smooth transition
+            moveContentToWrapper();
+            setTimeout(() => {
+              // Container will be shown by React state change
+            }, 50);
+          } else {
+            // Hide toolbar - move content to body immediately for instant full-screen
+            moveContentToBody();
+          }
+          
+          return newState;
+        });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.head.removeChild(style);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  // Function to move content to body (full screen mode)
+  const moveContentToBody = () => {
+    const contentWrapper = document.getElementById('phion-content-wrapper');
+    const body = document.body;
+    
+    if (contentWrapper) {
+      // Reset body styles for full screen
+      body.style.margin = '';
+      body.style.padding = '';
+      body.style.overflow = '';
+      
+      // Move all children from wrapper to body
+      while (contentWrapper.firstChild) {
+        body.appendChild(contentWrapper.firstChild);
+      }
+      
+      console.log('[Phion] Content moved to body for full screen');
+    }
+  };
+
+  // Function to move content to wrapper (toolbar mode)  
+  const moveContentToWrapper = () => {
+    const contentWrapper = document.getElementById('phion-content-wrapper');
+    const body = document.body;
+    
+    if (contentWrapper) {
+      // Set body styles for toolbar mode
+      body.style.margin = '0';
+      body.style.padding = '0';
+      body.style.overflow = 'hidden';
+      
+      // Move content from body to wrapper (except phion container and scripts)
+      const elementsToMove = Array.from(body.children).filter(child => 
+        child.id !== 'phion-root-container' && 
+        !child.matches('script, style, link')
+      );
+      
+      elementsToMove.forEach(element => {
+        contentWrapper.appendChild(element);
+      });
+      
+      console.log('[Phion] Content moved to wrapper for toolbar mode');
+    }
+  };
 
   return React.createElement("div", { key: "main-wrapper" }, [
     // Fixed Toolbar
@@ -93,7 +282,7 @@ const SimpleWrapper: React.FC<{
       "div",
       {
         key: "toolbar",
-        className: "phion-toolbar",
+        className: `phion-toolbar ${isVisible ? 'visible' : 'hidden'}`,
         style: {
           backgroundColor: "#000000",
         },
@@ -110,28 +299,13 @@ const SimpleWrapper: React.FC<{
       "div",
       {
         key: "container",
-        className: "phion-container",
-        style: {
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 999998,
-        },
+        className: `phion-container ${isVisible ? '' : 'hidden'}`,
       },
       // Content wrapper
       React.createElement("div", {
         key: "content",
         id: "phion-content-wrapper",
-        className: "phion-content",
-        style: {
-          width: "100%",
-          height: "100%",
-          backgroundColor: "#ffffff",
-          overflow: "auto",
-          position: "relative",
-        },
+        className: `phion-content ${isVisible ? 'visible' : 'hidden'}`,
       })
     ),
   ]);
@@ -197,18 +371,8 @@ function initializeToolbar() {
       })
     );
 
-    // Move original content to the content wrapper after render
-    setTimeout(() => {
-      const contentWrapper = document.getElementById("phion-content-wrapper");
-      if (contentWrapper) {
-        originalContent.forEach((child: Element) => {
-          if ((child as HTMLElement).id !== "phion-root-container") {
-            contentWrapper.appendChild(child);
-          }
-        });
-        console.log("[Phion Init] Content moved successfully");
-      }
-    }, 100);
+    // Since toolbar starts hidden, keep content in body initially
+    console.log("[Phion Init] Toolbar starts hidden, content remains in body");
 
     // Store instance for cleanup
     window.PHION_TOOLBAR_INSTANCE = {
