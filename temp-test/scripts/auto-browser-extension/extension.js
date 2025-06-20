@@ -10,6 +10,30 @@ const DEFAULT_VITE_PORT = 5173
 let hasAutoOpened = false
 let serverCheckInterval = null
 
+// Persistent storage key for browser opened state
+const BROWSER_OPENED_KEY = 'phion-browser-opened'
+
+// Function to check persistent browser opened state
+function isPersistentBrowserOpened(context) {
+  const timestamp = context.globalState.get(BROWSER_OPENED_KEY, 0)
+  const now = Date.now()
+  const thirtyMinutes = 30 * 60 * 1000 // 30 minutes in ms
+  
+  // Reset flag if it's older than 30 minutes (new session)
+  if (now - timestamp > thirtyMinutes) {
+    context.globalState.update(BROWSER_OPENED_KEY, 0)
+    return false
+  }
+  
+  return timestamp > 0
+}
+
+// Function to mark browser as opened persistently
+function markPersistentBrowserOpened(context) {
+  hasAutoOpened = true
+  context.globalState.update(BROWSER_OPENED_KEY, Date.now())
+}
+
 let AUTO_START_NEW_PROJECT = false
 let AUTO_OPTIMIZE_WORKSPACE = true
 
@@ -94,13 +118,13 @@ function checkWebsiteServer() {
 /**
  * Auto-detect server startup and open browser
  */
-async function autoDetectAndOpen() {
-  if (hasAutoOpened) return
+async function autoDetectAndOpen(context) {
+  if (hasAutoOpened || isPersistentBrowserOpened(context)) return
 
   const isServerActive = await checkWebsiteServer()
 
   if (isServerActive) {
-    hasAutoOpened = true
+    markPersistentBrowserOpened(context)
 
     // Stop checking
     if (serverCheckInterval) {
@@ -118,11 +142,11 @@ async function autoDetectAndOpen() {
 /**
  * Start server monitoring
  */
-function startServerMonitoring() {
+function startServerMonitoring(context) {
   console.log("🔍 Monitoring for Vite server startup...")
 
   // Check every 2 seconds
-  serverCheckInterval = setInterval(autoDetectAndOpen, 2000)
+  serverCheckInterval = setInterval(() => autoDetectAndOpen(context), 2000)
 
   // Stop after 60 seconds if server not found
   setTimeout(() => {
@@ -148,8 +172,9 @@ async function startProject(context, isAutoStart = false) {
       return
     }
 
-    // Reset auto-open flag
+    // Reset auto-open flags
     hasAutoOpened = false
+    context.globalState.update(BROWSER_OPENED_KEY, 0)
 
     const terminal = vscode.window.createTerminal({
       name: "Project Server",
@@ -173,7 +198,7 @@ async function startProject(context, isAutoStart = false) {
     }
 
     // Start server monitoring
-    startServerMonitoring()
+    startServerMonitoring(context)
 
     // Show notification
     const message = isAutoStart ? "🚀 Auto-starting your project..." : "🚀 Starting your project..."
@@ -289,8 +314,8 @@ function activate(context) {
   if (isPhionProject()) {
     // First check if server is already running
     checkWebsiteServer().then((isServerActive) => {
-      if (isServerActive && !hasAutoOpened) {
-        hasAutoOpened = true
+      if (isServerActive && !hasAutoOpened && !isPersistentBrowserOpened(context)) {
+        markPersistentBrowserOpened(context)
         setTimeout(async () => {
           await openPreview()
         }, 1000)
@@ -308,7 +333,7 @@ function activate(context) {
       } else {
         // Just start server monitoring
         setTimeout(() => {
-          startServerMonitoring()
+          startServerMonitoring(context)
         }, 3000)
       }
     })

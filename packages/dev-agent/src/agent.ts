@@ -751,7 +751,7 @@ export class PhionAgent {
     }
 
     if (this.config.debug) {
-      console.log("✅ Preview will be opened in 2 seconds...")
+      console.log("✅ Preview will be opened in 3 seconds...")
     }
 
     // Настройки для VS Code
@@ -760,13 +760,21 @@ export class PhionAgent {
       port: 5173, // Vite default port
     }
 
-    // Небольшая задержка чтобы дать время dev-серверу запуститься
+    // Увеличенная задержка чтобы дать время dev-серверу запуститься
+    // и избежать race condition с browser extension
     setTimeout(async () => {
       if (this.config.debug) {
         console.log("🚀 Opening preview now...")
       }
-      await openPreview(vsCodeConfig, this.config.debug)
-    }, 2000)
+      try {
+        await openPreview(vsCodeConfig, this.config.debug)
+      } catch (error) {
+        if (this.config.debug) {
+          console.log("⚠️ Failed to open preview from agent:", (error as Error).message)
+        }
+        // Don't throw error, just log it - preview might already be opened by extension
+      }
+    }, 3000) // Increased from 2000 to 3000ms
   }
 
   stop(): void {

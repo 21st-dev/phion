@@ -152,6 +152,8 @@ if command_exists pnpm; then
     node scripts/install-browser-extension.js
     echo ""
     echo "✅ Dependencies installed!"
+    echo "🧹 Clearing development ports..."
+    pnpm run clear:ports
     echo "🌐 Starting development server and sync agent..."
     echo ""
     pnpm start
