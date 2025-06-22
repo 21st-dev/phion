@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Phion CDP Bridge",
+  "version": "1.0.0",
+  "description": "Share browser tabs with Phion server through CDP bridge",
+
+  "permissions": ["debugger", "activeTab", "tabs", "storage"],
+
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "action": {
+    "default_title": "Share tab with Phion",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "icons": {
+    "128": "icons/icon-128.png"
+  }
+}
