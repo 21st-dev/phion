@@ -1,0 +1,45 @@
+---
+description: Core development process rules for consistent workflow
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+# Development Process Rules
+
+## Core Development Principles
+
+### Always Apply These Rules
+- **NEVER** run `npm run dev` automatically - the development server is always running
+- **NEVER** run `npm run build` automatically - only build when explicitly requested by user
+- **NEVER** start development servers without explicit user request
+- **NEVER** run build processes without explicit user request
+- Development environment is persistent and managed externally
+
+### Function Development Workflow
+1. **Implement** the function/feature completely
+2. **Type Check** - Always run type checking after completing each function:
+   ```bash
+   npm run typecheck
+   # or
+   tsc --noEmit
+   ```
+3. **Fix Bugs** - Address all TypeScript errors and warnings before considering the function complete
+4. **Verify** - Ensure the function works as expected
+
+### Code Completion Standards
+- A function is **NOT complete** until it passes type checking
+- All TypeScript errors must be resolved
+- All lint warnings should be addressed
+- Code must be properly typed and documented
+
+### Server Management
+- **DO NOT** run development servers (`npm run dev`, `yarn dev`, etc.) automatically
+- **DO NOT** assume server needs to be started
+- Development server is managed externally and is always available
+- Focus on code implementation, not server management
+
+### Quality Assurance
+- Every function must pass TypeScript type checking
+- Address all compiler errors before moving to next task
+- Maintain code quality standards throughout development
+- Test functionality in existing running environment

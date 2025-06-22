@@ -21,7 +21,6 @@ export function DownloadStep({
   onInitializationComplete,
 }: DownloadStepProps) {
   const [isDownloading, setIsDownloading] = useState(false)
-  const [downloadError, setDownloadError] = useState(false)
 
   // Use project context instead of creating a new WebSocket connection
   const { project: contextProject, initializationProgress, isConnected } = useProject()
@@ -61,56 +60,21 @@ export function DownloadStep({
     if (isInitializing || isDownloading) return
 
     setIsDownloading(true)
-    setDownloadError(false)
 
     const url = `/api/projects/${project.id}/download`
-    console.log(`🔽 [DownloadStep] Starting download from: ${url}`)
+    console.log(`🔽 [DownloadStep] Opening download in new tab: ${url}`)
 
-    const downloadFile = async () => {
-      try {
-        const response = await fetch(url)
-
-        if (!response.ok) {
-          throw new Error(`Download failed: ${response.status} ${response.statusText}`)
-        }
-
-        const blob = await response.blob()
-        const downloadUrl = window.URL.createObjectURL(blob)
-        const downloadLink = document.createElement("a")
-        downloadLink.href = downloadUrl
-
-        const contentDisposition = response.headers.get("Content-Disposition")
-        const filename = contentDisposition?.match(/filename="([^"]+)"/)?.[1] || "project.zip"
-
-        downloadLink.download = filename
-        downloadLink.style.display = "none"
-        document.body.appendChild(downloadLink)
-        downloadLink.click()
-
-        setTimeout(() => {
-          window.URL.revokeObjectURL(downloadUrl)
-          document.body.removeChild(downloadLink)
-        }, 100)
-
-        console.log(`✅ [DownloadStep] Download triggered successfully: ${filename}`)
-        onDownload()
-      } catch (error) {
-        console.error("❌ [DownloadStep] Download error:", error)
-        setDownloadError(true)
-        throw error
-      } finally {
-        setTimeout(() => {
-          setIsDownloading(false)
-          console.log("✅ [DownloadStep] Download state reset")
-        }, 2000)
-      }
-    }
-
-    downloadFile().catch((error) => {
-      console.error("❌ [DownloadStep] Download failed:", error)
-      setDownloadError(true)
+    // Simply open the download URL in a new tab
+    window.open(url, '_blank')
+    
+    // Mark as downloaded immediately
+    onDownload()
+    
+    // Reset state after a short delay
+    setTimeout(() => {
       setIsDownloading(false)
-    })
+      console.log("✅ [DownloadStep] Download state reset")
+    }, 1000)
   }
 
   const getDownloadButtonText = () => {
@@ -166,31 +130,13 @@ export function DownloadStep({
           </Button>
 
           <div className="flex-1">
-            {downloadError && (
-              <div className="flex items-center gap-2 text-sm text-red-600">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                Download failed. Please try again or check browser settings.
-              </div>
-            )}
-
-            {!isInitializing && !isCompleted && !downloadError && (
+            {!isInitializing && !isCompleted && (
               <div className="text-sm text-muted-foreground">
                 Download your project files to get started with local development.
               </div>
             )}
 
-            {isDownloading && <div className="text-sm text-muted-foreground">Downloading...</div>}
+            {isDownloading && <div className="text-sm text-muted-foreground">Opening download...</div>}
           </div>
         </div>
       </div>

@@ -11,7 +11,7 @@
     "start": "pnpm install && node scripts/start-with-browser.js",
     "fix": "node scripts/fix-phion.js",
     "setup:browser": "node scripts/install-browser-extension.js",
-    "clear:ports": "node -e \"require('child_process').exec(process.platform === 'win32' ? 'for /f \\\"tokens=5\\\" %a in (\\'netstat -ano ^| findstr :5173\\') do taskkill /F /PID %a' : 'lsof -ti:5173 | xargs kill -9 2>/dev/null || true'); console.log('✅ Dev ports cleared!');\"",
+    "clear:ports": "node -e \"require('child_process').exec(process.platform === 'win32' ? 'for /f \\\"tokens=5\\\" %a in (\\'netstat -ano ^| findstr :5173 :3333 :3334\\') do taskkill /F /PID %a' : 'lsof -ti:5173,3333,3334 | xargs kill -9 2>/dev/null || true'); console.log('✅ All dev ports (5173, 3333, 3334) cleared!');\"",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit"
   },
@@ -45,6 +45,7 @@
     "clsx": "^2.0.0",
     "cmdk": "^1.0.4",
     "lucide-react": "^0.294.0",
+    "motion": "^12.18.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.2",
@@ -54,7 +55,7 @@
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.0.0",
-    "phion": "latest"
+    "phion": "^0.0.4-beta.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

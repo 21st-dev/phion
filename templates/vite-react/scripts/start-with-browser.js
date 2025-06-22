@@ -264,6 +264,21 @@ async function main() {
   // Setup browser extension
   const extensionReady = await ensureBrowserExtension()
 
+  // Clear all development ports before starting
+  if (DEBUG_MODE) {
+    console.log("\n🧹 Clearing development ports...");
+  }
+  try {
+    await execAsync("pnpm run clear:ports");
+    if (DEBUG_MODE) {
+      console.log("✅ Ports cleared successfully");
+    }
+  } catch (error) {
+    if (DEBUG_MODE) {
+      console.log("⚠️ Port clearing failed (ports may already be free):", error.message);
+    }
+  }
+
   if (DEBUG_MODE) {
     console.log("\n🚀 Starting development servers...")
   } else {

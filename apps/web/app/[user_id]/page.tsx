@@ -10,13 +10,17 @@ import type { User } from "@supabase/supabase-js"
 import { CreateProjectButton } from "@/components/create-project-button"
 import { useInvalidateProjects } from "@/hooks/use-projects"
 import { Spinner } from "@/components/geist/spinner"
+import { FirstExperienceOnboarding } from "@/components/onboarding/first-experience"
+import { useProjects } from "@/hooks/use-projects"
 
 export default function UserDashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const router = useRouter()
   const supabase = createAuthBrowserClient()
   const invalidateProjects = useInvalidateProjects()
+  const { data: projects, isLoading: projectsLoading } = useProjects()
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -36,8 +40,35 @@ export default function UserDashboard() {
     checkAuth()
   }, [router, supabase.auth])
 
+  useEffect(() => {
+    // Проверяем, нужно ли показать онбординг
+    if (!loading && !projectsLoading && user) {
+      // Если у пользователя нет проектов и нет сохраненного флага о прохождении онбординга
+      const hasSeenOnboarding = localStorage.getItem(`onboarding-seen-${user.id}`)
+      console.log("Onboarding check:", {
+        loading,
+        projectsLoading,
+        projects: projects?.length || 0,
+        hasSeenOnboarding,
+        userId: user.id
+      })
+      if ((!projects || projects.length === 0) && !hasSeenOnboarding) {
+        console.log("Showing onboarding!")
+        setShowOnboarding(true)
+      }
+    }
+  }, [loading, projectsLoading, projects, user])
+
   const handleDeleteAllSuccess = () => {
     // Инвалидируем кеш проектов
+    invalidateProjects()
+  }
+
+  const handleOnboardingComplete = () => {
+    if (user) {
+      localStorage.setItem(`onboarding-seen-${user.id}`, "true")
+    }
+    setShowOnboarding(false)
     invalidateProjects()
   }
 
@@ -54,6 +85,10 @@ export default function UserDashboard() {
 
   if (!user) {
     return null
+  }
+
+  if (showOnboarding) {
+    return <FirstExperienceOnboarding onComplete={handleOnboardingComplete} />
   }
 
   return (

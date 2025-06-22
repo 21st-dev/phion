@@ -121,11 +121,8 @@ if [[ "${MACHINE}" == "Mac" ]]; then
     fi
 fi
 
-if [[ "$SHELL" == */zsh ]] || [[ -n "$ZSH_VERSION" ]]; then
-    source ~/.zshrc || true
-else
-    source ~/.bashrc || true
-fi
+# Skip shell config sourcing in setup script
+# Users can restart terminal or source configs manually if needed
 
 echo "🔍 Checking installed versions:"
 if command_exists node; then
@@ -155,6 +152,8 @@ if command_exists pnpm; then
     node scripts/install-browser-extension.js
     echo ""
     echo "✅ Dependencies installed!"
+    echo "🧹 Clearing development ports..."
+    pnpm run clear:ports
     echo "🌐 Starting development server and sync agent..."
     echo ""
     pnpm start

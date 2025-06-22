@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
 
     // ✅ 2. НЕМЕДЛЕННО возвращаем ответ пользователю для быстрого redirect
     const response = NextResponse.json({
+      projectId: project.id, // Add projectId for frontend compatibility
       project: {
         ...project,
         deploy_status: "pending", // Показываем что проект инициализируется

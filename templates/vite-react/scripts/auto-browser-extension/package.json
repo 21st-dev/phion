@@ -2,7 +2,7 @@
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
   "description": "Tools for Phion development",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
@@ -18,15 +18,63 @@
     "commands": [
       {
         "command": "phion.startProject",
-        "title": "Phion: Start Project"
+        "title": "Phion: Start Project",
+        "icon": "$(play)"
       },
       {
         "command": "phion.openPreview",
-        "title": "Phion: Open Preview"
+        "title": "Phion: Open Preview",
+        "icon": "$(browser)"
       },
       {
-        "command": "phion.showConsoleLogs",
-        "title": "Phion: Show Console Logs"
+        "command": "phion.toggleAiChat",
+        "title": "Toggle AI Chat",
+        "icon": "$(comment-discussion)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "phion.toggleAiChat",
+          "when": "phion.simpleBrowserOpen",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "phion.toggleAiChat",
+          "when": "true"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "phion.startProject",
+          "group": "1_run@1"
+        },
+        {
+          "command": "phion.openPreview",
+          "group": "1_run@2"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "phion.startProject",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "true"
+      },
+      {
+        "command": "phion.openPreview",
+        "key": "ctrl+shift+b",
+        "mac": "cmd+shift+b",
+        "when": "true"
+      },
+      {
+        "command": "phion.toggleAiChat",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "true"
       }
     ]
   },

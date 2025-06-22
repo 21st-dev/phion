@@ -1,8 +1,15 @@
 import { exec } from "child_process"
 import { promisify } from "util"
 import http from "http"
+import fs from "fs"
+import path from "path"
+import os from "os"
 
 const execAsync = promisify(exec)
+
+// Global flag to prevent multiple browser opens
+let globalBrowserOpened = false
+const BROWSER_OPENED_FLAG_FILE = path.join(os.tmpdir(), 'phion-browser-opened.flag')
 
 export interface VSCodeConfig {
   autoOpen: boolean
@@ -75,14 +82,15 @@ export function checkDevServerReady(port: number): Promise<boolean> {
 }
 
 /**
- * Finds active Vite dev server port
+ * Finds active Vite dev server port (returns only the LOWEST port)
  */
 export async function findVitePort(): Promise<number | null> {
-  const commonPorts = [5177, 5176, 5175, 5174, 5173, 3001, 3000]
+  // Check ports in ascending order to find the lowest active port
+  const commonPorts = [3000, 3001, 5173, 5174, 5175, 5176, 5177]
 
   for (const port of commonPorts) {
     if (await checkDevServerReady(port)) {
-      return port
+      return port // Return the first (lowest) port found
     }
   }
 
@@ -172,10 +180,51 @@ export async function openInSystemBrowser(url: string): Promise<boolean> {
 }
 
 /**
+ * Check if browser was already opened in this session
+ */
+function isBrowserAlreadyOpened(): boolean {
+  return globalBrowserOpened || fs.existsSync(BROWSER_OPENED_FLAG_FILE)
+}
+
+/**
+ * Mark browser as opened
+ */
+function markBrowserAsOpened(): void {
+  globalBrowserOpened = true
+  try {
+    fs.writeFileSync(BROWSER_OPENED_FLAG_FILE, Date.now().toString())
+  } catch (error) {
+    // Ignore file write errors
+  }
+}
+
+/**
+ * Clear browser opened flag (for testing)
+ */
+export function clearBrowserOpenedFlag(): void {
+  globalBrowserOpened = false
+  try {
+    if (fs.existsSync(BROWSER_OPENED_FLAG_FILE)) {
+      fs.unlinkSync(BROWSER_OPENED_FLAG_FILE)
+    }
+  } catch (error) {
+    // Ignore file deletion errors
+  }
+}
+
+/**
  * Main function for opening preview
  */
 export async function openPreview(config: VSCodeConfig, debug = false): Promise<void> {
   if (!config.autoOpen) {
+    return
+  }
+
+  // Check if browser was already opened to prevent multiple opens
+  if (isBrowserAlreadyOpened()) {
+    if (debug) {
+      console.log("🚫 Browser already opened, skipping...")
+    }
     return
   }
 
@@ -214,6 +263,7 @@ export async function openPreview(config: VSCodeConfig, debug = false): Promise<
   if (isVSCode && hasCodeCommand) {
     const success = await openInVSCodeSimpleBrowser(url)
     if (success) {
+      markBrowserAsOpened()
       if (debug) {
         console.log("✅ Preview opened in browser")
       }
@@ -224,6 +274,7 @@ export async function openPreview(config: VSCodeConfig, debug = false): Promise<
   // Fallback to system browser
   const systemSuccess = await openInSystemBrowser(url)
   if (systemSuccess) {
+    markBrowserAsOpened()
     if (debug) {
       console.log("✅ Preview opened in browser")
     }

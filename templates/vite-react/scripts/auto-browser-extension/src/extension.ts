@@ -17,6 +17,31 @@ let serverCheckInterval: NodeJS.Timeout | null = null
 let cdpBridgeServer: any = null
 let cdpBridgePort = 9223
 let consoleLogsChannel: vscode.OutputChannel | null = null
+let simpleBrowserOpen = false
+
+// Persistent storage key for browser opened state
+const BROWSER_OPENED_KEY = "phion-browser-opened"
+
+// Function to check persistent browser opened state
+function isPersistentBrowserOpened(context) {
+  const timestamp = context.globalState.get(BROWSER_OPENED_KEY, 0)
+  const now = Date.now()
+  const thirtyMinutes = 30 * 60 * 1000 // 30 minutes in ms
+
+  // Reset flag if it's older than 30 minutes (new session)
+  if (now - timestamp > thirtyMinutes) {
+    context.globalState.update(BROWSER_OPENED_KEY, 0)
+    return false
+  }
+
+  return timestamp > 0
+}
+
+// Function to mark browser as opened persistently
+function markPersistentBrowserOpened(context) {
+  hasAutoOpened = true
+  context.globalState.update(BROWSER_OPENED_KEY, Date.now())
+}
 
 let AUTO_START_NEW_PROJECT = false
 let AUTO_OPTIMIZE_WORKSPACE = true
@@ -102,13 +127,13 @@ function checkWebsiteServer() {
 /**
  * Auto-detect server startup and open browser
  */
-async function autoDetectAndOpen() {
-  if (hasAutoOpened) return
+async function autoDetectAndOpen(context) {
+  if (hasAutoOpened || isPersistentBrowserOpened(context)) return
 
   const isServerActive = await checkWebsiteServer()
 
   if (isServerActive) {
-    hasAutoOpened = true
+    markPersistentBrowserOpened(context)
 
     // Stop checking
     if (serverCheckInterval) {
@@ -126,11 +151,11 @@ async function autoDetectAndOpen() {
 /**
  * Start server monitoring
  */
-function startServerMonitoring() {
+function startServerMonitoring(context) {
   console.log("🔍 Monitoring for Vite server startup...")
 
   // Check every 2 seconds
-  serverCheckInterval = setInterval(autoDetectAndOpen, 2000)
+  serverCheckInterval = setInterval(() => autoDetectAndOpen(context), 2000)
 
   // Stop after 60 seconds if server not found
   setTimeout(() => {
@@ -156,8 +181,9 @@ async function startProject(context, isAutoStart = false) {
       return
     }
 
-    // Reset auto-open flag
+    // Reset auto-open flags
     hasAutoOpened = false
+    context.globalState.update(BROWSER_OPENED_KEY, 0)
 
     const terminal = vscode.window.createTerminal({
       name: "Project Server",
@@ -181,7 +207,7 @@ async function startProject(context, isAutoStart = false) {
     }
 
     // Start server monitoring
-    startServerMonitoring()
+    startServerMonitoring(context)
 
     // Show notification
     const message = isAutoStart ? "🚀 Auto-starting your project..." : "🚀 Starting your project..."
@@ -212,6 +238,10 @@ async function openPreview() {
     await vscode.commands.executeCommand("simpleBrowser.show", url)
     console.log(`🌐 Opened preview: ${url}`)
 
+    // Set simple browser as open and update context
+    simpleBrowserOpen = true
+    vscode.commands.executeCommand("setContext", "phion.simpleBrowserOpen", true)
+
     // Auto-optimize workspace (if enabled)
     if (AUTO_OPTIMIZE_WORKSPACE) {
       setTimeout(async () => {
@@ -223,8 +253,7 @@ async function openPreview() {
           await vscode.commands.executeCommand("workbench.action.closePanel")
 
           // 3. Open AI chat (using correct Cursor commands)
-          await vscode.commands.executeCommand("cursor.openChat")
-          await vscode.commands.executeCommand("cursor.newChat")
+          await vscode.commands.executeCommand("composer.startComposerPrompt")
 
           console.log("✨ Workspace optimized for development")
         } catch (error) {
@@ -383,6 +412,25 @@ function activate(context) {
   const diagnosticCollection = initializeDiagnosticCollection()
   context.subscriptions.push(diagnosticCollection) // Dispose on deactivation
 
+  // Track tab changes to detect Simple Browser state
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    const isSimpleBrowser = editor && editor.document.uri.scheme === "simple-browser"
+    simpleBrowserOpen = isSimpleBrowser || false
+    vscode.commands.executeCommand("setContext", "phion.simpleBrowserOpen", isSimpleBrowser)
+  })
+
+  // Track tab closures
+  vscode.workspace.onDidCloseTextDocument((document) => {
+    if (document.uri.scheme === "simple-browser") {
+      // Check if any simple browser tabs are still open
+      const hasSimpleBrowser = vscode.window.visibleTextEditors.some(
+        (editor) => editor.document.uri.scheme === "simple-browser",
+      )
+      simpleBrowserOpen = hasSimpleBrowser
+      vscode.commands.executeCommand("setContext", "phion.simpleBrowserOpen", hasSimpleBrowser)
+    }
+  })
+
   // Check if this is a Phion project and start monitoring
   if (isPhionProject()) {
     // Auto-start CDP bridge for all Phion projects
@@ -392,8 +440,8 @@ function activate(context) {
 
     // First check if server is already running
     checkWebsiteServer().then((isServerActive) => {
-      if (isServerActive && !hasAutoOpened) {
-        hasAutoOpened = true
+      if (isServerActive && !hasAutoOpened && !isPersistentBrowserOpened(context)) {
+        markPersistentBrowserOpened(context)
         setTimeout(async () => {
           await openPreview()
         }, 1000)
@@ -411,7 +459,7 @@ function activate(context) {
       } else {
         // Just start server monitoring
         setTimeout(() => {
-          startServerMonitoring()
+          startServerMonitoring(context)
         }, 3000)
       }
     })
@@ -429,8 +477,28 @@ function activate(context) {
     showConsoleLogs,
   )
 
+  // AI Chat toggle command
+  const toggleAiChatCommand = vscode.commands.registerCommand("phion.toggleAiChat", async () => {
+    try {
+      // Try to open AI chat first
+      await vscode.commands.executeCommand("composer.startComposerPrompt")
+    } catch (error) {
+      // If opening fails, try to close
+      try {
+        await vscode.commands.executeCommand("composer.closeComposerTab")
+      } catch (closeError) {
+        vscode.window.showWarningMessage("Could not toggle AI chat")
+      }
+    }
+  })
+
   // Add to subscriptions
-  context.subscriptions.push(startProjectCommand, openPreviewCommand, showConsoleLogsCommand)
+  context.subscriptions.push(
+    startProjectCommand,
+    openPreviewCommand,
+    showConsoleLogsCommand,
+    toggleAiChatCommand,
+  )
 }
 
 /**

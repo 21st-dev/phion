@@ -156,7 +156,7 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
               <div className="text-xs text-muted-foreground">
                 Open a terminal by pressing{" "}
                 <kbd className="px-2 py-1 bg-background text-foreground rounded text-xs font-mono border border-border">
-                  Cmd + Shift + `
+                  Cmd + J
                 </kbd>{" "}
                 or go to Terminal → New Terminal from the menu bar
               </div>

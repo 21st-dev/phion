@@ -1,0 +1,11 @@
+{
+  "projectId": "__PROJECT_ID__",
+  "wsUrl": "__WS_URL__",
+  "debug": "__DEBUG_MODE__",
+  "autoStartOnNewProject": true,
+  "toolbar": {
+    "enabled": true,
+    "position": "top",
+    "autoOpen": true
+  }
+}
