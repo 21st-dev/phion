@@ -18,25 +18,10 @@ interface MorphingDialogProps {
   children: React.ReactNode
   transition?: {
     duration: number
-    ease:
-      | "linear"
-      | "easeIn"
-      | "easeOut"
-      | "easeInOut"
-      | "circIn"
-      | "circOut"
-      | "circInOut"
-      | "backIn"
-      | "backOut"
-      | "backInOut"
-      | "anticipate"
   }
 }
 
-export function MorphingDialog({
-  children,
-  transition = { duration: 0.3, ease: "easeInOut" },
-}: MorphingDialogProps) {
+export function MorphingDialog({ children, transition = { duration: 0.3 } }: MorphingDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (

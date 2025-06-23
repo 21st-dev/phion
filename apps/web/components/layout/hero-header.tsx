@@ -5,7 +5,7 @@ import { Logo } from "@/components/brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
-import { useScroll } from "motion/react"
+import { useScroll, motion, AnimatePresence } from "motion/react"
 import { AuthDialog } from "@/components/auth-dialog"
 
 interface HeroHeaderProps {
@@ -60,17 +60,42 @@ export function HeroHeader({
                 className="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
                 data-state={menuState ? "active" : "inactive"}
               >
-                <Menu className="data-[state=active]:rotate-180 data-[state=active]:scale-0 data-[state=active]:opacity-0 m-auto size-6 duration-200" />
-                <X className="data-[state=active]:rotate-0 data-[state=active]:scale-100 data-[state=active]:opacity-100 absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200" />
+                <Menu className="data-[state=active]:rotate-180 data-[state=active]:scale-0 data-[state=active]:opacity-0 m-auto size-6 duration-200 text-white" />
+                <X className="data-[state=active]:rotate-0 data-[state=active]:scale-100 data-[state=active]:opacity-100 absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200 text-white" />
               </button>
             </div>
 
-            <div
-              className={cn(
-                "bg-black/80 mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border-white/10 p-6 shadow-2xl shadow-black/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none",
-                menuState && "block lg:flex",
+            <AnimatePresence>
+              {menuState && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="bg-black/90 backdrop-blur-md mb-6 w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border border-white/10 p-6 shadow-2xl shadow-black/20 flex md:flex-nowrap lg:hidden"
+                >
+                  <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
+                    {!user ? (
+                      <Button
+                        className="bg-white text-black hover:bg-white/90 hover:text-black"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAuthDialogOpen(true)}
+                      >
+                        <span>Open app</span>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={onSignOut}>
+                        <span>Sign out</span>
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
               )}
-            >
+            </AnimatePresence>
+
+            {/* Desktop menu - always visible on large screens */}
+            <div className="bg-black/80 mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border-white/10 p-6 shadow-2xl shadow-black/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                 {!user ? (
                   <Button

@@ -63,7 +63,7 @@ export default function FAQSection() {
   return (
     <section className="py-16 md:py-24 bg-[#08090A]">
       <div className="mx-auto max-w-5xl px-4 md:px-6">
-        <div className="mx-auto max-w-xl text-center">
+        <div className="mx-auto max-w-xl text-left md:text-center">
           <h2 className="text-balance text-3xl font-bold md:text-4xl lg:text-5xl text-white">
             Frequently Asked Questions
           </h2>
@@ -80,11 +80,11 @@ export default function FAQSection() {
                   value={item.id}
                   className="data-[state=open]:bg-white/10 peer rounded-xl border-none px-7 py-1 data-[state=open]:border-none data-[state=open]:shadow-sm"
                 >
-                  <AccordionTrigger className="cursor-pointer text-base hover:no-underline text-white hover:text-white/80">
+                  <AccordionTrigger className="cursor-pointer text-base hover:no-underline text-white hover:text-white/80 text-left">
                     {item.question}
                   </AccordionTrigger>
                   <AccordionContent>
-                    <p className="text-base text-white/70">{item.answer}</p>
+                    <p className="text-base text-white/70 text-left">{item.answer}</p>
                   </AccordionContent>
                 </AccordionItem>
                 <hr className="mx-7 border-dashed border-white/20 group-last:hidden peer-data-[state=open]:opacity-0" />
@@ -92,9 +92,12 @@ export default function FAQSection() {
             ))}
           </Accordion>
 
-          <p className="text-white/70 mt-6 px-8 text-center">
+          <p className="text-white/70 mt-6 px-8 text-left md:text-center">
             Still have questions? Join our{" "}
-            <Link href="https://discord.gg/j4ZMYnMeJN" className="text-white font-medium hover:underline">
+            <Link
+              href="https://discord.gg/j4ZMYnMeJN"
+              className="text-white font-medium hover:underline"
+            >
               Discord community
             </Link>{" "}
             or reach out to our support team.

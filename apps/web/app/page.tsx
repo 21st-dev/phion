@@ -1,6 +1,5 @@
 "use client"
 
-
 import { useToast } from "@/hooks/use-toast"
 import { createAuthBrowserClient } from "@shipvibes/database"
 import React, { useState, useEffect } from "react"
@@ -109,8 +108,8 @@ export default function HomePage() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative">
-          <div className="relative pt-24 md:pt-36">
+        <section className="relative min-h-screen flex items-center">
+          <div className="relative w-full pt-24 md:pt-36">
             <div className="absolute inset-0 -z-10 size-full [background:radial-gradient(125%_125%_at_50%_100%,transparent_0%,rgb(0,0,0)_75%)]"></div>
             {/* Additional hero glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-96 bg-white/5 rounded-full blur-3xl -z-10"></div>
@@ -154,7 +153,7 @@ export default function HomePage() {
                   speedSegment={0.6}
                   delay={0.3}
                   as="h1"
-                  className="mt-8 text-balance text-6xl md:text-7xl lg:mt-16 xl:text-[5.25rem] text-white font-normal leading-[1.1] tracking-tight"
+                  className="mt-8 text-balance text-4xl md:text-7xl lg:mt-16 xl:text-[5.25rem] text-white font-normal leading-[1.1] tracking-tight"
                 >
                   Full-power AI coding.
                 </TextEffect>
@@ -166,7 +165,7 @@ export default function HomePage() {
                   speedSegment={0.6}
                   delay={0.6}
                   as="h1"
-                  className="text-balance text-6xl md:text-7xl xl:text-[5.25rem] text-white font-normal leading-[1.1] tracking-tight"
+                  className="text-balance text-4xl md:text-7xl xl:text-[5.25rem] text-white font-normal leading-[1.1] tracking-tight"
                 >
                   Zero setup.
                 </TextEffect>
@@ -188,7 +187,6 @@ export default function HomePage() {
                   <MorphingDialog
                     transition={{
                       duration: 0.3,
-                      ease: "easeInOut",
                     }}
                   >
                     <MorphingDialogTrigger>
