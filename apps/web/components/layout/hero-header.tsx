@@ -51,6 +51,7 @@ export function HeroHeader({
               <div className="flex items-center space-x-2">
                 <Logo width={24} height={24} forceDark={true} />
                 <span className="font-medium text-white transition-colors">Phion</span>
+                <span className="text-white/60 text-sm">by 21st.dev</span>
               </div>
 
               <button

@@ -144,8 +144,9 @@ export default function HomePage() {
                 {!user && (
                   <AnimatedGroup variants={transitionVariants}>
                     <motion.div
-                      className="hover:bg-white/10 group mx-auto flex w-fit items-center gap-4 rounded-full border border-white/20 bg-white/10 p-1 pl-4 shadow-md transition-colors duration-300"
+                      className="hover:bg-white/10 group mx-auto flex w-fit items-center gap-4 rounded-full border border-white/20 bg-white/10 p-1 pl-4 shadow-md transition-colors duration-300 cursor-pointer"
                       variants={transitionVariants.item}
+                      onClick={() => window.open('https://x.com/serafimcloud/status/1934724044773052428', '_blank')}
                     >
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-white rounded-full"></div>
