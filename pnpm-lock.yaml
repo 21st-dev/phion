@@ -523,8 +523,8 @@ importers:
         specifier: ^12.18.1
         version: 12.19.1(react-dom@18.3.1)(react@18.3.1)
       phion:
-        specifier: 0.0.4-beta.8
-        version: 0.0.4-beta.8(vite@5.4.19)
+        specifier: latest
+        version: link:../../packages/dev-agent
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -9595,24 +9595,6 @@ packages:
   /pend@1.2.0:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
     dev: true
-
-  /phion@0.0.4-beta.8(vite@5.4.19):
-    resolution: {integrity: sha512-SDBB549Ha445PWSr0Ob7xSyoDhfFzdKXHl+UIvvF3jUCUlyNOFM6bZAKd2bZRAck9Yuu+14y7TtiQX9slw7miw==}
-    hasBin: true
-    peerDependencies:
-      vite: ^4.0.0 || ^5.0.0
-    dependencies:
-      chokidar: 3.6.0
-      commander: 11.1.0
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      socket.io-client: 4.8.1
-      vite: 5.4.19(@types/node@20.19.1)
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-    dev: false
 
   /picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
