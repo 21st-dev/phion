@@ -2,7 +2,7 @@
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
   "description": "Tools for Phion development",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
@@ -95,7 +95,7 @@
   },
   "scripts": {
     "package": "pnpm vsce package --no-dependencies",
-    "publish": "pnpm ovsx publish --no-dependencies --pat",
+    "publish": "pnpm ovsx publish --no-dependencies",
     "publish:vscode": "pnpm vsce publish --no-dependencies",
     "vscode:prepublish": "pnpm run esbuild-base --minify",
     "esbuild-base": "esbuild \"./src/extension.ts\" --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node"
