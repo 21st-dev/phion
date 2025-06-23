@@ -163,7 +163,7 @@ export class ToolbarWebSocketClient {
         // Clear error buffer on file changes since errors might be fixed
         if (this.errorBuffer.length > 0) {
           console.log("[Phion Toolbar] Clearing error buffer due to file change")
-          this.errorBuffer = []
+          this.clearErrorBuffer()
         }
 
         this.state = {
@@ -434,12 +434,11 @@ export class ToolbarWebSocketClient {
    */
   private handleRuntimeError(errorInfo: any) {
     try {
-      // Try to extract message for filtering (fallback to empty string if not available)
-      const errorMessage =
-        errorInfo?.message || errorInfo?.event?.message || errorInfo?.error?.message || ""
+      // Try to extract filename for filtering (fallback to empty string if not available)
+      const errorFilename = errorInfo?.event?.filename || errorInfo?.filename || ""
 
-      // Фильтруем некоторые распространенные и неважные ошибки
-      if (this.shouldIgnoreError(errorMessage)) {
+      // Ignore errors that have "chunk" in filename
+      if (errorFilename.toLowerCase().includes("chunk")) {
         return
       }
 
@@ -563,9 +562,16 @@ Please analyze these serialized errors and provide fixes for the underlying issu
     })
 
     // Очищаем буфер после отправки
+    this.clearErrorBuffer()
+  }
+
+  /**
+   * Очистка буфера ошибок с уведомлением UI
+   */
+  private clearErrorBuffer() {
     this.errorBuffer = []
 
-    // Уведомляем UI об очистке буфера через callback
+    // Notify UI about error buffer being cleared
     if (this.onErrorBufferChange) {
       this.onErrorBufferChange(0)
     }
@@ -608,23 +614,6 @@ Please analyze these serialized errors and provide fixes for the underlying issu
     this.errorBuffer.forEach((error) => {
       this.sendRuntimeError(error)
     })
-  }
-
-  /**
-   * Фильтрация неважных ошибок
-   */
-  private shouldIgnoreError(message: string): boolean {
-    const ignoredPatterns = [
-      "Script error",
-      "Non-Error promise rejection captured",
-      "ResizeObserver loop limit exceeded",
-      "Network request failed",
-      "Loading chunk",
-      "ChunkLoadError",
-      // Добавьте другие паттерны ошибок, которые нужно игнорировать
-    ]
-
-    return ignoredPatterns.some((pattern) => message.toLowerCase().includes(pattern.toLowerCase()))
   }
 
   /**
