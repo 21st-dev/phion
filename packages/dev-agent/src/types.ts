@@ -74,6 +74,8 @@ export interface WebSocketEvents {
   toolbar_get_commit_history: { limit?: number; offset?: number }
   toolbar_save_with_ai_message: { projectId: string }
   toolbar_revert_to_commit: { projectId: string; targetCommitSha: string; commitMessage?: string }
+  toolbar_runtime_error: RuntimeErrorPayload
+  insert_prompt: { projectId: string; prompt: string }
 
   // Incoming events
   authenticated: { success: boolean }
@@ -96,6 +98,37 @@ export interface WebSocketEvents {
     commitMessage: string
     changesCount: number
     files: string[]
+  }
+  runtime_error_received: { success: boolean; errorId?: string }
+}
+
+export interface RuntimeErrorPayload {
+  projectId: string
+  clientType: "toolbar"
+  timestamp: number
+  url: string
+  userAgent: string
+  error: {
+    message: string
+    stack?: string
+    fileName?: string
+    lineNumber?: number
+    columnNumber?: number
+    source?: string
+  }
+  context: {
+    toolbarVersion?: string
+    browserInfo?: {
+      language: string
+      platform: string
+      cookieEnabled: boolean
+      onLine: boolean
+    }
+    pageInfo?: {
+      title: string
+      referrer: string
+      pathname: string
+    }
   }
 }
 

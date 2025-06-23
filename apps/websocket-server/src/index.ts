@@ -1553,6 +1553,65 @@ io.on("connection", (socket) => {
   socket.on("error", (error) => {
     console.error(`❌ Socket error for ${socket.id}:`, error)
   })
+
+  // ========= INSERT PROMPT HANDLING =========
+
+  // Обработка insert_prompt событий от toolbar - транслируем другим клиентам
+  socket.on("insert_prompt", async (data) => {
+    const projectId = data?.projectId || socket.data.projectId
+
+    if (!projectId) {
+      socket.emit("error", { message: "Missing projectId" })
+      return
+    }
+
+    if (!data?.prompt) {
+      socket.emit("error", { message: "Missing prompt" })
+      return
+    }
+
+    console.log(`💬 [INSERT_PROMPT] Received prompt for project ${projectId} from ${socket.id}`)
+    console.log(`💬 [INSERT_PROMPT] Prompt preview: ${data.prompt.substring(0, 100)}...`)
+
+    // Проверяем сколько клиентов в комнате проекта
+    const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`)
+    const clientCount = roomClients ? roomClients.size : 0
+    const clientIds = roomClients ? Array.from(roomClients) : []
+
+    console.log(
+      `📡 [INSERT_PROMPT] Broadcasting to project:${projectId} room (${clientCount} clients: ${clientIds.join(", ")})`,
+    )
+
+    // Транслируем событие всем клиентам в комнате проекта (включая VSCode extension)
+    io.to(`project:${projectId}`).emit("insert_prompt", {
+      projectId,
+      prompt: data.prompt,
+      timestamp: Date.now(),
+      source: socket.data.clientType || "unknown",
+    })
+
+    console.log(`✅ [INSERT_PROMPT] Prompt broadcasted to all clients in project ${projectId}`)
+  })
+
+  // ========= RUNTIME ERROR HANDLING =========
+
+  // Обработка runtime ошибок от toolbar - простое проксирование
+  socket.on("toolbar_runtime_error", async (payload) => {
+    const projectId = socket.data.projectId
+
+    if (!projectId) {
+      return
+    }
+
+    // Простое логирование для отладки
+    console.log(
+      `🐛 [RUNTIME_ERROR] Runtime error for project ${projectId}:`,
+      payload?.error?.message || "unknown error",
+    )
+
+    // Проксируем событие всем клиентам проекта без дополнительной обработки
+    io.to(`project:${projectId}`).emit("toolbar_runtime_error", payload)
+  })
 })
 
 // Запускаем сервер

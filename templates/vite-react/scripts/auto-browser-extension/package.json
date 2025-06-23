@@ -2,7 +2,7 @@
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
   "description": "Tools for Phion development",
-  "version": "0.0.8",
+  "version": "0.0.7",
   "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
@@ -13,7 +13,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./extension.js",
+  "main": "./out/main.js",
   "contributes": {
     "commands": [
       {
@@ -25,6 +25,11 @@
         "command": "phion.openPreview",
         "title": "Phion: Open Preview",
         "icon": "$(browser)"
+      },
+      {
+        "command": "phion.showRuntimeErrors",
+        "title": "Phion: Show Runtime Errors",
+        "icon": "$(error)"
       },
       {
         "command": "phion.toggleAiChat",
@@ -54,6 +59,10 @@
         {
           "command": "phion.openPreview",
           "group": "1_run@2"
+        },
+        {
+          "command": "phion.showRuntimeErrors",
+          "group": "1_run@3"
         }
       ]
     },
@@ -67,7 +76,13 @@
       {
         "command": "phion.openPreview",
         "key": "ctrl+shift+b",
-        "mac": "cmd+shift+b", 
+        "mac": "cmd+shift+b",
+        "when": "true"
+      },
+      {
+        "command": "phion.showRuntimeErrors",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
         "when": "true"
       },
       {
@@ -83,12 +98,23 @@
     "publish": "pnpm ovsx publish --no-dependencies --pat",
     "publish:vscode": "pnpm vsce publish --no-dependencies",
     "vscode:prepublish": "pnpm run esbuild-base --minify",
-    "esbuild-base": "esbuild \"./src/extension.js\" --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node"
+    "esbuild-base": "esbuild \"./src/extension.ts\" --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "@types/node": "^24.0.3",
+    "@types/vscode": "^1.81.0",
+    "@types/ws": "^8.18.1",
     "esbuild": "^0.25.5",
     "ovsx": "^0.10.4",
     "vsce": "^2.15.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@types/debug": "^4.1.12",
+    "debug": "^4.4.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "ws": "^8.18.2"
+  }
 }

@@ -15,7 +15,7 @@ console.log("📦 Installing Phion Auto Browser Extension for Cursor...")
 
 const extensionDir = join(__dirname, "auto-browser-extension")
 const packageJsonPath = join(extensionDir, "package.json")
-const extensionJsPath = join(extensionDir, "extension.js")
+const extensionJsPath = join(extensionDir, "src", "extension.ts")
 
 // Check if extension files exist
 if (!existsSync(packageJsonPath) || !existsSync(extensionJsPath)) {
@@ -109,7 +109,7 @@ try {
   }
 
   // Create extension directory in Cursor extensions
-  const targetExtensionDir = join(cursorExtensionsDir, "phion-auto-browser-0.0.8")
+  const targetExtensionDir = join(cursorExtensionsDir, "phion-auto-browser-0.0.7")
 
   console.log("🔄 Copying extension to Cursor extensions directory...")
   console.log(`📁 Target: ${targetExtensionDir}`)
@@ -122,7 +122,6 @@ try {
     join(cursorExtensionsDir, "phion-auto-browser-0.0.4"),
     join(cursorExtensionsDir, "phion-auto-browser-0.0.5"),
     join(cursorExtensionsDir, "phion-auto-browser-0.0.6"),
-    join(cursorExtensionsDir, "phion-auto-browser-0.0.7"),
   ]
 
   for (const oldVersionDir of oldVersionDirs) {
