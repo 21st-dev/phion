@@ -1553,6 +1553,84 @@ io.on("connection", (socket) => {
   socket.on("error", (error) => {
     console.error(`❌ Socket error for ${socket.id}:`, error)
   })
+
+  // ========= RUNTIME ERROR HANDLING =========
+
+  // Обработка runtime ошибок от toolbar
+  socket.on("toolbar_runtime_error", async (payload) => {
+    const projectId = socket.data.projectId
+
+    if (!projectId) {
+      socket.emit("error", { message: "Not authenticated" })
+      return
+    }
+
+    try {
+      // Валидация payload
+      if (!payload || !payload.error || !payload.error.message) {
+        console.error("❌ [RUNTIME_ERROR] Invalid payload received")
+        socket.emit("runtime_error_received", { success: false })
+        return
+      }
+
+      const errorId = `${projectId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      // Логируем ошибку на сервере
+      console.log(`🐛 [RUNTIME_ERROR] Project ${projectId} - ${errorId}:`)
+      console.log(`   Message: ${payload.error.message}`)
+      console.log(`   Source: ${payload.error.source || "unknown"}`)
+      console.log(
+        `   File: ${payload.error.fileName || "unknown"}:${payload.error.lineNumber || "?"}:${payload.error.columnNumber || "?"}`,
+      )
+      console.log(`   URL: ${payload.url}`)
+      console.log(`   Toolbar: ${payload.context.toolbarVersion || "unknown"}`)
+      console.log(
+        `   Browser: ${payload.context.browserInfo?.platform} ${payload.context.browserInfo?.language}`,
+      )
+      console.log(`   Time: ${new Date(payload.timestamp).toISOString()}`)
+
+      if (payload.error.stack) {
+        console.log(`   Stack:`)
+        console.log(
+          payload.error.stack
+            .split("\n")
+            .map((line) => `     ${line}`)
+            .join("\n"),
+        )
+      }
+
+      // Уведомляем всех клиентов проекта о runtime ошибке (для отображения в UI)
+      io.to(`project:${projectId}`).emit("runtime_error", {
+        errorId,
+        projectId,
+        timestamp: payload.timestamp,
+        error: {
+          message: payload.error.message,
+          source: payload.error.source,
+          fileName: payload.error.fileName,
+          lineNumber: payload.error.lineNumber,
+        },
+        context: {
+          url: payload.url,
+          toolbarVersion: payload.context.toolbarVersion,
+        },
+      })
+
+      // Подтверждаем получение ошибки
+      socket.emit("runtime_error_received", {
+        success: true,
+        errorId,
+      })
+
+      console.log(`📡 [RUNTIME_ERROR] Error logged and broadcasted to project ${projectId}`)
+    } catch (error) {
+      console.error(
+        `❌ [RUNTIME_ERROR] Error processing runtime error for project ${projectId}:`,
+        error,
+      )
+      socket.emit("runtime_error_received", { success: false })
+    }
+  })
 })
 
 // Запускаем сервер
