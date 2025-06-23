@@ -27,9 +27,9 @@
         "icon": "$(browser)"
       },
       {
-        "command": "phion.showConsoleLogs",
-        "title": "Phion: Show Console Logs",
-        "icon": "$(console)"
+        "command": "phion.showRuntimeErrors",
+        "title": "Phion: Show Runtime Errors",
+        "icon": "$(error)"
       },
       {
         "command": "phion.toggleAiChat",
@@ -59,6 +59,10 @@
         {
           "command": "phion.openPreview",
           "group": "1_run@2"
+        },
+        {
+          "command": "phion.showRuntimeErrors",
+          "group": "1_run@3"
         }
       ]
     },
@@ -73,6 +77,12 @@
         "command": "phion.openPreview",
         "key": "ctrl+shift+b",
         "mac": "cmd+shift+b",
+        "when": "true"
+      },
+      {
+        "command": "phion.showRuntimeErrors",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
         "when": "true"
       },
       {
@@ -103,6 +113,8 @@
   "dependencies": {
     "@types/debug": "^4.1.12",
     "debug": "^4.4.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "ws": "^8.18.2"
   }
 }

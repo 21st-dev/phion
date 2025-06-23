@@ -1554,82 +1554,63 @@ io.on("connection", (socket) => {
     console.error(`❌ Socket error for ${socket.id}:`, error)
   })
 
+  // ========= INSERT PROMPT HANDLING =========
+
+  // Обработка insert_prompt событий от toolbar - транслируем другим клиентам
+  socket.on("insert_prompt", async (data) => {
+    const projectId = data?.projectId || socket.data.projectId
+
+    if (!projectId) {
+      socket.emit("error", { message: "Missing projectId" })
+      return
+    }
+
+    if (!data?.prompt) {
+      socket.emit("error", { message: "Missing prompt" })
+      return
+    }
+
+    console.log(`💬 [INSERT_PROMPT] Received prompt for project ${projectId} from ${socket.id}`)
+    console.log(`💬 [INSERT_PROMPT] Prompt preview: ${data.prompt.substring(0, 100)}...`)
+
+    // Проверяем сколько клиентов в комнате проекта
+    const roomClients = io.sockets.adapter.rooms.get(`project:${projectId}`)
+    const clientCount = roomClients ? roomClients.size : 0
+    const clientIds = roomClients ? Array.from(roomClients) : []
+
+    console.log(
+      `📡 [INSERT_PROMPT] Broadcasting to project:${projectId} room (${clientCount} clients: ${clientIds.join(", ")})`,
+    )
+
+    // Транслируем событие всем клиентам в комнате проекта (включая VSCode extension)
+    io.to(`project:${projectId}`).emit("insert_prompt", {
+      projectId,
+      prompt: data.prompt,
+      timestamp: Date.now(),
+      source: socket.data.clientType || "unknown",
+    })
+
+    console.log(`✅ [INSERT_PROMPT] Prompt broadcasted to all clients in project ${projectId}`)
+  })
+
   // ========= RUNTIME ERROR HANDLING =========
 
-  // Обработка runtime ошибок от toolbar
+  // Обработка runtime ошибок от toolbar - простое проксирование
   socket.on("toolbar_runtime_error", async (payload) => {
     const projectId = socket.data.projectId
 
     if (!projectId) {
-      socket.emit("error", { message: "Not authenticated" })
       return
     }
 
-    try {
-      // Валидация payload
-      if (!payload || !payload.error || !payload.error.message) {
-        console.error("❌ [RUNTIME_ERROR] Invalid payload received")
-        socket.emit("runtime_error_received", { success: false })
-        return
-      }
+    // Простое логирование для отладки
+    console.log(
+      `🐛 [RUNTIME_ERROR] Runtime error for project ${projectId}:`,
+      payload?.error?.message || "unknown error",
+    )
 
-      const errorId = `${projectId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-      // Логируем ошибку на сервере
-      console.log(`🐛 [RUNTIME_ERROR] Project ${projectId} - ${errorId}:`)
-      console.log(`   Message: ${payload.error.message}`)
-      console.log(`   Source: ${payload.error.source || "unknown"}`)
-      console.log(
-        `   File: ${payload.error.fileName || "unknown"}:${payload.error.lineNumber || "?"}:${payload.error.columnNumber || "?"}`,
-      )
-      console.log(`   URL: ${payload.url}`)
-      console.log(`   Toolbar: ${payload.context.toolbarVersion || "unknown"}`)
-      console.log(
-        `   Browser: ${payload.context.browserInfo?.platform} ${payload.context.browserInfo?.language}`,
-      )
-      console.log(`   Time: ${new Date(payload.timestamp).toISOString()}`)
-
-      if (payload.error.stack) {
-        console.log(`   Stack:`)
-        console.log(
-          payload.error.stack
-            .split("\n")
-            .map((line) => `     ${line}`)
-            .join("\n"),
-        )
-      }
-
-      // Уведомляем всех клиентов проекта о runtime ошибке (для отображения в UI)
-      io.to(`project:${projectId}`).emit("runtime_error", {
-        errorId,
-        projectId,
-        timestamp: payload.timestamp,
-        error: {
-          message: payload.error.message,
-          source: payload.error.source,
-          fileName: payload.error.fileName,
-          lineNumber: payload.error.lineNumber,
-        },
-        context: {
-          url: payload.url,
-          toolbarVersion: payload.context.toolbarVersion,
-        },
-      })
-
-      // Подтверждаем получение ошибки
-      socket.emit("runtime_error_received", {
-        success: true,
-        errorId,
-      })
-
-      console.log(`📡 [RUNTIME_ERROR] Error logged and broadcasted to project ${projectId}`)
-    } catch (error) {
-      console.error(
-        `❌ [RUNTIME_ERROR] Error processing runtime error for project ${projectId}:`,
-        error,
-      )
-      socket.emit("runtime_error_received", { success: false })
-    }
+    // Проксируем событие всем клиентам проекта без дополнительной обработки
+    io.to(`project:${projectId}`).emit("toolbar_runtime_error", payload)
   })
 })
 

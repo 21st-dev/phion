@@ -348,6 +348,9 @@ importers:
 
   packages/dev-agent:
     dependencies:
+      '@types/safe-json-stringify':
+        specifier: ^1.1.5
+        version: 1.1.5
       chokidar:
         specifier: ^3.5.3
         version: 3.6.0
@@ -360,6 +363,12 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      safe-json-stringify:
+        specifier: ^1.2.0
+        version: 1.2.0
+      socket.io:
+        specifier: ^4.7.5
+        version: 4.7.5
       socket.io-client:
         specifier: ^4.7.5
         version: 4.8.1
@@ -509,7 +518,7 @@ importers:
         version: 12.18.1(react-dom@18.3.1)(react@18.3.1)
       phion:
         specifier: 0.0.4-beta.8
-        version: link:../../packages/dev-agent
+        version: 0.0.4-beta.8(vite@5.4.19)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -589,6 +598,12 @@ importers:
       debug:
         specifier: ^4.4.1
         version: 4.4.1
+      socket.io:
+        specifier: ^4.8.1
+        version: 4.8.1
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.1
       ws:
         specifier: ^8.18.2
         version: 8.18.2
@@ -1631,7 +1646,6 @@ packages:
     cpu: [ppc64]
     os: [aix]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/aix-ppc64@0.25.5:
@@ -1657,7 +1671,6 @@ packages:
     cpu: [arm64]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/android-arm64@0.25.5:
@@ -1683,7 +1696,6 @@ packages:
     cpu: [arm]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/android-arm@0.25.5:
@@ -1709,7 +1721,6 @@ packages:
     cpu: [x64]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/android-x64@0.25.5:
@@ -1735,7 +1746,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/darwin-arm64@0.25.5:
@@ -1761,7 +1771,6 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/darwin-x64@0.25.5:
@@ -1787,7 +1796,6 @@ packages:
     cpu: [arm64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/freebsd-arm64@0.25.5:
@@ -1813,7 +1821,6 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/freebsd-x64@0.25.5:
@@ -1839,7 +1846,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-arm64@0.25.5:
@@ -1865,7 +1871,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-arm@0.25.5:
@@ -1891,7 +1896,6 @@ packages:
     cpu: [ia32]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-ia32@0.25.5:
@@ -1917,7 +1921,6 @@ packages:
     cpu: [loong64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-loong64@0.25.5:
@@ -1943,7 +1946,6 @@ packages:
     cpu: [mips64el]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-mips64el@0.25.5:
@@ -1969,7 +1971,6 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-ppc64@0.25.5:
@@ -1995,7 +1996,6 @@ packages:
     cpu: [riscv64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-riscv64@0.25.5:
@@ -2021,7 +2021,6 @@ packages:
     cpu: [s390x]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-s390x@0.25.5:
@@ -2047,7 +2046,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/linux-x64@0.25.5:
@@ -2082,7 +2080,6 @@ packages:
     cpu: [x64]
     os: [netbsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/netbsd-x64@0.25.5:
@@ -2117,7 +2114,6 @@ packages:
     cpu: [x64]
     os: [openbsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/openbsd-x64@0.25.5:
@@ -2143,7 +2139,6 @@ packages:
     cpu: [x64]
     os: [sunos]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/sunos-x64@0.25.5:
@@ -2169,7 +2164,6 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/win32-arm64@0.25.5:
@@ -2195,7 +2189,6 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/win32-ia32@0.25.5:
@@ -2221,7 +2214,6 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@esbuild/win32-x64@0.25.5:
@@ -5324,7 +5316,6 @@ packages:
     cpu: [arm]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-android-arm-eabi@4.9.0:
@@ -5339,7 +5330,6 @@ packages:
     cpu: [arm64]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-android-arm64@4.9.0:
@@ -5354,7 +5344,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-darwin-arm64@4.9.0:
@@ -5369,7 +5358,6 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-darwin-x64@4.9.0:
@@ -5384,7 +5372,6 @@ packages:
     cpu: [arm64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-freebsd-x64@4.44.0:
@@ -5392,7 +5379,6 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm-gnueabihf@4.44.0:
@@ -5400,7 +5386,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm-gnueabihf@4.9.0:
@@ -5415,7 +5400,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm64-gnu@4.44.0:
@@ -5423,7 +5407,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm64-gnu@4.9.0:
@@ -5438,7 +5421,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm64-musl@4.9.0:
@@ -5453,7 +5435,6 @@ packages:
     cpu: [loong64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-powerpc64le-gnu@4.44.0:
@@ -5461,7 +5442,6 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-riscv64-gnu@4.44.0:
@@ -5469,7 +5449,6 @@ packages:
     cpu: [riscv64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-riscv64-gnu@4.9.0:
@@ -5484,7 +5463,6 @@ packages:
     cpu: [riscv64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-s390x-gnu@4.44.0:
@@ -5492,7 +5470,6 @@ packages:
     cpu: [s390x]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-x64-gnu@4.44.0:
@@ -5500,7 +5477,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-x64-gnu@4.9.0:
@@ -5515,7 +5491,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-x64-musl@4.9.0:
@@ -5530,7 +5505,6 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-win32-arm64-msvc@4.9.0:
@@ -5545,7 +5519,6 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-win32-ia32-msvc@4.9.0:
@@ -5560,7 +5533,6 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-win32-x64-msvc@4.9.0:
@@ -6464,7 +6436,6 @@ packages:
 
   /@types/estree@1.0.8:
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
-    dev: true
 
   /@types/express-serve-static-core@4.19.6:
     resolution: {integrity: sha512-N4LZ2xG7DatVqhCZzOGb1Yi5lMbXSZcmdLDe9EzSndPV2HpWYWzRbaerl2n27irrm94EPpprqa8KpskPT085+A==}
@@ -6639,6 +6610,10 @@ packages:
     dependencies:
       '@types/prop-types': 15.7.14
       csstype: 3.1.3
+
+  /@types/safe-json-stringify@1.1.5:
+    resolution: {integrity: sha512-wQ1unJoajjDOP7bkg7FHOYelVp6BSsuBIFSvifNKeiMHegXWa6vddoqM/dHTVkX8bn9fJcor4Hukff9AtFybcA==}
+    dev: false
 
   /@types/sarif@2.1.7:
     resolution: {integrity: sha512-kRz0VEkJqWLf1LLVN4pT1cg1Z9wAuvI6L97V3m2f5B76Tg8d413ddvLBPTEHAZJlnn4XSvu0FkZtViCQGVyrXQ==}
@@ -8064,6 +8039,11 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
+  /cookie@0.7.2:
+    resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
+    engines: {node: '>= 0.6'}
+    dev: false
+
   /cookie@1.0.2:
     resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
     engines: {node: '>=18'}
@@ -8568,6 +8548,25 @@ packages:
       - utf-8-validate
     dev: false
 
+  /engine.io@6.6.4:
+    resolution: {integrity: sha512-ZCkIjSYNDyGn0R6ewHDtXgns/Zre/NT6Agvq1/WobF7JXgFff4SeDroKiCO3fNJreU9YG429Sc81o4w5ok/W5g==}
+    engines: {node: '>=10.2.0'}
+    dependencies:
+      '@types/cors': 2.8.17
+      '@types/node': 20.11.24
+      accepts: 1.3.8
+      base64id: 2.0.0
+      cookie: 0.7.2
+      cors: 2.8.5
+      debug: 4.3.7
+      engine.io-parser: 5.2.3
+      ws: 8.17.1
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /entities@2.1.0:
     resolution: {integrity: sha512-hCx1oky9PFrJ611mf0ifBLBRW8lUUVRlFolb5gWRfIELabBlbp9xZvrqZLZAs+NxFnbfQoeGd8wDkygjg7U85w==}
     dev: true
@@ -8768,7 +8767,6 @@ packages:
       '@esbuild/win32-arm64': 0.21.5
       '@esbuild/win32-ia32': 0.21.5
       '@esbuild/win32-x64': 0.21.5
-    dev: true
 
   /esbuild@0.25.5:
     resolution: {integrity: sha512-P8OtKZRv/5J5hhz0cUAdu/cLuPIKXpQl1R9pZtvmHWQvrAUVd0UNIPT4IB4W3rNOqVO0rlqHmCIbSwxh/c9yUQ==}
@@ -11260,6 +11258,24 @@ packages:
     resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
     dev: true
 
+  /phion@0.0.4-beta.8(vite@5.4.19):
+    resolution: {integrity: sha512-SDBB549Ha445PWSr0Ob7xSyoDhfFzdKXHl+UIvvF3jUCUlyNOFM6bZAKd2bZRAck9Yuu+14y7TtiQX9slw7miw==}
+    hasBin: true
+    peerDependencies:
+      vite: ^4.0.0 || ^5.0.0
+    dependencies:
+      chokidar: 3.6.0
+      commander: 11.1.0
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      socket.io-client: 4.8.1
+      vite: 5.4.19(@types/node@20.11.24)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -11970,7 +11986,6 @@ packages:
       '@rollup/rollup-win32-ia32-msvc': 4.44.0
       '@rollup/rollup-win32-x64-msvc': 4.44.0
       fsevents: 2.3.3
-    dev: true
 
   /rollup@4.9.0:
     resolution: {integrity: sha512-bUHW/9N21z64gw8s6tP4c88P382Bq/L5uZDowHlHx6s/QWpjJXivIAbEw6LZthgSvlEizZBfLC4OAvWe7aoF7A==}
@@ -12021,6 +12036,10 @@ packages:
 
   /safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+
+  /safe-json-stringify@1.2.0:
+    resolution: {integrity: sha512-gH8eh2nZudPQO6TytOvbxnuhYBOvDBBLW52tz5q6X58lJcd/tkmqFR+5Z9adS8aJtURSXWThWy/xJtJwixErvg==}
+    dev: false
 
   /safe-push-apply@1.0.0:
     resolution: {integrity: sha512-iKE9w/Z7xCzUMIZqdBsp6pEQvwuEebH4vdpjcDWnyzaI6yl6O9FHvVpmGelvEHNsoY6wGblkxR6Zty/h00WiSA==}
@@ -12359,6 +12378,23 @@ packages:
       cors: 2.8.5
       debug: 4.3.7
       engine.io: 6.5.5
+      socket.io-adapter: 2.5.5
+      socket.io-parser: 4.2.4
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
+  /socket.io@4.8.1:
+    resolution: {integrity: sha512-oZ7iUCxph8WYRHHcjBEc9unw3adt5CmSNlppj/5Q4k2RIrhl8Z5yY2Xr4j9zj0+wzVZ0bxmYoGSzKJnRl6A4yg==}
+    engines: {node: '>=10.2.0'}
+    dependencies:
+      accepts: 1.3.8
+      base64id: 2.0.0
+      cors: 2.8.5
+      debug: 4.3.7
+      engine.io: 6.6.4
       socket.io-adapter: 2.5.5
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
@@ -13484,7 +13520,6 @@ packages:
       rollup: 4.44.0
     optionalDependencies:
       fsevents: 2.3.3
-    dev: true
 
   /vsce@2.15.0:
     resolution: {integrity: sha512-P8E9LAZvBCQnoGoizw65JfGvyMqNGlHdlUXD1VAuxtvYAaHBKLBdKPnpy60XKVDAkQCfmMu53g+gq9FM+ydepw==}

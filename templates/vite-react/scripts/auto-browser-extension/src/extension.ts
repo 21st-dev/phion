@@ -5,6 +5,7 @@ import * as vscode from "vscode"
 import { startCDPRelayServer } from "./utils/cdp-relay.js"
 import { dispatchAgentCall } from "./utils/dispatch-agent-call"
 import { initializeDiagnosticCollection } from "./utils/inject-prompt-diagnostic-with-callback"
+import { PhionWebSocketClient } from "./utils/websocket-client"
 
 // Default Vite port only
 const DEFAULT_VITE_PORT = 5173
@@ -19,8 +20,26 @@ let cdpBridgePort = 9223
 let consoleLogsChannel: vscode.OutputChannel | null = null
 let simpleBrowserOpen = false
 
+// WebSocket client for runtime errors
+let phionWebSocketClient: PhionWebSocketClient | null = null
+
 // Persistent storage key for browser opened state
 const BROWSER_OPENED_KEY = "phion-browser-opened"
+
+// Config interface (same as CLI)
+interface PhionConfig {
+  projectId: string
+  wsUrl: string
+  debug?: boolean
+  toolbar?: {
+    enabled?: boolean
+    position?: "top" | "bottom"
+    autoOpen?: boolean
+  }
+}
+
+// Global config storage
+let phionConfig: PhionConfig | null = null
 
 // Function to check persistent browser opened state
 function isPersistentBrowserOpened(context) {
@@ -48,16 +67,22 @@ let AUTO_OPTIMIZE_WORKSPACE = true
 
 function updateConfigSettings() {
   try {
-    const workspaceFolders = vscode.workspace.workspaceFolders
-    if (!workspaceFolders || workspaceFolders.length === 0) return
+    // Load config using the new function
+    phionConfig = loadConfig()
 
-    const rootPath = workspaceFolders[0].uri.fsPath
-    const configPath = path.join(rootPath, "phion.config.json")
+    if (phionConfig) {
+      // Extract settings from config (these are extension-specific settings)
+      const workspaceFolders = vscode.workspace.workspaceFolders
+      if (!workspaceFolders || workspaceFolders.length === 0) return
 
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"))
-      AUTO_START_NEW_PROJECT = config?.autoStartOnNewProject === true
-      AUTO_OPTIMIZE_WORKSPACE = config?.autoOptimizeWorkspace !== false // Default true
+      const rootPath = workspaceFolders[0].uri.fsPath
+      const configPath = path.join(rootPath, "phion.config.json")
+
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"))
+        AUTO_START_NEW_PROJECT = config?.autoStartOnNewProject === true
+        AUTO_OPTIMIZE_WORKSPACE = config?.autoOptimizeWorkspace !== false // Default true
+      }
     }
   } catch (error) {
     // Ignore errors, keep defaults
@@ -363,13 +388,108 @@ async function stopCDPBridge() {
 }
 
 /**
- * Show console logs output channel
+ * Load configuration from phion.config.json (same logic as CLI)
  */
-function showConsoleLogs() {
-  if (consoleLogsChannel) {
-    consoleLogsChannel.show()
+function loadConfig(): PhionConfig | null {
+  try {
+    const workspaceFolders = vscode.workspace.workspaceFolders
+    if (!workspaceFolders) {
+      console.log("[Phion VSCode] 📁 No workspace folders found")
+      return null
+    }
+
+    const rootPath = workspaceFolders[0].uri.fsPath
+    const configPath = path.join(rootPath, "phion.config.json")
+
+    console.log(`[Phion VSCode] 🔍 Looking for config at: ${configPath}`)
+
+    if (fs.existsSync(configPath)) {
+      try {
+        console.log("[Phion VSCode] ✅ Found phion.config.json")
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"))
+        console.log("[Phion VSCode] 📋 Config contents:", config)
+
+        const phionConfig: PhionConfig = {
+          projectId: config.projectId,
+          wsUrl: config.wsUrl || process.env.PHION_WS_URL || "ws://localhost:8080",
+          debug: config.debug || false,
+          toolbar: config.toolbar || {
+            enabled: true,
+            position: "top",
+            autoOpen: true,
+          },
+        }
+
+        if (!phionConfig.projectId || phionConfig.projectId === "__PROJECT_ID__") {
+          console.log("[Phion VSCode] ❌ Missing or invalid project ID in config")
+          return null
+        }
+
+        return phionConfig
+      } catch (error) {
+        console.error("[Phion VSCode] ❌ Error parsing phion.config.json:", error)
+        return null
+      }
+    } else {
+      console.log("[Phion VSCode] ⚠️ phion.config.json not found")
+      return null
+    }
+  } catch (error) {
+    console.error("[Phion VSCode] ❌ Error loading config:", error)
+    return null
+  }
+}
+
+/**
+ * Connect to websocket for runtime error monitoring
+ */
+async function connectRuntimeErrorMonitoring() {
+  console.log("[Phion VSCode] 🔍 Starting runtime error monitoring setup...")
+
+  // Load config if not already loaded
+  if (!phionConfig) {
+    phionConfig = loadConfig()
+  }
+
+  if (!phionConfig) {
+    console.log("[Phion VSCode] ⚠️ No valid config found, skipping runtime error monitoring")
+    return
+  }
+
+  console.log(`[Phion VSCode] 📋 Found project ID: ${phionConfig.projectId}`)
+
+  try {
+    if (!phionWebSocketClient) {
+      console.log("[Phion VSCode] 🆕 Creating new WebSocket client for runtime errors")
+      // Use WebSocket URL from config without modification
+      console.log(`[Phion VSCode] 📋 Using WebSocket URL: ${phionConfig.wsUrl}`)
+      phionWebSocketClient = new PhionWebSocketClient(phionConfig.wsUrl)
+    }
+
+    console.log("[Phion VSCode] 🔌 Attempting to connect to WebSocket server...")
+    const connected = await phionWebSocketClient.connect(phionConfig.projectId)
+    if (connected) {
+      console.log(
+        `[Phion VSCode] ✅ Connected to runtime error monitoring for project: ${phionConfig.projectId}`,
+      )
+    } else {
+      console.log("[Phion VSCode] ❌ Failed to connect to runtime error monitoring")
+    }
+  } catch (error) {
+    console.error("[Phion VSCode] ❌ Error connecting to runtime error monitoring:", error)
+  }
+}
+
+/**
+ * Show runtime errors output channel
+ */
+function showRuntimeErrors() {
+  if (phionWebSocketClient) {
+    phionWebSocketClient.showOutputChannel()
   } else {
-    vscode.window.showInformationMessage("Console logs not available. Start CDP Bridge first.")
+    vscode.window.showInformationMessage(
+      "Runtime error monitoring not available. Make sure the project is running.",
+    )
   }
 }
 
@@ -433,10 +553,10 @@ function activate(context) {
 
   // Check if this is a Phion project and start monitoring
   if (isPhionProject()) {
-    // Auto-start CDP bridge for all Phion projects
+    // Connect to runtime error monitoring
     setTimeout(() => {
-      startCDPBridge()
-    }, 1000)
+      connectRuntimeErrorMonitoring()
+    }, 2000)
 
     // First check if server is already running
     checkWebsiteServer().then((isServerActive) => {
@@ -472,9 +592,9 @@ function activate(context) {
 
   const openPreviewCommand = vscode.commands.registerCommand("phion.openPreview", openPreview)
 
-  const showConsoleLogsCommand = vscode.commands.registerCommand(
-    "phion.showConsoleLogs",
-    showConsoleLogs,
+  const showRuntimeErrorsCommand = vscode.commands.registerCommand(
+    "phion.showRuntimeErrors",
+    showRuntimeErrors,
   )
 
   // AI Chat toggle command
@@ -496,7 +616,7 @@ function activate(context) {
   context.subscriptions.push(
     startProjectCommand,
     openPreviewCommand,
-    showConsoleLogsCommand,
+    showRuntimeErrorsCommand,
     toggleAiChatCommand,
   )
 }
@@ -513,6 +633,12 @@ function deactivate() {
   // Clean up CDP bridge server
   if (cdpBridgeServer) {
     stopCDPBridge()
+  }
+
+  // Clean up websocket client
+  if (phionWebSocketClient) {
+    phionWebSocketClient.disconnect()
+    phionWebSocketClient = null
   }
 
   console.log("👋 Phion extension deactivated")

@@ -75,6 +75,7 @@ export interface WebSocketEvents {
   toolbar_save_with_ai_message: { projectId: string }
   toolbar_revert_to_commit: { projectId: string; targetCommitSha: string; commitMessage?: string }
   toolbar_runtime_error: RuntimeErrorPayload
+  insert_prompt: { projectId: string; prompt: string }
 
   // Incoming events
   authenticated: { success: boolean }

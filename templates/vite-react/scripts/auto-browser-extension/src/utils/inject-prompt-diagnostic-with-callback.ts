@@ -44,28 +44,80 @@ export async function injectPromptDiagnosticWithCallback(params: {
   callback: () => Promise<any>
 }): Promise<void> {
   let editor = vscode.window.activeTextEditor
+  let document: vscode.TextDocument
+
+  // If no editor is active, or if we need to ensure focus, find and open a suitable file
   if (!editor) {
     try {
-      // Get all workspace files
-      const files = await vscode.workspace.findFiles("**/*", "**/node_modules/**")
+      // Define common entry point patterns in order of preference
+      const entryPointPatterns = [
+        "**/App.tsx",
+        "**/main.tsx",
+        "**/app/page.tsx",
+        "**/src/App.tsx",
+        "**/src/main.tsx",
+        "**/index.tsx",
+        "**/src/index.tsx",
+        "**/App.jsx",
+        "**/main.jsx",
+        "**/src/App.jsx",
+        "**/src/main.jsx",
+        "**/index.jsx",
+        "**/src/index.jsx",
+        "**/index.ts",
+        "**/src/index.ts",
+        "**/index.js",
+        "**/src/index.js",
+      ]
 
-      if (files.length === 0) {
-        vscode.window.showErrorMessage("No files found in workspace to open.")
-        return
+      let fileToOpen: vscode.Uri | null = null
+
+      // Try to find entry points in order of preference
+      for (const pattern of entryPointPatterns) {
+        const files = await vscode.workspace.findFiles(pattern, "**/node_modules/**")
+        if (files.length > 0) {
+          fileToOpen = files[0]
+          break
+        }
       }
 
-      // Open the first file found
-      const document = await vscode.workspace.openTextDocument(files[0])
-      editor = await vscode.window.showTextDocument(document)
+      // If no entry points found, fall back to any file
+      if (!fileToOpen) {
+        const allFiles = await vscode.workspace.findFiles("**/*", "**/node_modules/**")
+        if (allFiles.length === 0) {
+          vscode.window.showErrorMessage("No files found in workspace to open.")
+          return
+        }
+        fileToOpen = allFiles[0]
+      }
+
+      // Open the selected file and ensure it's focused
+      document = await vscode.workspace.openTextDocument(fileToOpen)
+      editor = await vscode.window.showTextDocument(document, {
+        viewColumn: vscode.ViewColumn.Active,
+        preserveFocus: false, // Ensure the editor gets focus
+        preview: false, // Don't open in preview mode
+      })
     } catch (error) {
       vscode.window.showErrorMessage("Failed to open existing file for prompt injection.")
       return
     }
-    // Sleep 150ms to ensure editor is ready
-    await new Promise((resolve) => setTimeout(resolve, 150))
+  } else {
+    // Editor exists, but ensure it's focused and visible
+    document = editor.document
+    try {
+      // Re-show the document to ensure it's focused and visible
+      editor = await vscode.window.showTextDocument(document, {
+        viewColumn: vscode.ViewColumn.Active,
+        preserveFocus: false, // Ensure the editor gets focus
+        preview: false, // Don't open in preview mode
+      })
+    } catch (error) {
+      // If showing the document fails, continue with the existing editor
+      console.warn("Failed to refocus editor, continuing with existing editor:", error)
+    }
   }
 
-  const document = editor.document // Get document early
   const diagnosticCollection = getDiagnosticCollection()
 
   try {
@@ -91,7 +143,11 @@ export async function injectPromptDiagnosticWithCallback(params: {
       selectionOrCurrentLine.start,
     )
 
-    await new Promise((resolve) => setTimeout(resolve, 10))
+    // 4. Reveal the range to ensure it's visible
+    editor.revealRange(selectionOrCurrentLine, vscode.TextEditorRevealType.InCenter)
+
+    // Wait a bit more to ensure everything is properly set
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
     // 5. Execute the callback command
     await params.callback()

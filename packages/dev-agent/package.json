@@ -1,6 +1,6 @@
 {
   "name": "phion",
-  "version": "0.0.4-beta.8",
+  "version": "0.0.4-beta.9",
   "description": "Phion Development Agent and Vite Plugin for seamless code sync and auto-deploy",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",
@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "dev": "tsup --watch",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
@@ -24,10 +25,13 @@
   "author": "Phion Team",
   "license": "MIT",
   "dependencies": {
+    "@types/safe-json-stringify": "^1.1.5",
     "chokidar": "^3.5.3",
     "commander": "^11.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "safe-json-stringify": "^1.2.0",
+    "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "vite": "^5.0.0"
   },

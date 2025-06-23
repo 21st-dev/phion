@@ -1,5 +1,6 @@
+import safeJsonStringify from "safe-json-stringify"
 import { io, Socket } from "socket.io-client"
-import type { ToolbarState, WebSocketEvents, RuntimeErrorPayload } from "../types"
+import type { ToolbarState } from "../types"
 
 export class ToolbarWebSocketClient {
   private socket: Socket | null = null
@@ -13,8 +14,9 @@ export class ToolbarWebSocketClient {
     netlifyUrl: undefined,
   }
   private errorHandlersInstalled = false
-  private errorBuffer: RuntimeErrorPayload[] = []
+  private errorBuffer: string[] = []
   private readonly MAX_ERROR_BUFFER = 10
+  private onErrorBufferChange?: (count: number) => void
 
   constructor(projectId: string, websocketUrl: string) {
     this.projectId = projectId
@@ -23,6 +25,13 @@ export class ToolbarWebSocketClient {
 
   connect(): Promise<boolean> {
     return new Promise((resolve) => {
+      // Prevent multiple simultaneous connection attempts
+      if (this.socket && this.socket.connected) {
+        console.log("[Phion Toolbar] Already connected, returning existing connection")
+        resolve(true)
+        return
+      }
+
       this.socket = io(this.websocketUrl, {
         transports: ["websocket", "polling"],
         timeout: 30000,
@@ -32,13 +41,29 @@ export class ToolbarWebSocketClient {
         reconnectionDelayMax: 10000,
         randomizationFactor: 0.5,
 
+        // Enhanced stability settings
         upgrade: true,
         rememberUpgrade: true,
+        forceNew: false, // Reuse existing connection if available
 
         auth: {
           projectId: this.projectId,
         },
       })
+
+      let resolved = false
+      const resolveOnce = (result: boolean) => {
+        if (!resolved) {
+          resolved = true
+          resolve(result)
+        }
+      }
+
+      // Set a timeout for the entire connection process
+      const connectionTimeout = setTimeout(() => {
+        console.log("[Phion Toolbar] Connection timeout after 25 seconds")
+        resolveOnce(false)
+      }, 25000)
 
       this.socket.on("connect", () => {
         console.log("[Phion Toolbar] Connected to WebSocket server")
@@ -48,24 +73,39 @@ export class ToolbarWebSocketClient {
       })
 
       this.socket.on("authenticated", (data: { success: boolean }) => {
+        clearTimeout(connectionTimeout)
         if (data.success) {
           console.log("[Phion Toolbar] Authenticated successfully")
           this.setupEventListeners()
           this.requestStatus()
-          resolve(true)
+          resolveOnce(true)
         } else {
           console.error("[Phion Toolbar] Authentication failed")
-          resolve(false)
+          resolveOnce(false)
         }
       })
 
       this.socket.on("connect_error", (error) => {
         console.error("[Phion Toolbar] Connection error:", error)
-        resolve(false)
+        clearTimeout(connectionTimeout)
+        resolveOnce(false)
       })
 
       this.socket.on("disconnect", (reason: string) => {
         console.log(`[Phion Toolbar] Disconnected from WebSocket server: ${reason}`)
+
+        // Enhanced disconnect handling with more context
+        const disconnectReasons = {
+          "transport close": "Network connection lost",
+          "client namespace disconnect": "Client initiated disconnect",
+          "server namespace disconnect": "Server initiated disconnect",
+          "ping timeout": "Connection became unresponsive",
+          "transport error": "Transport-level error occurred",
+        }
+
+        const reasonDescription =
+          disconnectReasons[reason as keyof typeof disconnectReasons] || reason
+        console.log(`[Phion Toolbar] Disconnect reason: ${reasonDescription}`)
 
         // 📊 ENHANCED DISCONNECT HANDLING
         const clientInitiated = ["io client disconnect", "client namespace disconnect"]
@@ -76,9 +116,11 @@ export class ToolbarWebSocketClient {
         }
         this.emit("stateChange", this.state)
 
-        // Log disconnect reason for debugging
+        // Only attempt reconnection for unexpected disconnects
         if (!clientInitiated.includes(reason)) {
-          console.log(`[Phion Toolbar] Unexpected disconnect: ${reason}`)
+          console.log(
+            `[Phion Toolbar] Will attempt to reconnect after unexpected disconnect: ${reason}`,
+          )
         }
       })
     })
@@ -116,6 +158,12 @@ export class ToolbarWebSocketClient {
         if (processedFiles.size > 100) {
           const entries = Array.from(processedFiles)
           entries.slice(0, 50).forEach((key) => processedFiles.delete(key))
+        }
+
+        // Clear error buffer on file changes since errors might be fixed
+        if (this.errorBuffer.length > 0) {
+          console.log("[Phion Toolbar] Clearing error buffer due to file change")
+          this.errorBuffer = []
         }
 
         this.state = {
@@ -333,11 +381,9 @@ export class ToolbarWebSocketClient {
       "error",
       (event: ErrorEvent) => {
         this.handleRuntimeError({
-          message: event.message,
-          stack: event.error?.stack,
-          fileName: event.filename,
-          lineNumber: event.lineno,
-          columnNumber: event.colno,
+          eventType: "error",
+          event: event,
+          error: event.error,
           source: "window.error",
         })
       },
@@ -348,10 +394,10 @@ export class ToolbarWebSocketClient {
     window.addEventListener(
       "unhandledrejection",
       (event: PromiseRejectionEvent) => {
-        const error = event.reason
         this.handleRuntimeError({
-          message: error?.message || String(error),
-          stack: error?.stack,
+          eventType: "unhandledrejection",
+          event: event,
+          reason: event.reason,
           source: "unhandledrejection",
         })
       },
@@ -370,8 +416,9 @@ export class ToolbarWebSocketClient {
           (target.tagName === "IMG" || target.tagName === "SCRIPT" || target.tagName === "LINK")
         ) {
           this.handleRuntimeError({
-            message: `Resource failed to load: ${target.tagName}`,
-            fileName: (target as any).src || (target as any).href,
+            eventType: "resource.error",
+            event: event,
+            target: target,
             source: "resource.error",
           })
         }
@@ -385,69 +432,149 @@ export class ToolbarWebSocketClient {
   /**
    * Обработка runtime ошибки и отправка на сервер
    */
-  private handleRuntimeError(errorInfo: {
-    message: string
-    stack?: string
-    fileName?: string
-    lineNumber?: number
-    columnNumber?: number
-    source?: string
-  }) {
+  private handleRuntimeError(errorInfo: any) {
     try {
+      // Try to extract message for filtering (fallback to empty string if not available)
+      const errorMessage =
+        errorInfo?.message || errorInfo?.event?.message || errorInfo?.error?.message || ""
+
       // Фильтруем некоторые распространенные и неважные ошибки
-      if (this.shouldIgnoreError(errorInfo.message)) {
+      if (this.shouldIgnoreError(errorMessage)) {
         return
       }
 
-      const payload: RuntimeErrorPayload = {
-        projectId: this.projectId,
-        clientType: "toolbar",
-        timestamp: Date.now(),
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        error: errorInfo,
-        context: {
-          toolbarVersion: (window as any).PHION_CONFIG?.version || "unknown",
-          browserInfo: {
-            language: navigator.language,
-            platform: navigator.platform,
-            cookieEnabled: navigator.cookieEnabled,
-            onLine: navigator.onLine,
+      // Log raw error info before serialization
+      console.log("[Phion Toolbar] Raw error info before serialization:", errorInfo)
+
+      // Extract error properties that might not be enumerable
+      const enhancedErrorInfo = {
+        ...errorInfo,
+        // Extract error properties from nested error objects
+        ...(errorInfo.error && {
+          error: {
+            ...errorInfo.error,
+            message: errorInfo.error.message,
+            stack: errorInfo.error.stack,
+            name: errorInfo.error.name,
           },
-          pageInfo: {
-            title: document.title,
-            referrer: document.referrer,
-            pathname: window.location.pathname,
+        }),
+        // Extract error properties from event.error if available
+        ...(errorInfo.event?.error && {
+          event: {
+            ...errorInfo.event,
+            error: {
+              ...errorInfo.event.error,
+              message: errorInfo.event.error.message,
+              stack: errorInfo.event.error.stack,
+              name: errorInfo.event.error.name,
+            },
           },
-        },
+        }),
+        // Extract message from event if available
+        ...(errorInfo.event?.message && {
+          event: {
+            ...errorInfo.event,
+            message: errorInfo.event.message,
+            filename: errorInfo.event.filename,
+            lineno: errorInfo.event.lineno,
+            colno: errorInfo.event.colno,
+          },
+        }),
+        // Extract reason if it's an error object (for unhandledrejection)
+        ...(errorInfo.reason &&
+          typeof errorInfo.reason === "object" && {
+            reason: {
+              ...errorInfo.reason,
+              message: errorInfo.reason.message,
+              stack: errorInfo.reason.stack,
+              name: errorInfo.reason.name,
+            },
+          }),
       }
 
-      // Если WebSocket не подключен, буферизуем ошибку
-      if (!this.socket || !this.socket.connected) {
-        this.bufferError(payload)
-        return
-      }
+      // Serialize the enhanced error info
+      const serializedErrorInfo = safeJsonStringify(enhancedErrorInfo)
 
-      this.sendRuntimeError(payload)
+      console.log("[Phion Toolbar] Serialized error info:", serializedErrorInfo)
+
+      const payload = serializedErrorInfo
+
+      // ВСЕГДА буферизуем ошибку локально для кнопки "Fix errors"
+      this.bufferError(payload as any)
+
+      // Если WebSocket подключен, также отправляем на сервер для логирования
+      if (this.socket && this.socket.connected) {
+        this.sendRuntimeError(payload as any)
+      }
     } catch (err) {
       console.error("[Phion Toolbar] Error handling runtime error:", err)
     }
   }
 
   /**
-   * Отправка runtime ошибки на сервер
+   * Отправка runtime ошибки на сервер (теперь буферизуется вместо прямой отправки)
    */
-  private sendRuntimeError(payload: RuntimeErrorPayload) {
+  private sendRuntimeError(payload: string) {
     if (this.socket && this.socket.connected) {
-      console.log("[Phion Toolbar] Sending runtime error:", payload.error.message)
+      console.log("[Phion Toolbar] Sending runtime error with serialized data")
       this.socket.emit("toolbar_runtime_error", payload)
+    }
+  }
+
+  /**
+   * Отправка события insert_prompt с буферизованными ошибками
+   */
+  sendInsertPrompt() {
+    console.log(`[Phion Toolbar] sendInsertPrompt called. Buffer size: ${this.errorBuffer.length}`)
+
+    if (!this.socket || !this.socket.connected) {
+      console.error("[Phion Toolbar] Cannot send insert_prompt - not connected")
+      return
+    }
+
+    if (this.errorBuffer.length === 0) {
+      console.log("[Phion Toolbar] No errors in buffer to send")
+      return
+    }
+
+    // Log the raw error buffer before processing
+    console.log("[Phion Toolbar] Raw error buffer before processing:", this.errorBuffer)
+
+    // Создаем промпт из всех ошибок в буфере (используя сериализованные данные)
+    const errorMessages = this.errorBuffer
+      .map((errorData, index) => {
+        return `${index + 1}. Runtime Error:
+${errorData}`
+      })
+      .join("\n\n")
+
+    const prompt = `Fix these runtime errors that occurred in my application:
+
+${errorMessages}
+
+Please analyze these serialized errors and provide fixes for the underlying issues. Focus on the root causes and provide specific code changes needed.`
+
+    console.log(`[Phion Toolbar] Sending insert_prompt with ${this.errorBuffer.length} errors`)
+    console.log("[Phion Toolbar] Generated prompt:", prompt)
+
+    this.socket.emit("insert_prompt", {
+      projectId: this.projectId,
+      prompt: prompt,
+    })
+
+    // Очищаем буфер после отправки
+    this.errorBuffer = []
+
+    // Уведомляем UI об очистке буфера через callback
+    if (this.onErrorBufferChange) {
+      this.onErrorBufferChange(0)
     }
   }
 
   /**
    * Буферизация ошибки для отправки после подключения
    */
-  private bufferError(payload: RuntimeErrorPayload) {
+  private bufferError(payload: string) {
     this.errorBuffer.push(payload)
 
     // Ограничиваем размер буфера
@@ -456,9 +583,16 @@ export class ToolbarWebSocketClient {
     }
 
     console.log(
-      `[Phion Toolbar] Buffered runtime error (${this.errorBuffer.length}/${this.MAX_ERROR_BUFFER}):`,
-      payload.error.message,
+      `[Phion Toolbar] Buffered runtime error (${this.errorBuffer.length}/${this.MAX_ERROR_BUFFER})`,
     )
+
+    // Log the actual error data being buffered
+    console.log("[Phion Toolbar] Error buffer entry:", payload)
+
+    // Уведомляем UI об изменении количества ошибок через callback
+    if (this.onErrorBufferChange) {
+      this.onErrorBufferChange(this.errorBuffer.length)
+    }
   }
 
   /**
@@ -467,12 +601,11 @@ export class ToolbarWebSocketClient {
   private flushErrorBuffer() {
     if (this.errorBuffer.length === 0) return
 
-    console.log(`[Phion Toolbar] Flushing ${this.errorBuffer.length} buffered errors`)
+    console.log(`[Phion Toolbar] Flushing ${this.errorBuffer.length} buffered errors to server`)
 
-    const errors = [...this.errorBuffer]
-    this.errorBuffer = []
-
-    errors.forEach((error) => {
+    // Отправляем все буферизованные ошибки на сервер, но НЕ очищаем буфер
+    // (ошибки должны остаться для кнопки "Fix errors")
+    this.errorBuffer.forEach((error) => {
       this.sendRuntimeError(error)
     })
   }
@@ -499,9 +632,24 @@ export class ToolbarWebSocketClient {
    */
   reportError(error: Error, context?: string) {
     this.handleRuntimeError({
-      message: error.message,
-      stack: error.stack,
-      source: context || "manual",
+      eventType: "manual",
+      error: error,
+      context: context,
+      source: "manual",
     })
+  }
+
+  /**
+   * Получить текущий размер буфера ошибок (для отладки)
+   */
+  getErrorBufferSize(): number {
+    return this.errorBuffer.length
+  }
+
+  /**
+   * Установить callback для уведомления об изменении буфера ошибок
+   */
+  setErrorBufferChangeCallback(callback: (count: number) => void) {
+    this.onErrorBufferChange = callback
   }
 }
