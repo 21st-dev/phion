@@ -2,7 +2,7 @@
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
   "description": "Tools for Phion development",
-  "version": "0.0.8",
+  "version": "0.0.7",
   "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
@@ -25,6 +25,11 @@
         "command": "phion.openPreview",
         "title": "Phion: Open Preview",
         "icon": "$(browser)"
+      },
+      {
+        "command": "phion.showConsoleLogs",
+        "title": "Phion: Show Console Logs",
+        "icon": "$(console)"
       },
       {
         "command": "phion.toggleAiChat",
