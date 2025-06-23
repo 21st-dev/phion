@@ -37,73 +37,20 @@ export async function middleware(request: NextRequest) {
 
   // Check if this is a user dashboard route ([user_id])
   const userDashboardMatch = request.nextUrl.pathname.match(/^\/([^\/]+)$/)
-  const isUserDashboard =
-    userDashboardMatch && userDashboardMatch[1] !== "waitlist" && userDashboardMatch[1] !== "admin"
+  const isUserDashboard = userDashboardMatch && userDashboardMatch[1] !== "admin"
 
   // Защищенные роуты - перенаправляем на главную если не авторизован
-  if (
-    !user &&
-    (request.nextUrl.pathname.startsWith("/project") ||
-      request.nextUrl.pathname.startsWith("/waitlist") ||
-      isUserDashboard)
-  ) {
+  if (!user && (request.nextUrl.pathname.startsWith("/project") || isUserDashboard)) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     return NextResponse.redirect(url)
   }
 
-  // Check if user is in waitlist and approved
-  if (user && !request.nextUrl.pathname.startsWith("/waitlist")) {
-    // Skip these paths
-    const publicPaths = ["/auth/callback", "/logout", "/api/", "/admin", "/debug-waitlist"]
-    const isPublicPath = publicPaths.some((path) => request.nextUrl.pathname.startsWith(path))
-    const isHomePage = request.nextUrl.pathname === "/"
-
-    if (!isPublicPath && !isHomePage) {
-      // Check if user is approved in waitlist
-      const { data: waitlistEntry, error } = await supabase
-        .from("waitlist")
-        .select("*")
-        .eq("email", user.email)
-        .single()
-
-      // If no waitlist entry or error, redirect to waitlist
-      if (error || !waitlistEntry) {
-        const url = request.nextUrl.clone()
-        url.pathname = "/waitlist"
-        return NextResponse.redirect(url)
-      }
-
-      // If waitlist entry exists but user is not approved, redirect to waitlist
-      // Handle missing status field (legacy entries)
-      const status = waitlistEntry.status || "pending"
-      if (status !== "approved") {
-        const url = request.nextUrl.clone()
-        url.pathname = "/waitlist"
-        return NextResponse.redirect(url)
-      }
-    }
-  }
-
-  // Если пользователь авторизован и находится на главной странице, проверяем статус waitlist
+  // Если пользователь авторизован и находится на главной странице, перенаправляем на дашборд
   if (user && request.nextUrl.pathname === "/") {
-    // Check if user is approved in waitlist
-    const { data: waitlistEntry, error } = await supabase
-      .from("waitlist")
-      .select("*")
-      .eq("email", user.email)
-      .single()
-
-    // If user is approved, redirect to their dashboard
-    if (!error && waitlistEntry) {
-      const status = waitlistEntry.status || "pending"
-      if (status === "approved") {
-        const url = request.nextUrl.clone()
-        url.pathname = `/${user.id}`
-        return NextResponse.redirect(url)
-      }
-    }
-    // If not approved or no waitlist entry, stay on home page to show waitlist status
+    const url = request.nextUrl.clone()
+    url.pathname = `/${user.id}`
+    return NextResponse.redirect(url)
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
@@ -126,6 +73,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)",
   ],
 }

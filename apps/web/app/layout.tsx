@@ -11,9 +11,9 @@ export const metadata: Metadata = {
   description:
     "Just craft in Cursor. We handle versioning, publishing, architecture rules, and everything else. Focus on creating, not configuring.",
   icons: {
-    icon: "/light.ico",
-    shortcut: "/light.ico",
-    apple: "/light.ico",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 }
 

@@ -52,7 +52,7 @@ export function Logo({ width = 32, height = 32, className = "", forceDark = fals
   }
 
   const isDark = forceDark || resolvedTheme === "dark"
-  const logoSrc = isDark ? "/brand/dark.png" : "/brand/light.png"
+  const logoSrc = isDark ? "/brand/white-icon.svg" : "/brand/black-icon.svg"
 
   return (
     <img

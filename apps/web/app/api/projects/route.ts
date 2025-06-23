@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const projectCount = existingProjects?.length || 0
-    const FREE_TIER_LIMIT = 1
+    const FREE_TIER_LIMIT = 2
 
     // Проверяем подписку через 21st.dev API
     let hasActiveSubscription = false

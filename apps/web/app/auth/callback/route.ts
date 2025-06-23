@@ -33,31 +33,7 @@ export async function GET(request: NextRequest) {
       } = await supabase.auth.getUser()
 
       // Determine redirect URL
-      let redirectPath = "/"
-
-      // Check if user already has waitlist entry when redirecting to waitlist
-      if (next === "/waitlist" && user?.email) {
-        try {
-          const { data: waitlistData } = await supabase
-            .from("waitlist")
-            .select("*")
-            .eq("email", user.email)
-            .maybeSingle()
-
-          // If user already in waitlist, redirect to home instead
-          if (waitlistData) {
-            redirectPath = "/"
-          } else {
-            redirectPath = "/waitlist"
-          }
-        } catch (error) {
-          console.error("Error checking waitlist:", error)
-          redirectPath = "/waitlist" // fallback to waitlist
-        }
-      } else {
-        // Determine redirect URL normally
-        redirectPath = next || (user ? `/${user.id}` : "/")
-      }
+      const redirectPath = next || (user ? `/${user.id}` : "/")
 
       const forwardedHost = request.headers.get("x-forwarded-host") // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === "development"

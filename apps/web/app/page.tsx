@@ -7,31 +7,53 @@ import { createAuthBrowserClient } from "@shipvibes/database"
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Spinner } from "@/components/geist/spinner"
-import { CheckCircle, Clock, AlertCircle, Play } from "lucide-react"
+import { Play, ArrowRight, X } from "lucide-react"
 import { Mockup, MockupFrame } from "@/components/ui/mockup"
 import { motion, AnimatePresence } from "motion/react"
+import { HeroHeader } from "@/components/layout/hero-header"
+import { TextEffect } from "@/components/motion/text-effect"
+import { AnimatedGroup } from "@/components/motion/animated-group"
+import FeaturesSection from "@/components/features-section"
+import FAQSection from "@/components/faq-section"
+import {
+  MorphingDialog,
+  MorphingDialogTrigger,
+  MorphingDialogContent,
+  MorphingDialogClose,
+  MorphingDialogContainer,
+  MorphingDialogVideo,
+} from "@/components/core/morphing-dialog"
 
-interface WaitlistEntry {
-  id: string
-  email: string
-  status?: string // Optional for legacy entries
-  created_at: string
+const transitionVariants = {
+  item: {
+    hidden: {
+      opacity: 0,
+      filter: "blur(12px)",
+      y: 12,
+    },
+    visible: {
+      opacity: 1,
+      filter: "blur(0px)",
+      y: 0,
+      transition: {
+        type: "spring",
+        bounce: 0.3,
+        duration: 1.5,
+      },
+    },
+  },
 }
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoginMode, setIsLoginMode] = useState(false) // Default to waitlist mode
   const [user, setUser] = useState<any>(null)
-  const [waitlistEntry, setWaitlistEntry] = useState<WaitlistEntry | null>(null)
-  const [checkingStatus, setCheckingStatus] = useState(true)
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false)
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
   const [isVideoReadyToPlay, setIsVideoReadyToPlay] = useState(false)
   const supabase = createAuthBrowserClient()
   const { error: showError } = useToast()
   const router = useRouter()
 
   useEffect(() => {
+    // Check user status in background without blocking UI
     checkUserStatus()
   }, [])
 
@@ -41,62 +63,8 @@ export default function HomePage() {
         data: { user },
       } = await supabase.auth.getUser()
       setUser(user)
-
-      if (user && user.email) {
-        console.log("🔍 Checking waitlist for user:", user.email)
-
-        // First, let's see what's in the table structure
-        const { data: sampleData, error: sampleError } = await supabase
-          .from("waitlist")
-          .select("*")
-          .limit(1)
-
-        console.log("🔍 Table sample:", {
-          data: sampleData,
-          error: sampleError,
-          keys: sampleData?.[0] ? Object.keys(sampleData[0]) : null,
-        })
-
-        // Check waitlist status - use maybeSingle to handle missing records gracefully
-        const { data: waitlistData, error } = await supabase
-          .from("waitlist")
-          .select("*")
-          .eq("email", user.email)
-          .maybeSingle()
-
-        console.log("📊 Waitlist query result:", {
-          data: waitlistData,
-          error: error,
-          hasData: !!waitlistData,
-          dataKeys: waitlistData ? Object.keys(waitlistData) : null,
-        })
-
-        if (!error && waitlistData) {
-          console.log("✅ Found waitlist entry:", waitlistData)
-          console.log("🎯 Status field:", {
-            value: waitlistData.status,
-            type: typeof waitlistData.status,
-            hasStatusField: "status" in waitlistData,
-          })
-
-          // Add default status if missing (for legacy entries)
-          const entryWithStatus = {
-            ...waitlistData,
-            status: waitlistData.status || "pending",
-          }
-          console.log("🔄 Final entry:", entryWithStatus)
-          setWaitlistEntry(entryWithStatus)
-        } else if (error) {
-          console.log("❌ Waitlist query error:", error.message, error.code)
-          console.error("❌ Full error:", error)
-        } else {
-          console.log("⚠️ No waitlist entry found for user")
-        }
-      }
     } catch (error) {
       console.error("Error checking user status:", error)
-    } finally {
-      setCheckingStatus(false)
     }
   }
 
@@ -144,427 +112,171 @@ export default function HomePage() {
     }
   }
 
-  const handleJoinWaitlist = async () => {
-    setIsLoading(true)
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/waitlist`,
-        },
-      })
-
-      if (error) {
-        console.error("Error during Google login:", error.message)
-        showError("Login failed", error.message)
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error)
-      showError("Login failed", "An unexpected error occurred")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handlePlayVideo = () => {
-    setIsVideoPlaying(true)
-    setIsVideoLoaded(true)
-  }
-
-  const getWaitlistStatus = () => {
-    const status = waitlistEntry?.status || "pending"
-
-    switch (status) {
-      case "approved":
-        return {
-          icon: <CheckCircle className="w-5 h-5" />,
-          title: "Welcome to Phion!",
-          description: "Your application has been approved. Redirecting to your dashboard...",
-          buttonText: "Go to Dashboard",
-          buttonAction: () => router.push(`/${user.id}`),
-          variant: "success" as const,
-        }
-      case "rejected":
-        return {
-          icon: <AlertCircle className="w-5 h-5" />,
-          title: "Application Not Approved",
-          description:
-            "Unfortunately, your application was not approved at this time. Please check back later.",
-          buttonText: "Contact Support",
-          buttonAction: () => window.open("mailto:support@phion.dev", "_blank"),
-          variant: "error" as const,
-        }
-      default: // pending
-        return {
-          icon: <Clock className="w-5 h-5" />,
-          title: "You're already on the waitlist",
-          description: "We'll notify you once approved.",
-          buttonText: null, // No button for pending users
-          buttonAction: null,
-          variant: "pending" as const,
-        }
-    }
-  }
-
-  if (checkingStatus) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 relative bg-cover bg-center bg-no-repeat bg-black">
-        <div className="relative z-10 flex flex-col items-center">
-          <Spinner size={32} />
-          <p className="mt-4 text-sm text-white/80">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-black relative">
-      {/* Login/Waitlist Toggle Button - только для неавторизованных */}
-      {!user && (
-        <button
-          onClick={() => setIsLoginMode(!isLoginMode)}
-          className="absolute top-6 right-6 text-white/80 hover:text-white transition-colors text-sm font-medium z-20"
-        >
-          {isLoginMode ? "← Join Waitlist" : "Login"}
-        </button>
-      )}
-
-      {/* Main content - центрированный */}
-      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4">
-        <div className="relative z-10 w-full max-w-sm">
-          <div className="space-y-16">
-            {/* Main Message */}
-            <div className="text-center space-y-8 flex flex-col items-center mt-20">
-              <h1 className="text-4xl font-extralight text-white tracking-tight leading-tight flex items-center gap-2">
-                <Logo width={30} height={30} forceDark /> Phion
-              </h1>
-
-              <p className="text-lg font-light text-white/80 leading-relaxed">
-                Just craft in Cursor.
-                <br />
-                We handle everything else.
-              </p>
-            </div>
-
-            {/* Content */}
-            {!user ? (
-              // Неавторизованный пользователь
-              <>
-                {isLoginMode ? (
-                  // Login Mode
-                  <div className="text-center space-y-6 max-w-[250px] mx-auto">
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        type="secondary"
-                        size="small"
-                        onClick={handleGoogleLogin}
-                        className="w-full hover:bg-white/80 hover:text-black"
-                        prefix={
-                          <svg className="w-5 h-5" viewBox="0 0 24 24">
-                            <path
-                              fill="currentColor"
-                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            />
-                            <path
-                              fill="currentColor"
-                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            />
-                            <path
-                              fill="currentColor"
-                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                            />
-                            <path
-                              fill="currentColor"
-                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                            />
-                          </svg>
-                        }
-                      >
-                        Continue with Google
-                      </Button>
-
-                      <Button
-                        type="tertiary"
-                        size="small"
-                        onClick={handleGitHubLogin}
-                        className="w-full  bg-white/0 hover:bg-white/10 text-white hover:text-white"
-                        prefix={
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                          </svg>
-                        }
-                      >
-                        Continue with GitHub
-                      </Button>
-                    </div>
-
-                    <p className="text-xs font-light text-white/60">
-                      By continuing, you agree to our terms
-                    </p>
-                  </div>
-                ) : (
-                  // Waitlist Mode
-                  <div className="text-center space-y-6 max-w-[250px] mx-auto">
-                    <Button
-                      type="secondary"
-                      size="small"
-                      onClick={handleJoinWaitlist}
-                      className="w-full hover:bg-white/80 hover:text-black"
-                      prefix={
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                          <path
-                            fill="currentColor"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          />
-                        </svg>
-                      }
-                    >
-                      Join Waitlist
-                    </Button>
-
-                    <p className="text-xs font-light text-white/60">
-                      Be among the first to experience the future of development
-                    </p>
-                  </div>
-                )}
-              </>
-            ) : (
-              // Авторизованный пользователь - показываем статус waitlist
-              (() => {
-                // Если нет записи в waitlist - перенаправляем на заполнение формы
-                if (!waitlistEntry) {
-                  router.push("/waitlist")
-                  return (
-                    <div className="text-center space-y-6">
-                      <p className="text-lg font-light text-white/80 leading-relaxed">
-                        Redirecting to waitlist...
-                      </p>
-                    </div>
-                  )
-                }
-
-                const statusInfo = getWaitlistStatus()
-
-                // For pending users, show simple message without card
-                if (statusInfo.variant === "pending") {
-                  return (
-                    <div className="text-center space-y-6">
-                      <p className="text-lg font-light text-white/80 leading-relaxed">
-                        You're already on the waitlist.
-                      </p>
-
-                      <button
-                        onClick={async () => {
-                          await supabase.auth.signOut()
-                          setUser(null)
-                          setWaitlistEntry(null)
-                        }}
-                        className="text-xs text-white/60 hover:text-white/80 transition-colors"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )
-                }
-
-                // For other statuses (approved, rejected), keep the card
-                return (
-                  <div className="text-center space-y-6">
-                    <div
-                      className={`p-6 rounded-lg border backdrop-blur-sm ${
-                        statusInfo.variant === "success"
-                          ? "bg-green-500/20 border-green-500/30"
-                          : statusInfo.variant === "error"
-                          ? "bg-red-500/20 border-red-500/30"
-                          : "bg-blue-500/20 border-blue-500/30"
-                      }`}
-                    >
-                      <div className="flex items-center justify-center gap-3 mb-4">
-                        <div
-                          className={`${
-                            statusInfo.variant === "success"
-                              ? "text-green-300"
-                              : statusInfo.variant === "error"
-                              ? "text-red-300"
-                              : "text-blue-300"
-                          }`}
-                        >
-                          {statusInfo.icon}
-                        </div>
-                        <h2 className="text-lg font-medium text-white">{statusInfo.title}</h2>
-                      </div>
-                      <p className="text-sm text-white/80 mb-6">{statusInfo.description}</p>
-
-                      {statusInfo.buttonText && (
-                        <Button
-                          type={
-                            statusInfo.variant === "success"
-                              ? "primary"
-                              : statusInfo.variant === "error"
-                              ? "error"
-                              : "primary"
-                          }
-                          onClick={statusInfo.buttonAction}
-                        >
-                          {statusInfo.buttonText}
-                        </Button>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={async () => {
-                        await supabase.auth.signOut()
-                        setUser(null)
-                        setWaitlistEntry(null)
-                      }}
-                      className="text-xs text-white/60 hover:text-white/80 transition-colors"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )
-              })()
-            )}
-          </div>
+    <>
+      <HeroHeader
+        user={user}
+        onSignOut={async () => {
+          await supabase.auth.signOut()
+          setUser(null)
+        }}
+        onGoogleLogin={handleGoogleLogin}
+        onGitHubLogin={handleGitHubLogin}
+        isLoading={isLoading}
+      />
+      <main className="overflow-hidden bg-[#08090A] font-inter">
+        {/* Background Effects */}
+        <div aria-hidden className="absolute inset-0 isolate contain-strict">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-white/5 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-white/8 rounded-full blur-3xl"></div>
         </div>
-      </div>
 
-      {/* Mockup Section - Full Width */}
-      {(!user || !waitlistEntry) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.8, delay: 1.0, ease: [0.25, 1, 0.5, 1] }}
-          className="mt-20 w-full relative"
-        >
-          <div className="w-full max-w-[1400px] mx-auto px-4">
-            <MockupFrame className="w-full backdrop-blur">
-              <Mockup type="responsive" className="w-full aspect-[16/10] cursor-pointer">
-                <div className="relative w-full h-full group overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    {!isVideoLoaded && (
-                      <motion.img
-                        key="preview-image"
-                        src="/phion-preview.png"
-                        alt="Phion Demo Preview"
-                        className="w-full h-full object-cover"
-                        initial={{ opacity: 1 }}
-                        exit={{
-                          opacity: 0,
-                        }}
-                        transition={{
-                          duration: 1.2,
-                          ease: "easeInOut",
-                        }}
-                      />
-                    )}
+        {/* Hero Section */}
+        <section className="relative">
+          <div className="relative pt-24 md:pt-36">
+            <div className="absolute inset-0 -z-10 size-full [background:radial-gradient(125%_125%_at_50%_100%,transparent_0%,rgb(0,0,0)_75%)]"></div>
+            {/* Additional hero glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-96 bg-white/5 rounded-full blur-3xl -z-10"></div>
+            <div className="mx-auto max-w-7xl px-6">
+              <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
+                {/* Animated Badge */}
+                {!user && (
+                  <AnimatedGroup variants={transitionVariants}>
+                    <motion.div
+                      className="hover:bg-white/10 group mx-auto flex w-fit items-center gap-4 rounded-full border border-white/20 bg-white/10 p-1 pl-4 shadow-md transition-colors duration-300"
+                      variants={transitionVariants.item}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                        <span className="text-white text-sm font-medium">Meet Phion</span>
+                      </div>
+                      <span className="block h-4 w-0.5 border-l bg-white/50"></span>
 
-                    {isVideoLoaded && (
-                      <motion.video
-                        key="preview-video"
-                        src="/phion-demo.mp4"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="w-full h-full object-cover"
-                        initial={{
-                          opacity: 0,
-                        }}
-                        animate={{
-                          opacity: 1,
-                        }}
-                        transition={{
-                          duration: 1.2,
-                          ease: "easeInOut",
-                        }}
-                        onLoadStart={() => console.log("Video load started")}
-                        onCanPlay={() => console.log("Video can play")}
-                        onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) =>
-                          console.error("Video error:", e)
-                        }
-                        onPlay={() => setIsVideoPlaying(true)}
-                      />
-                    )}
-                  </AnimatePresence>
+                      <div className="bg-white/20 group-hover:bg-white/30 size-6 overflow-hidden rounded-full duration-500">
+                        <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
+                          <span className="flex size-6">
+                            <ArrowRight className="m-auto size-3 text-white" />
+                          </span>
+                          <span className="flex size-6">
+                            <ArrowRight className="m-auto size-3 text-white" />
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </AnimatedGroup>
+                )}
 
-                  {/* Play Button Overlay */}
-                  <AnimatePresence>
-                    {!isVideoPlaying && isVideoReadyToPlay && (
+                {/* Main Headlines */}
+                <TextEffect
+                  preset="fade-in-blur"
+                  per="word"
+                  speedReveal={0.8}
+                  speedSegment={0.6}
+                  delay={0.3}
+                  as="h1"
+                  className="mt-8 text-balance text-6xl md:text-7xl lg:mt-16 xl:text-[5.25rem] text-white font-normal leading-[1.1] tracking-tight"
+                >
+                  Full-power AI coding.
+                </TextEffect>
+
+                <TextEffect
+                  preset="fade-in-blur"
+                  per="word"
+                  speedReveal={0.8}
+                  speedSegment={0.6}
+                  delay={0.6}
+                  as="h1"
+                  className="text-balance text-6xl md:text-7xl xl:text-[5.25rem] text-white font-normal leading-[1.1] tracking-tight"
+                >
+                  Zero setup.
+                </TextEffect>
+
+                <TextEffect
+                  preset="slide"
+                  per="line"
+                  speedReveal={0.8}
+                  speedSegment={0.6}
+                  delay={1.2}
+                  as="p"
+                  className="mx-auto mt-8 max-w-2xl text-balance text-lg md:text-xl text-white/70 leading-relaxed font-normal"
+                >
+                  Focus on craft, not configs.
+                </TextEffect>
+
+                {/* Video Demo Section */}
+                <div className="mt-16 lg:mt-24 max-w-5xl mx-auto">
+                  <MorphingDialog
+                    transition={{
+                      duration: 0.3,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <MorphingDialogTrigger>
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.3 }}
-                        className="absolute inset-0 flex items-center justify-center z-10"
+                        transition={{ duration: 0.6, ease: "easeOut", delay: 1.8 }}
+                        className="relative cursor-pointer group"
                       >
-                        <motion.button
-                          onClick={handlePlayVideo}
-                          className="flex items-center justify-center w-16 h-16 bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full border border-white/20 transition-all duration-300 group"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <Play
-                            className="w-6 h-6 text-white ml-1 group-hover:text-white/90"
-                            fill="currentColor"
-                          />
-                        </motion.button>
+                        <Mockup>
+                          <MockupFrame>
+                            <div className="aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-lg overflow-hidden relative">
+                              <img
+                                src="/phion-preview.png"
+                                alt="Phion Demo Preview"
+                                className="w-full h-full object-cover object-top"
+                                onLoad={() => setIsVideoReadyToPlay(true)}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent group-hover:from-black/30 transition-all duration-300" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="bg-white/20 backdrop-blur-sm rounded-full p-6 group-hover:bg-white/30 transition-all duration-300">
+                                  <Play className="w-8 h-8 text-white ml-1" fill="currentColor" />
+                                </div>
+                              </div>
+                            </div>
+                          </MockupFrame>
+                        </Mockup>
                       </motion.div>
-                    )}
-                  </AnimatePresence>
+                    </MorphingDialogTrigger>
 
-                  {/* Hidden video for preloading */}
-                  <video
-                    src="/phion-demo.mp4"
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
-                    onCanPlayThrough={() => {
-                      console.log("Video can play through")
-                      setIsVideoReadyToPlay(true)
-                      if (!isVideoPlaying) {
-                        setIsVideoLoaded(true)
-                      }
-                    }}
-                    onLoadedData={() => {
-                      console.log("Video loaded data")
-                      setIsVideoReadyToPlay(true)
-                      if (!isVideoPlaying) {
-                        setIsVideoLoaded(true)
-                      }
-                    }}
-                    onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-                      console.error("Hidden video error:", e)
-                      // Keep the play button hidden on error
-                    }}
-                    onLoadStart={() => console.log("Hidden video load started")}
-                  />
+                    <MorphingDialogContainer>
+                      <MorphingDialogContent className="relative">
+                        <MorphingDialogVideo
+                          src="/phion-demo.mp4"
+                          className="h-auto w-full max-w-[90vw] rounded-[4px] object-cover lg:h-[90vh]"
+                          autoPlay
+                          muted
+                          controls
+                        />
+                        <MorphingDialogClose
+                          className="fixed right-6 top-6 h-fit w-fit rounded-full bg-white p-1"
+                          variants={{
+                            initial: { opacity: 0 },
+                            animate: {
+                              opacity: 1,
+                              transition: { delay: 0.3, duration: 0.1 },
+                            },
+                            exit: { opacity: 0, transition: { duration: 0 } },
+                          }}
+                        >
+                          <X className="h-5 w-5 text-zinc-500" />
+                        </MorphingDialogClose>
+                      </MorphingDialogContent>
+                    </MorphingDialogContainer>
+                  </MorphingDialog>
                 </div>
-              </Mockup>
-            </MockupFrame>
+              </div>
+            </div>
           </div>
-          <div
-            className="absolute bottom-0 left-0 right-0 w-full h-[303px] pointer-events-none"
-            style={{
-              background: "linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0) 100%)",
-              zIndex: 10,
-            }}
-          />
-        </motion.div>
-      )}
-    </div>
+        </section>
+
+        {/* Features Section */}
+        <FeaturesSection />
+
+        {/* FAQ Section */}
+        <FAQSection />
+      </main>
+    </>
   )
 }

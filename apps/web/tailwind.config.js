@@ -18,8 +18,9 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        sans: ["Inter", "var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "Menlo", "monospace"],
+        inter: ["Inter", "system-ui", "sans-serif"],
       },
       colors: {
         // Existing shadcn colors
