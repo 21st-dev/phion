@@ -32,7 +32,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
   const [countdown, setCountdown] = useState<number | null>(null)
   const { error: showError, success: showSuccess } = useToast()
 
-  const { deployStatus } = useWebSocket({
+  useWebSocket({
     projectId: projectId || undefined,
     onInitializationProgress: (data) => {
       console.log("📊 [Onboarding] Initialization progress received:", data)
@@ -61,30 +61,30 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
     onAgentDisconnected: (data) => {
       console.log("🔴 [Onboarding] Agent disconnected:", data)
       setAgentConnected(false)
-    }
+    },
   })
 
   const steps = [
     {
       title: "Welcome to Phion!",
       description: "We'll help you use Cursor as easily as Lovable, Bolt, and other web AI IDEs",
-      content: "welcome"
+      content: "welcome",
     },
     {
       title: "Cursor IDE",
       description: "Let's make sure you have everything you need to get started",
-      content: "cursor-check"
+      content: "cursor-check",
     },
     {
       title: "Your First Project",
       description: "We're creating a starter project for you",
-      content: "project-creation"
+      content: "project-creation",
     },
     {
       title: "Download & Setup",
       description: "Final step - download the project and open it in Cursor",
-      content: "download-setup"
-    }
+      content: "download-setup",
+    },
   ]
 
   useEffect(() => {
@@ -148,7 +148,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       }
 
       const { projectId } = await response.json()
-      
+
       if (projectId) {
         console.log("✅ [Onboarding] Project created successfully:", projectId)
         setProjectId(projectId)
@@ -158,7 +158,9 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       }
     } catch (error) {
       console.error("❌ [Onboarding] Failed to create project:", error)
-      showError(`Failed to create project: ${error.message}`)
+      showError(
+        `Failed to create project: ${error instanceof Error ? error.message : String(error)}`,
+      )
       setCurrentStep(currentStep - 1)
     } finally {
       setIsCreatingProject(false)
@@ -216,15 +218,13 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
             <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-10 h-10 text-primary" />
             </div>
-            
+
             <div className="text-center space-y-4">
-              <h1 className="text-3xl font-bold text-foreground">
-                Welcome to Phion!
-              </h1>
+              <h1 className="text-3xl font-bold text-foreground">Welcome to Phion!</h1>
               <p className="text-muted-foreground leading-relaxed">
-                Phion lets you harness the power of Cursor IDE with the convenience of a web interface. 
-                Create, edit, and deploy projects directly from your browser, 
-                while working in your familiar Cursor environment.
+                Phion lets you harness the power of Cursor IDE with the convenience of a web
+                interface. Create, edit, and deploy projects directly from your browser, while
+                working in your familiar Cursor environment.
               </p>
             </div>
 
@@ -238,17 +238,21 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                   <p className="text-sm text-muted-foreground">Create projects in one click</p>
                 </div>
               </Material>
-              
+
               <Material type="base" className="p-4 flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  {theme === "dark" ? <CursorDark className="w-5 h-5" /> : <CursorLight className="w-5 h-5" />}
+                  {theme === "dark" ? (
+                    <CursorDark className="w-5 h-5" />
+                  ) : (
+                    <CursorLight className="w-5 h-5" />
+                  )}
                 </div>
                 <div className="text-left">
                   <h3 className="font-medium">Cursor IDE</h3>
                   <p className="text-sm text-muted-foreground">Use familiar tools</p>
                 </div>
               </Material>
-              
+
               <Material type="base" className="p-4 flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <CheckCircle2 className="w-5 h-5 text-primary" />
@@ -260,7 +264,13 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
               </Material>
             </div>
 
-            <Button onClick={handleNext} type="primary" size="large" className="w-full max-w-xs" suffix={<ArrowRight className="w-4 h-4" />}>
+            <Button
+              onClick={handleNext}
+              type="primary"
+              size="large"
+              className="w-full max-w-xs"
+              suffix={<ArrowRight className="w-4 h-4" />}
+            >
               Get Started
             </Button>
           </div>
@@ -270,20 +280,24 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
         return (
           <div className="flex flex-col items-center space-y-8 max-w-xl mx-auto">
             <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
-              {theme === "dark" ? <CursorDark className="w-12 h-12" /> : <CursorLight className="w-12 h-12" />}
+              {theme === "dark" ? (
+                <CursorDark className="w-12 h-12" />
+              ) : (
+                <CursorLight className="w-12 h-12" />
+              )}
             </div>
-            
+
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-bold">Do you have Cursor installed?</h2>
               <p className="text-muted-foreground">
-                Cursor is an AI-powered code editor based on VS Code. 
-                You'll need it for local development.
+                Cursor is an AI-powered code editor based on VS Code. You'll need it for local
+                development.
               </p>
             </div>
 
             {hasCursor === null && (
               <div className="flex gap-3 w-full max-w-sm">
-                <Button 
+                <Button
                   onClick={() => {
                     setHasCursor(true)
                     // Immediately advance to next step
@@ -295,7 +309,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                 >
                   Yes, I have it
                 </Button>
-                <Button 
+                <Button
                   onClick={() => setHasCursor(false)}
                   type="primary"
                   size="large"
@@ -313,8 +327,8 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                   <h3 className="font-semibold">Download Cursor</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Cursor is a free editor with built-in AI assistant. 
-                  Download it from the official website:
+                  Cursor is a free editor with built-in AI assistant. Download it from the official
+                  website:
                 </p>
                 <Button
                   onClick={() => window.open("https://cursor.com", "_blank")}
@@ -328,7 +342,13 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
             )}
 
             {hasCursor === false && (
-              <Button onClick={handleNext} type="primary" size="large" className="w-full max-w-xs" suffix={<ArrowRight className="w-4 h-4" />}>
+              <Button
+                onClick={handleNext}
+                type="primary"
+                size="large"
+                className="w-full max-w-xs"
+                suffix={<ArrowRight className="w-4 h-4" />}
+              >
                 Continue
               </Button>
             )}
@@ -354,7 +374,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                 {projectId && (
                   <div className="w-full max-w-xs space-y-2">
                     <div className="h-1 bg-muted rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-primary transition-all duration-500"
                         style={{ width: `${projectProgress}%` }}
                       />
@@ -373,7 +393,6 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                 )}
               </div>
             )}
-
           </div>
         )
 
@@ -412,8 +431,10 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                 </div>
               </div>
 
-              <div className={`flex items-start gap-4 ${!downloadStarted ? 'opacity-60' : ''}`}>
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+              <div className={`flex items-start gap-4 ${!downloadStarted ? "opacity-60" : ""}`}>
+                <div
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                >
                   2
                 </div>
                 <div className="flex-1 space-y-2">
@@ -421,27 +442,43 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p>• Double-click the ZIP file to extract it</p>
                     <p>• Open Cursor app</p>
-                    <p>• Press <kbd className="px-1.5 py-0.5 bg-background text-foreground rounded text-xs font-mono border">Cmd + O</kbd> or File → Open Folder</p>
+                    <p>
+                      • Press{" "}
+                      <kbd className="px-1.5 py-0.5 bg-background text-foreground rounded text-xs font-mono border">
+                        Cmd + O
+                      </kbd>{" "}
+                      or File → Open Folder
+                    </p>
                     <p>• Select your extracted project folder</p>
                   </div>
                 </div>
               </div>
 
-              <div className={`flex items-start gap-4 ${!downloadStarted ? 'opacity-60' : ''}`}>
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+              <div className={`flex items-start gap-4 ${!downloadStarted ? "opacity-60" : ""}`}>
+                <div
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                >
                   3
                 </div>
                 <div className="flex-1 space-y-2">
                   <h3 className="font-medium mb-1">Run setup</h3>
                   <div className="space-y-2 text-sm text-muted-foreground">
-                    <p>• Press <kbd className="px-1.5 py-0.5 bg-background text-foreground rounded text-xs font-mono border">Cmd + J</kbd> or Terminal → New Terminal</p>
+                    <p>
+                      • Press{" "}
+                      <kbd className="px-1.5 py-0.5 bg-background text-foreground rounded text-xs font-mono border">
+                        Cmd + J
+                      </kbd>{" "}
+                      or Terminal → New Terminal
+                    </p>
                     <div className="flex items-center gap-2">
                       <span>• Run:</span>
                       <div className="flex items-center bg-background border rounded px-2 py-1 flex-1">
-                        <code className="text-xs font-mono text-foreground flex-1">chmod +x setup.sh && ./setup.sh</code>
+                        <code className="text-xs font-mono text-foreground flex-1">
+                          chmod +x setup.sh && ./setup.sh
+                        </code>
                         <Button
                           onClick={handleCopyCommand}
-                          type="ghost"
+                          type="tertiary"
                           size="small"
                           className="ml-2 h-6 w-6 p-0"
                           prefix={<Copy className="w-3 h-3" />}
@@ -455,10 +492,10 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
             {downloadStarted && (
               <div className="text-center space-y-3">
-                <Button 
-                  onClick={handleGoToProject} 
-                  type="secondary" 
-                  size="large" 
+                <Button
+                  onClick={handleGoToProject}
+                  type="secondary"
+                  size="large"
                   className="w-full max-w-xs"
                   disabled={!agentConnected && countdown === null}
                 >
@@ -490,7 +527,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
         <div className="px-8 pt-8 pb-4">
           <div className="max-w-3xl mx-auto">
             <div className="h-1 bg-muted rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-primary transition-all duration-500 ease-out"
                 style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               />
@@ -509,7 +546,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
             </div>
           </div>
         </div>
-        
+
         <div className="flex-1 flex items-center justify-center px-8 pb-8">
           <AnimatePresence mode="wait">
             <motion.div

@@ -28,7 +28,7 @@ interface ProjectLimits {
   refetch: () => void
 }
 
-const FREE_TIER_LIMIT = 1
+const FREE_TIER_LIMIT = 2
 
 async function fetchProjectLimits(): Promise<ProjectLimitsData> {
   // Параллельно загружаем проекты и подписку
