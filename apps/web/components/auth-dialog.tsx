@@ -54,7 +54,7 @@ export function AuthDialog({
                   size="medium"
                   onClick={onGoogleLogin}
                   disabled={isLoading}
-                  className="w-full bg-white text-black hover:bg-white/90 rounded-md px-5 text-sm font-medium transition-all duration-200"
+                  className="w-full !bg-white !text-black hover:bg-white/90 rounded-md px-5 text-sm font-medium transition-all duration-200"
                   prefix={
                     isLoading ? (
                       <Spinner size={16} />

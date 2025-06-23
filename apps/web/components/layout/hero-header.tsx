@@ -72,7 +72,12 @@ export function HeroHeader({
             >
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                 {!user ? (
-                  <Button variant="outline" size="sm" onClick={() => setAuthDialogOpen(true)}>
+                  <Button
+                    className="bg-white text-black hover:bg-white/90 hover:text-black"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAuthDialogOpen(true)}
+                  >
                     <span>Open app</span>
                   </Button>
                 ) : (
