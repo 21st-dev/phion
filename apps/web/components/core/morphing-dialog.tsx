@@ -9,7 +9,6 @@ interface MorphingDialogContextType {
   setIsOpen: (open: boolean) => void
   transition: {
     duration: number
-    ease: string
   }
 }
 
@@ -19,7 +18,18 @@ interface MorphingDialogProps {
   children: React.ReactNode
   transition?: {
     duration: number
-    ease: string
+    ease:
+      | "linear"
+      | "easeIn"
+      | "easeOut"
+      | "easeInOut"
+      | "circIn"
+      | "circOut"
+      | "circInOut"
+      | "backIn"
+      | "backOut"
+      | "backInOut"
+      | "anticipate"
   }
 }
 

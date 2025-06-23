@@ -1,0 +1,67 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Start Development",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["start"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      },
+      "problemMatcher": [],
+      "detail": "Start Phion development with Cursor browser extension"
+    },
+    {
+      "label": "📦 Setup Browser Extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["run", "setup:browser"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      },
+      "problemMatcher": [],
+      "detail": "Install Cursor browser extension for auto Simple Browser opening"
+    },
+    {
+      "label": "🔄 Start Sync Only",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["sync"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      },
+      "problemMatcher": [],
+      "detail": "Start only Phion sync agent"
+    },
+    {
+      "label": "📦 Install Dependencies",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["install"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      },
+      "problemMatcher": [],
+      "detail": "Install project dependencies"
+    }
+  ]
+} 

@@ -1,18 +1,15 @@
 "use client"
 
-import { Logo } from "@/components/brand"
-import { Button } from "@/components/geist/button"
+
 import { useToast } from "@/hooks/use-toast"
 import { createAuthBrowserClient } from "@shipvibes/database"
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Spinner } from "@/components/geist/spinner"
 import { Play, ArrowRight, X } from "lucide-react"
 import { Mockup, MockupFrame } from "@/components/ui/mockup"
-import { motion, AnimatePresence } from "motion/react"
+import { motion } from "motion/react"
 import { HeroHeader } from "@/components/layout/hero-header"
 import { TextEffect } from "@/components/motion/text-effect"
-import { AnimatedGroup } from "@/components/motion/animated-group"
 import FeaturesSection from "@/components/features-section"
 import FAQSection from "@/components/faq-section"
 import {
@@ -24,33 +21,12 @@ import {
   MorphingDialogVideo,
 } from "@/components/core/morphing-dialog"
 
-const transitionVariants = {
-  item: {
-    hidden: {
-      opacity: 0,
-      filter: "blur(12px)",
-      y: 12,
-    },
-    visible: {
-      opacity: 1,
-      filter: "blur(0px)",
-      y: 0,
-      transition: {
-        type: "spring",
-        bounce: 0.3,
-        duration: 1.5,
-      },
-    },
-  },
-}
-
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isVideoReadyToPlay, setIsVideoReadyToPlay] = useState(false)
   const supabase = createAuthBrowserClient()
   const { error: showError } = useToast()
-  const router = useRouter()
 
   useEffect(() => {
     // Check user status in background without blocking UI
@@ -142,30 +118,32 @@ export default function HomePage() {
               <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
                 {/* Animated Badge */}
                 {!user && (
-                  <AnimatedGroup variants={transitionVariants}>
-                    <motion.div
-                      className="hover:bg-white/10 group mx-auto flex w-fit items-center gap-4 rounded-full border border-white/20 bg-white/10 p-1 pl-4 shadow-md transition-colors duration-300 cursor-pointer"
-                      variants={transitionVariants.item}
-                      onClick={() => window.open('https://x.com/serafimcloud/status/1934724044773052428', '_blank')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                        <span className="text-white text-sm font-medium">Meet Phion</span>
-                      </div>
-                      <span className="block h-4 w-0.5 border-l bg-white/50"></span>
+                  <motion.div
+                    className="hover:bg-white/10 group mx-auto flex w-fit items-center gap-4 rounded-full border border-white/20 bg-white/10 p-1 pl-4 shadow-md transition-colors duration-300 cursor-pointer"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", bounce: 0.3, duration: 1.5 }}
+                    onClick={() =>
+                      window.open("https://x.com/serafimcloud/status/1934724044773052428", "_blank")
+                    }
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <span className="text-white text-sm font-medium">Meet Phion</span>
+                    </div>
+                    <span className="block h-4 w-0.5 border-l bg-white/50"></span>
 
-                      <div className="bg-white/20 group-hover:bg-white/30 size-6 overflow-hidden rounded-full duration-500">
-                        <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
-                          <span className="flex size-6">
-                            <ArrowRight className="m-auto size-3 text-white" />
-                          </span>
-                          <span className="flex size-6">
-                            <ArrowRight className="m-auto size-3 text-white" />
-                          </span>
-                        </div>
+                    <div className="bg-white/20 group-hover:bg-white/30 size-6 overflow-hidden rounded-full duration-500">
+                      <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
+                        <span className="flex size-6">
+                          <ArrowRight className="m-auto size-3 text-white" />
+                        </span>
+                        <span className="flex size-6">
+                          <ArrowRight className="m-auto size-3 text-white" />
+                        </span>
                       </div>
-                    </motion.div>
-                  </AnimatedGroup>
+                    </div>
+                  </motion.div>
                 )}
 
                 {/* Main Headlines */}
