@@ -2,7 +2,7 @@
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
   "description": "Tools for Phion development",
-  "version": "0.0.8",
+  "version": "0.0.7",
   "publisher": "phion",
   "engines": {
     "vscode": "^1.81.0"
