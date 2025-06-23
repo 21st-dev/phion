@@ -8,8 +8,7 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true,
-      "filter": "!./packages/dev-agent"
+      "persistent": true
     },
     "lint": {
       "dependsOn": ["^build"]
