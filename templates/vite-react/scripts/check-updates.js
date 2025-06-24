@@ -5,10 +5,6 @@ import fs from "fs"
 import https from "https"
 import os from "os"
 import path from "path"
-import { fileURLToPath } from "url"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 // Configuration: Add extensions to check here
 const EXTENSIONS_TO_CHECK = [
@@ -340,13 +336,8 @@ async function main() {
   process.exit(0)
 }
 
-// Run the script - ES module equivalent of require.main === module
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error("💥 Fatal error:", error.message)
-    process.exit(1)
-  })
-}
-
-// ES module exports
-export { checkAndUpdateExtension, EXTENSIONS_TO_CHECK }
+// Run the script directly
+main().catch((error) => {
+  console.error("💥 Fatal error:", error.message)
+  process.exit(1)
+})

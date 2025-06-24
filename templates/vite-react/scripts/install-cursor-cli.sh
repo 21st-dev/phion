@@ -52,21 +52,21 @@ if [ ! -d "/usr/local/bin" ]; then
     sudo mkdir -p /usr/local/bin
 fi
 
-# Remove existing symlink if it exists
+# Check existing symlink
 if [ -L "$SYMLINK_PATH" ]; then
-    print_warning "Removing existing cursor symlink..."
-    sudo rm "$SYMLINK_PATH"
+    print_status "Cursor symlink already exists - skipping creation"
 elif [ -f "$SYMLINK_PATH" ]; then
     print_warning "Found existing cursor file, backing it up..."
     sudo mv "$SYMLINK_PATH" "${SYMLINK_PATH}.backup"
+    print_status "Creating symlink at $SYMLINK_PATH..."
+    sudo ln -s "$CURSOR_BIN_PATH" "$SYMLINK_PATH"
+    sudo chmod +x "$SYMLINK_PATH"
+else
+    # Create new symlink
+    print_status "Creating symlink at $SYMLINK_PATH..."
+    sudo ln -s "$CURSOR_BIN_PATH" "$SYMLINK_PATH"
+    sudo chmod +x "$SYMLINK_PATH"
 fi
-
-# Create symlink
-print_status "Creating symlink at $SYMLINK_PATH..."
-sudo ln -s "$CURSOR_BIN_PATH" "$SYMLINK_PATH"
-
-# Make sure it's executable
-sudo chmod +x "$SYMLINK_PATH"
 
 # Check if /usr/local/bin is in PATH
 if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
@@ -115,9 +115,6 @@ fi
 print_status "Testing cursor command..."
 if command -v cursor >/dev/null 2>&1; then
     print_status "✅ Cursor CLI installed successfully!"
-    print_status "You can now use 'cursor' command to open files and directories"
-    print_status "Example: cursor . (opens current directory)"
-    print_status "Example: cursor myfile.txt (opens specific file)"
 else
     print_error "❌ Installation failed - cursor command not found"
     print_error "You may need to restart your terminal or run: source $SHELL_CONFIG"
