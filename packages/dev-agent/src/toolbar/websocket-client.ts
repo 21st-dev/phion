@@ -17,6 +17,7 @@ export class ToolbarWebSocketClient {
   private errorBuffer: string[] = []
   private readonly MAX_ERROR_BUFFER = 10
   private onErrorBufferChange?: (count: number) => void
+  private changedFiles: Set<string> = new Set()
 
   constructor(projectId: string, websocketUrl: string) {
     this.projectId = projectId
@@ -138,27 +139,15 @@ export class ToolbarWebSocketClient {
   private setupEventListeners() {
     if (!this.socket) return
 
-    const processedFiles = new Set<string>()
-
     this.socket.on(
       "file_change_staged",
       (data: { file?: string; filePath?: string; action: string; timestamp?: number }) => {
         console.log("[Phion Toolbar] File change staged:", data)
 
         const filePath = data.filePath || data.file || "unknown"
-        const changeKey = `${filePath}:${data.timestamp || Date.now()}`
 
-        if (processedFiles.has(changeKey)) {
-          console.log("[Phion Toolbar] Skipping duplicate file change:", changeKey)
-          return
-        }
-
-        processedFiles.add(changeKey)
-
-        if (processedFiles.size > 100) {
-          const entries = Array.from(processedFiles)
-          entries.slice(0, 50).forEach((key) => processedFiles.delete(key))
-        }
+        // Добавляем файл в набор измененных файлов
+        this.changedFiles.add(filePath)
 
         // Clear error buffer on file changes since errors might be fixed
         if (this.errorBuffer.length > 0) {
@@ -166,22 +155,30 @@ export class ToolbarWebSocketClient {
           this.clearErrorBuffer()
         }
 
+        // Обновляем счетчик на основе количества уникальных файлов
         this.state = {
           ...this.state,
-          pendingChanges: this.state.pendingChanges + 1,
+          pendingChanges: this.changedFiles.size,
         }
         this.emit("stateChange", this.state)
       },
     )
 
-    this.socket.on("commit_created", (data: { commitId: string; message: string }) => {
-      this.state = {
-        ...this.state,
-        pendingChanges: 0,
-      }
-      this.emit("stateChange", this.state)
-      this.emit("commitCreated", data)
-    })
+    this.socket.on(
+      "commit_created",
+      (data: { commitId: string; message: string; commit?: any }) => {
+        // Очищаем набор измененных файлов после коммита
+        this.changedFiles.clear()
+
+        this.state = {
+          ...this.state,
+          pendingChanges: 0,
+          lastCommit: data.commit || this.state.lastCommit,
+        }
+        this.emit("stateChange", this.state)
+        this.emit("commitCreated", data)
+      },
+    )
 
     this.socket.on("deploy_status_update", (data: { status: string; url?: string }) => {
       this.state = {
@@ -194,16 +191,15 @@ export class ToolbarWebSocketClient {
 
     this.socket.on("save_success", () => {
       console.log("[Phion Toolbar] Save success")
-      this.state = {
-        ...this.state,
-        pendingChanges: 0,
-      }
-      this.emit("stateChange", this.state)
       this.emit("saveSuccess")
     })
 
     this.socket.on("discard_success", () => {
       console.log("[Phion Toolbar] Discard success")
+
+      // Очищаем набор измененных файлов после отмены
+      this.changedFiles.clear()
+
       this.state = {
         ...this.state,
         pendingChanges: 0,
@@ -214,6 +210,12 @@ export class ToolbarWebSocketClient {
 
     this.socket.on("toolbar_status", (status: ToolbarState) => {
       console.log("[Phion Toolbar] Status update:", status)
+
+      // Синхронизируем локальный набор с состоянием сервера
+      if (status.pendingChanges === 0) {
+        this.changedFiles.clear()
+      }
+
       this.state = { ...this.state, ...status }
       this.emit("stateChange", this.state)
     })

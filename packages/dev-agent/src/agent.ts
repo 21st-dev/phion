@@ -72,6 +72,7 @@ export class PhionAgent {
   private isConnected = false
   private isGitRepo = false
   private config: AgentConfig
+  private gitOperationCooldown = false // Новое поле для предотвращения ложных событий
 
   constructor(config: AgentConfig) {
     this.config = config
@@ -507,6 +508,9 @@ export class PhionAgent {
         this.watcher = null
       }
 
+      // Устанавливаем cooldown период
+      this.gitOperationCooldown = true
+
       await execAsync("git reset --hard HEAD")
       await execAsync("git clean -fd")
 
@@ -515,6 +519,14 @@ export class PhionAgent {
         command: "discard",
         success: true,
       })
+
+      // Снимаем cooldown через 3 секунды
+      setTimeout(() => {
+        this.gitOperationCooldown = false
+        if (this.config.debug) {
+          console.log("🔄 Git operation cooldown ended")
+        }
+      }, 3000)
 
       this.startFileWatcher()
       if (this.config.debug) {
@@ -528,6 +540,7 @@ export class PhionAgent {
         success: false,
         error: (error as Error).message,
       })
+      this.gitOperationCooldown = false
       this.startFileWatcher()
     }
   }
@@ -552,6 +565,9 @@ export class PhionAgent {
         this.watcher = null
       }
 
+      // Устанавливаем cooldown период
+      this.gitOperationCooldown = true
+
       const authenticatedUrl = repoUrl.replace(
         "https://github.com/",
         `https://x-access-token:${token}@github.com/`,
@@ -570,6 +586,14 @@ export class PhionAgent {
         success: true,
       })
 
+      // Снимаем cooldown через 3 секунды
+      setTimeout(() => {
+        this.gitOperationCooldown = false
+        if (this.config.debug) {
+          console.log("🔄 Git operation cooldown ended")
+        }
+      }, 3000)
+
       this.startFileWatcher()
     } catch (error) {
       console.error("❌ Error syncing:", (error as Error).message)
@@ -579,6 +603,7 @@ export class PhionAgent {
         success: false,
         error: (error as Error).message,
       })
+      this.gitOperationCooldown = false
       this.startFileWatcher()
     }
   }
@@ -728,6 +753,14 @@ export class PhionAgent {
     if (!this.isConnected) {
       if (this.config.debug) {
         console.log(`⏳ Not connected, skipping: ${filePath}`)
+      }
+      return
+    }
+
+    // Игнорируем изменения файлов во время git операций
+    if (this.gitOperationCooldown) {
+      if (this.config.debug) {
+        console.log(`🔄 Git operation in progress, skipping file change: ${filePath}`)
       }
       return
     }

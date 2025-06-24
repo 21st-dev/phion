@@ -1142,9 +1142,9 @@ io.on("connection", (socket) => {
       // Получаем данные коммита для уведомления
       const supabase = getSupabaseServerClient()
       const commitQueries = new CommitHistoryQueries(supabase)
+      const projectQueries = new ProjectQueries(supabase)
       const latestCommit = await commitQueries.getLatestCommit(projectId)
-
-      console.log(`📡 [SAVE] Sending save_success to project:${projectId} room`)
+      const project = await projectQueries.getProjectById(projectId)
 
       // Уведомляем ВСЕХ клиентов в проекте о successful save
       io.to(`project:${projectId}`).emit("save_success", {
@@ -1158,9 +1158,42 @@ io.on("connection", (socket) => {
       // Уведомляем всех клиентов о новом коммите
       io.to(`project:${projectId}`).emit("commit_created", {
         projectId,
-        commit: latestCommit,
+        commit: latestCommit
+          ? {
+              ...latestCommit,
+              createdAt: latestCommit.created_at,
+              filesCount: latestCommit.files_count || 0,
+              sha: latestCommit.github_commit_sha,
+              url: latestCommit.github_commit_url,
+              message: latestCommit.commit_message,
+              committedBy: latestCommit.committed_by || "Unknown",
+            }
+          : undefined,
         timestamp: Date.now(),
       })
+
+      // Отправляем обновленный toolbar_status для toolbar клиентов
+      if (project) {
+        const projectAgents = connectedAgents.get(projectId) || new Set()
+        const agentConnected = projectAgents.size > 0
+        io.to(`project:${projectId}`).emit("toolbar_status", {
+          pendingChanges: 0, // После сохранения нет pending changes
+          deployStatus: project.deploy_status || "building", // Статус может поменяться на building
+          agentConnected,
+          netlifyUrl: project.netlify_url,
+          lastCommit: latestCommit
+            ? {
+                ...latestCommit,
+                createdAt: latestCommit.created_at,
+                filesCount: latestCommit.files_count || 0,
+                sha: latestCommit.github_commit_sha,
+                url: latestCommit.github_commit_url,
+                message: latestCommit.commit_message,
+                committedBy: latestCommit.committed_by || "Unknown",
+              }
+            : undefined,
+        })
+      }
 
       // Триггерим деплой ТОЛЬКО после сохранения
       console.log(`🚀 [SAVE] Triggering deploy after save for project ${projectId}`)
@@ -1391,6 +1424,7 @@ io.on("connection", (socket) => {
       const supabase = getSupabaseServerClient()
       const projectQueries = new ProjectQueries(supabase)
       const pendingQueries = new PendingChangesQueries(supabase)
+      const commitQueries = new CommitHistoryQueries(supabase)
 
       // Получаем данные проекта
       const project = await projectQueries.getProjectById(projectId)
@@ -1401,6 +1435,9 @@ io.on("connection", (socket) => {
 
       // Получаем количество pending changes
       const pendingChanges = await pendingQueries.getAllPendingChanges(projectId)
+
+      // Получаем последний коммит
+      const lastCommit = await commitQueries.getLatestCommit(projectId)
 
       // Проверяем подключенных агентов
       const projectAgents = connectedAgents.get(projectId) || new Set()
@@ -1425,6 +1462,17 @@ io.on("connection", (socket) => {
         deployStatus,
         agentConnected,
         netlifyUrl: project.netlify_url,
+        lastCommit: lastCommit
+          ? {
+              ...lastCommit,
+              createdAt: lastCommit.created_at,
+              filesCount: lastCommit.files_count || 0,
+              sha: lastCommit.github_commit_sha,
+              url: lastCommit.github_commit_url,
+              message: lastCommit.commit_message,
+              committedBy: lastCommit.committed_by || "Unknown",
+            }
+          : undefined,
       })
 
       if (socket.data.clientType === "toolbar") {
@@ -1433,7 +1481,7 @@ io.on("connection", (socket) => {
             pendingChanges.length
           } pending, ${deployStatus}, agent: ${agentConnected}, url: ${
             project.netlify_url || "none"
-          }`,
+          }, lastCommit: ${lastCommit ? lastCommit.created_at : "none"}`,
         )
       }
     } catch (error) {
@@ -1461,7 +1509,9 @@ io.on("connection", (socket) => {
       // Получаем данные коммита для уведомления
       const supabase = getSupabaseServerClient()
       const commitQueries = new CommitHistoryQueries(supabase)
+      const projectQueries = new ProjectQueries(supabase)
       const latestCommit = await commitQueries.getLatestCommit(projectId)
+      const project = await projectQueries.getProjectById(projectId)
 
       // Уведомляем ВСЕХ клиентов в проекте о successful save
       io.to(`project:${projectId}`).emit("save_success", {
@@ -1473,9 +1523,42 @@ io.on("connection", (socket) => {
       // Уведомляем всех клиентов о новом коммите
       io.to(`project:${projectId}`).emit("commit_created", {
         projectId,
-        commit: latestCommit,
+        commit: latestCommit
+          ? {
+              ...latestCommit,
+              createdAt: latestCommit.created_at,
+              filesCount: latestCommit.files_count || 0,
+              sha: latestCommit.github_commit_sha,
+              url: latestCommit.github_commit_url,
+              message: latestCommit.commit_message,
+              committedBy: latestCommit.committed_by || "Unknown",
+            }
+          : undefined,
         timestamp: Date.now(),
       })
+
+      // Отправляем обновленный toolbar_status для toolbar клиентов
+      if (project) {
+        const projectAgents = connectedAgents.get(projectId) || new Set()
+        const agentConnected = projectAgents.size > 0
+        io.to(`project:${projectId}`).emit("toolbar_status", {
+          pendingChanges: 0, // После сохранения нет pending changes
+          deployStatus: project.deploy_status || "building", // Статус может поменяться на building
+          agentConnected,
+          netlifyUrl: project.netlify_url,
+          lastCommit: latestCommit
+            ? {
+                ...latestCommit,
+                createdAt: latestCommit.created_at,
+                filesCount: latestCommit.files_count || 0,
+                sha: latestCommit.github_commit_sha,
+                url: latestCommit.github_commit_url,
+                message: latestCommit.commit_message,
+                committedBy: latestCommit.committed_by || "Unknown",
+              }
+            : undefined,
+        })
+      }
 
       // Триггерим деплой ТОЛЬКО после сохранения
       console.log(`🚀 [TOOLBAR] Triggering deploy after save for project ${projectId}`)

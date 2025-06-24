@@ -1,6 +1,6 @@
 {
   "name": "phion",
-  "version": "0.0.6",
+  "version": "0.0.7-beta.2",
   "description": "Phion Development Agent and Vite Plugin for seamless code sync and auto-deploy",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",

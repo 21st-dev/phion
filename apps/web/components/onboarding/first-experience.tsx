@@ -3,7 +3,6 @@
 import { Logo } from "@/components/brand"
 import { Button } from "@/components/geist/button"
 import { Material } from "@/components/geist/material"
-import { Spinner } from "@/components/geist/spinner"
 import { CursorDark } from "@/components/icons/cursor-dark"
 import { CursorLight } from "@/components/icons/cursor-light"
 import { SetupStep } from "@/components/project/setup/steps/setup-step"
@@ -26,35 +25,12 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
   const [projectId, setProjectId] = useState<string | null>(null)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [hasCursor, setHasCursor] = useState<boolean | null>(null)
-  const [downloadStarted, setDownloadStarted] = useState(false)
-  const [projectProgress, setProjectProgress] = useState(0)
-  const [projectReady, setProjectReady] = useState(false)
-  const [initializationStage, setInitializationStage] = useState("")
   const [agentConnected, setAgentConnected] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const { error: showError, success: showSuccess } = useToast()
 
   useWebSocket({
     projectId: projectId || undefined,
-    onInitializationProgress: (data) => {
-      console.log("📊 [Onboarding] Initialization progress received:", data)
-      setProjectProgress(data.progress)
-      setInitializationStage(data.stage)
-      if (data.progress >= 100) {
-        // Immediately advance to download step when initialization completes
-        handleNext()
-      }
-    },
-    onDeployStatusUpdate: (data) => {
-      console.log("🚀 [Onboarding] Deploy status update received:", data)
-      if (data.status && data.status !== "pending") {
-        setProjectReady(true)
-        // Immediately advance to download step if we're on the project creation step
-        if (currentStep === 2) {
-          handleNext()
-        }
-      }
-    },
     onAgentConnected: (data) => {
       console.log("🟢 [Onboarding] Agent connected:", data)
       setAgentConnected(true)
@@ -78,17 +54,13 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       content: "cursor-check",
     },
     {
-      title: "Your First Project",
-      description: "We're creating a starter project for you",
-      content: "project-creation",
-    },
-    {
       title: "Download & Setup",
       description: "Final step - download the project and open it in Cursor",
       content: "download-setup",
     },
   ]
 
+  // Create project when moving to the last step
   useEffect(() => {
     if (currentStep === 2 && !projectId && !isCreatingProject) {
       console.log("🔧 [Onboarding] Starting project creation...")
@@ -96,12 +68,12 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
     }
   }, [currentStep, projectId, isCreatingProject])
 
-  // Auto-redirect to overview when agent connects (like in setup-step.tsx)
+  // Auto-redirect to overview when agent connects
   useEffect(() => {
     let interval: NodeJS.Timeout
 
-    if (agentConnected && countdown === null && currentStep === 3) {
-      // Start countdown only if agent is connected and we're on the download step
+    if (agentConnected && countdown === null && currentStep === 2) {
+      // Start countdown only if agent is connected and we're on the setup step
       setCountdown(5)
     }
 
@@ -154,7 +126,6 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       if (projectId) {
         console.log("✅ [Onboarding] Project created successfully:", projectId)
         setProjectId(projectId)
-        // Don't immediately set projectReady - wait for WebSocket updates
       } else {
         throw new Error("No project ID returned")
       }
@@ -175,13 +146,6 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
     }
   }
 
-  const handleDownload = () => {
-    if (projectId) {
-      setDownloadStarted(true)
-      window.open(`/api/projects/${projectId}/download`, "_blank")
-    }
-  }
-
   const handleGoToProject = () => {
     if (projectId) {
       // If user clicks button before countdown, cancel countdown and go directly
@@ -190,25 +154,6 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       }
       onComplete()
       router.push(`/project/${projectId}/overview`)
-    }
-  }
-
-  const getButtonText = () => {
-    if (!agentConnected) {
-      return "Waiting for Agent Connection..."
-    }
-    if (countdown !== null && countdown > 0) {
-      return `Auto-redirect in ${countdown}s`
-    }
-    return "Continue to Project"
-  }
-
-  const handleCopyCommand = async () => {
-    try {
-      await navigator.clipboard.writeText("chmod +x setup.sh && ./setup.sh")
-      showSuccess("Copied to clipboard")
-    } catch (err) {
-      showError("Failed to copy command")
     }
   }
 
@@ -352,47 +297,6 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
               >
                 Continue
               </Button>
-            )}
-          </div>
-        )
-
-      case "project-creation":
-        return (
-          <div className="flex flex-col items-center space-y-8 max-w-xl mx-auto">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold">Creating your first project</h2>
-              <p className="text-muted-foreground">
-                We&apos;ll automatically set up &quot;My First Phion Project&quot;.
-              </p>
-            </div>
-
-            {(isCreatingProject || !projectReady) && (
-              <div className="flex flex-col items-center space-y-4">
-                <Spinner size={32} />
-                <p className="text-sm text-muted-foreground">
-                  {isCreatingProject ? "Creating project..." : "Initializing project..."}
-                </p>
-                {projectId && (
-                  <div className="w-full max-w-xs space-y-2">
-                    <div className="h-1 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-500"
-                        style={{ width: `${projectProgress}%` }}
-                      />
-                    </div>
-                    {initializationStage && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        {initializationStage === "generating_files" && "Preparing files..."}
-                        {initializationStage === "uploading_files" && "Uploading files..."}
-                        {initializationStage === "creating_blobs" && "Processing files..."}
-                        {initializationStage === "creating_commit" && "Saving project..."}
-                        {initializationStage === "finalizing" && "Finalizing..."}
-                        {initializationStage === "completed" && "Ready!"}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
             )}
           </div>
         )

@@ -384,6 +384,51 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
     openPreview()
   }
 
+  // Format relative time for last commit
+  const getRelativeTime = (dateString: string) => {
+    if (!dateString) return null
+
+    const now = new Date()
+    const past = new Date(dateString)
+
+    // Проверяем валидность даты
+    if (isNaN(past.getTime())) return null
+
+    const diffMs = now.getTime() - past.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffMins < 1) return "just now"
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${diffDays}d ago`
+  }
+
+  // Get deploy status display
+  const getDeployStatusDisplay = () => {
+    // Если нет netlify_url, значит еще не деплоился
+    if (!state.netlifyUrl) {
+      return { text: "Not deployed", color: "#9ca3af" }
+    }
+
+    switch (state.deployStatus) {
+      case "ready":
+        return { text: "Live", color: "#10b981" }
+      case "building":
+        return { text: "Publishing", color: "#f59e0b" }
+      case "failed":
+        return { text: "Failed", color: "#ef4444" }
+      case "pending":
+        // Если есть netlify_url но статус pending - скорее всего уже готово
+        return state.netlifyUrl
+          ? { text: "Live", color: "#10b981" }
+          : { text: "Pending", color: "#9ca3af" }
+      default:
+        return { text: "Unknown", color: "#9ca3af" }
+    }
+  }
+
   // Show debug message in UI
   const showDebugMessage = (message: string) => {
     if (!isDebugMode) return // Only show debug messages when debug mode is enabled
@@ -471,6 +516,47 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
 
       {/* Right side - Action buttons */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {/* Last save time and deploy status - clickable to open preview */}
+        {state.lastCommit && (
+          <button
+            onClick={handlePreview}
+            disabled={!state.netlifyUrl}
+            style={{
+              backgroundColor: "transparent",
+              border: "none",
+              color: state.netlifyUrl ? "rgba(255, 255, 255, 0.8)" : "rgba(255, 255, 255, 0.4)",
+              fontSize: "11px",
+              fontWeight: "400",
+              cursor: state.netlifyUrl ? "pointer" : "not-allowed",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "2px 4px",
+              borderRadius: "4px",
+            }}
+            title={state.netlifyUrl ? "Click to open live preview" : "Preview not available"}
+          >
+            <span style={{ opacity: 0.7 }}>
+              Updated {getRelativeTime(state.lastCommit.createdAt)}
+            </span>
+            {state.netlifyUrl && (
+              <>
+                <span style={{ opacity: 0.5, fontSize: "8px" }}>•</span>
+                <span
+                  style={{
+                    color: getDeployStatusDisplay().color,
+                    fontWeight: "500",
+                    textDecoration: state.netlifyUrl ? "underline" : "none",
+                  }}
+                >
+                  {getDeployStatusDisplay().text}
+                </span>
+              </>
+            )}
+          </button>
+        )}
+
         {errorCount > 0 && (
           <button
             onClick={handleFixErrors}
@@ -524,42 +610,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
             boxShadow: state.pendingChanges > 0 ? "0 1px 2px rgba(0, 0, 0, 0.1)" : "none",
           }}
         >
-          {isLoading ? "Saving..." : "Save"}
-        </button>
-
-        <button
-          onClick={handlePreview}
-          disabled={!state.netlifyUrl}
-          style={{
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: "6px",
-            padding: "8px",
-            fontSize: "12px",
-            fontWeight: "500",
-            cursor: state.netlifyUrl ? "pointer" : "not-allowed",
-            transition: "all 0.2s",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={state.netlifyUrl ? "#FFF" : "#8D8D8D"}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ display: "block" }}
-          >
-            <path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6" />
-            <path d="m21 3-9 9" />
-            <path d="M15 3h6v6" />
-          </svg>
+          {isLoading
+            ? state.lastCommit
+              ? "Saving..."
+              : "Publishing..."
+            : state.lastCommit
+              ? "Save"
+              : "Publish"}
         </button>
       </div>
     </div>
