@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { ArrowRight, Download, CheckCircle2, Zap, Copy, X } from "lucide-react"
+import { Logo } from "@/components/brand"
 import { Button } from "@/components/geist/button"
 import { Material } from "@/components/geist/material"
-import { useRouter } from "next/navigation"
-import { useWebSocket } from "@/hooks/use-websocket"
-import { useToast } from "@/hooks/use-toast"
 import { Spinner } from "@/components/geist/spinner"
-import { CursorLight } from "@/components/icons/cursor-light"
 import { CursorDark } from "@/components/icons/cursor-dark"
-import { Logo } from "@/components/brand"
+import { CursorLight } from "@/components/icons/cursor-light"
+import { useToast } from "@/hooks/use-toast"
+import { useWebSocket } from "@/hooks/use-websocket"
+import { ArrowRight, CheckCircle2, Copy, Download, X, Zap } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
 import { useTheme } from "next-themes"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 interface FirstExperienceOnboardingProps {
   onComplete: () => void

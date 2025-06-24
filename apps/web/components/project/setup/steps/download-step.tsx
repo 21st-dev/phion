@@ -3,12 +3,15 @@
 import { Button } from "@/components/geist/button"
 import { Material } from "@/components/geist/material"
 import { useProject } from "@/components/project/project-layout-client"
+import { CLIProjectInstall } from "@/components/ui/cli-project-install"
 import NumberFlow from "@number-flow/react"
 import type { ProjectRow } from "@shipvibes/database"
+import { Download } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 
 interface DownloadStepProps {
   project: ProjectRow
+  projectId: string
   onDownload: () => void
   isCompleted?: boolean
   onInitializationComplete?: () => void
@@ -16,6 +19,7 @@ interface DownloadStepProps {
 
 export function DownloadStep({
   project,
+  projectId,
   onDownload,
   isCompleted = false,
   onInitializationComplete,
@@ -65,11 +69,11 @@ export function DownloadStep({
     console.log(`🔽 [DownloadStep] Opening download in new tab: ${url}`)
 
     // Simply open the download URL in a new tab
-    window.open(url, '_blank')
-    
+    window.open(url, "_blank")
+
     // Mark as downloaded immediately
     onDownload()
-    
+
     // Reset state after a short delay
     setTimeout(() => {
       setIsDownloading(false)
@@ -86,7 +90,8 @@ export function DownloadStep({
   return (
     <Material type="base" className="p-6">
       <h3 className="text-lg font-semibold text-foreground mb-4 font-sans">Download Project</h3>
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Download Button Section */}
         <div className="flex items-center gap-4">
           <Button
             type="primary"
@@ -95,22 +100,7 @@ export function DownloadStep({
             loading={isDownloading || isInitializing}
             disabled={isInitializing}
             className="pr-1"
-            prefix={
-              !isDownloading && !isInitializing ? (
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              ) : undefined
-            }
+            prefix={!isDownloading && !isInitializing ? <Download size={16} /> : undefined}
           >
             <div className="flex items-center gap-2">
               {getDownloadButtonText()}
@@ -136,9 +126,14 @@ export function DownloadStep({
               </div>
             )}
 
-            {isDownloading && <div className="text-sm text-muted-foreground">Opening download...</div>}
+            {isDownloading && (
+              <div className="text-sm text-muted-foreground">Opening download...</div>
+            )}
           </div>
         </div>
+
+        {/* CLI Commands Section */}
+        {!isInitializing && <CLIProjectInstall projectId={projectId} />}
       </div>
     </Material>
   )

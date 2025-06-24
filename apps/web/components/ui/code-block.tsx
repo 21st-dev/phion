@@ -1,9 +1,9 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
 import React, { useEffect, useState } from "react"
 import { codeToHtml } from "shiki"
-import { useTheme } from "next-themes"
 
 export type CodeBlockProps = {
   children?: React.ReactNode
@@ -60,7 +60,10 @@ function CodeBlockCode({ code, language = "tsx", theme, className, ...props }: C
     highlight()
   }, [code, language, resolvedTheme])
 
-  const classNames = cn("w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4", className)
+  const classNames = cn(
+    "w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4 [&>pre]:w-fit",
+    className,
+  )
 
   // SSR fallback: render plain code if not hydrated yet
   return highlightedHtml ? (

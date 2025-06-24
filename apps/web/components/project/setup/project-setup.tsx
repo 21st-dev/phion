@@ -257,6 +257,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
             >
               <DownloadStep
                 project={project}
+                projectId={project.id}
                 onDownload={handleDownload}
                 isCompleted={downloadCompleted}
                 onInitializationComplete={handleInitializationComplete}

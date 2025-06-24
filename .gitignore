@@ -8,7 +8,7 @@ node_modules/
 dist/
 build/
 out/
-!**/auto-browser-extension/out
+!**/phion-dev-tools/out
 
 # Environment variables
 .env

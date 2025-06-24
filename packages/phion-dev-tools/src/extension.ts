@@ -218,12 +218,53 @@ async function startProject(context, isAutoStart = false) {
     // Show terminal and run command
     terminal.show()
 
-    // Determine OS and run appropriate setup command
-    const isWindows = process.platform === "win32"
-    if (isWindows) {
-      terminal.sendText("setup.bat")
+    // First, run check-updates.js script and wait for completion
+    const checkUpdatesPath = path.join(
+      workspaceFolders[0].uri.fsPath,
+      "scripts",
+      "check-updates.js",
+    )
+    if (fs.existsSync(checkUpdatesPath)) {
+      terminal.sendText("echo '🔍 Checking for extension updates...'")
+      terminal.sendText(`node "${checkUpdatesPath}"`)
+
+      // Wait for the check-updates script to complete before proceeding
+      // We'll use a simple approach with a delay and then check if we should continue
+      await new Promise((resolve) => {
+        let checkCount = 0
+        const maxChecks = 30 // Maximum 30 seconds wait
+
+        const checkInterval = setInterval(() => {
+          checkCount++
+          if (checkCount >= maxChecks) {
+            clearInterval(checkInterval)
+            resolve(void 0)
+          }
+
+          // For now, we'll just wait a reasonable amount of time
+          // In a more sophisticated implementation, we could monitor the terminal output
+          if (checkCount >= 10) {
+            // Wait at least 10 seconds
+            clearInterval(checkInterval)
+            resolve(void 0)
+          }
+        }, 1000)
+      })
+
+      terminal.sendText("echo '✅ Extension update check completed'")
     } else {
-      terminal.sendText("chmod +x setup.sh && ./setup.sh")
+      console.log("⚠️ check-updates.js not found, skipping extension update check")
+    }
+
+    // Check if server is already running before starting
+    const isServerActive = await checkWebsiteServer()
+
+    if (isServerActive) {
+      terminal.sendText("echo '⚠️ Server is already running on port 5173, skipping pnpm start'")
+      vscode.window.showInformationMessage("Server is already running on port 5173")
+    } else {
+      // Start the project with pnpm
+      terminal.sendText("pnpm start")
     }
 
     // Mark project as started
@@ -527,6 +568,27 @@ function isPhionProject() {
 function activate(context) {
   updateConfigSettings()
   console.log("🚀 Phion extension activated")
+
+  // Run check-updates.js script if it exists
+  const workspaceFolders = vscode.workspace.workspaceFolders
+  if (workspaceFolders) {
+    const checkUpdatesPath = path.join(
+      workspaceFolders[0].uri.fsPath,
+      "scripts",
+      "check-updates.js",
+    )
+    if (fs.existsSync(checkUpdatesPath)) {
+      console.log("🔍 Running check-updates.js on activation...")
+      const terminal = vscode.window.createTerminal({
+        name: "Extension Updates",
+        cwd: workspaceFolders[0].uri.fsPath,
+      })
+      terminal.sendText(`node "${checkUpdatesPath}"`)
+      // Don't show terminal by default, let it run in background
+    } else {
+      console.log("⚠️ check-updates.js not found, skipping extension update check")
+    }
+  }
 
   // Initialize diagnostic collection for prompt injection
   const diagnosticCollection = initializeDiagnosticCollection()
