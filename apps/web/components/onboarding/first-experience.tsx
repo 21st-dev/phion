@@ -527,12 +527,12 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
         <div className="px-8 pt-8 pb-4">
           <button
             onClick={onComplete}
-            className="absolute top-10 right-10 p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
+            className="absolute top-6 right-10 p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
             aria-label="Skip onboarding"
           >
             <X className="w-4 h-4" />
           </button>
-          <div className="max-w-3xl mx-auto relative">
+          <div className="max-w-2xl mx-auto relative">
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-500 ease-out"
