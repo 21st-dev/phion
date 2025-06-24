@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { ArrowRight, Download, CheckCircle2, Sparkles, Zap, Copy } from "lucide-react"
+import { ArrowRight, Download, CheckCircle2, Zap, Copy, X } from "lucide-react"
 import { Button } from "@/components/geist/button"
 import { Material } from "@/components/geist/material"
 import { useRouter } from "next/navigation"
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Spinner } from "@/components/geist/spinner"
 import { CursorLight } from "@/components/icons/cursor-light"
 import { CursorDark } from "@/components/icons/cursor-dark"
+import { Logo } from "@/components/brand"
 import { useTheme } from "next-themes"
 
 interface FirstExperienceOnboardingProps {
@@ -215,23 +216,22 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       case "welcome":
         return (
           <div className="flex flex-col items-center space-y-12 max-w-xl mx-auto">
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-10 h-10 text-primary" />
+            <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
+              <Logo width={40} height={40} />
             </div>
 
             <div className="text-center space-y-4">
               <h1 className="text-3xl font-bold text-foreground">Welcome to Phion!</h1>
               <p className="text-muted-foreground leading-relaxed">
-                Phion lets you harness the power of Cursor IDE with the convenience of a web
-                interface. Create, edit, and deploy projects directly from your browser, while
-                working in your familiar Cursor environment.
+                Create, edit, and publish projects directly from your browser, while working in your
+                familiar Cursor environment.
               </p>
             </div>
 
             <div className="w-full space-y-3">
               <Material type="base" className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-foreground" />
                 </div>
                 <div className="text-left">
                   <h3 className="font-medium">Quick Start</h3>
@@ -240,7 +240,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
               </Material>
 
               <Material type="base" className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                   {theme === "dark" ? (
                     <CursorDark className="w-5 h-5" />
                   ) : (
@@ -254,8 +254,8 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
               </Material>
 
               <Material type="base" className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-foreground" />
                 </div>
                 <div className="text-left">
                   <h3 className="font-medium">Auto-Deploy</h3>
@@ -361,7 +361,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-bold">Creating your first project</h2>
               <p className="text-muted-foreground">
-                We'll automatically set up "My First Phion Project" with React + Vite template
+                We&apos;ll automatically set up &quot;My First Phion Project&quot;.
               </p>
             </div>
 
@@ -408,7 +408,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
             <Material type="base" className="p-6 space-y-6 w-full">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-primary">
                   1
                 </div>
                 <div className="flex-1 space-y-3">
@@ -433,7 +433,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
               <div className={`flex items-start gap-4 ${!downloadStarted ? "opacity-60" : ""}`}>
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-muted text-primary" : "bg-muted text-muted-foreground"}`}
                 >
                   2
                 </div>
@@ -456,7 +456,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
               <div className={`flex items-start gap-4 ${!downloadStarted ? "opacity-60" : ""}`}>
                 <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-muted text-primary" : "bg-muted text-muted-foreground"}`}
                 >
                   3
                 </div>
@@ -525,7 +525,14 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
     >
       <div className="min-h-screen flex flex-col">
         <div className="px-8 pt-8 pb-4">
-          <div className="max-w-3xl mx-auto">
+          <button
+            onClick={onComplete}
+            className="absolute top-10 right-10 p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
+            aria-label="Skip onboarding"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <div className="max-w-3xl mx-auto relative">
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-500 ease-out"

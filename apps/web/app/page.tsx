@@ -3,12 +3,12 @@
 import { useToast } from "@/hooks/use-toast"
 import { createAuthBrowserClient } from "@shipvibes/database"
 import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Play, ArrowRight, X } from "lucide-react"
 import { Mockup, MockupFrame } from "@/components/ui/mockup"
 import { motion } from "motion/react"
 import { HeroHeader } from "@/components/layout/hero-header"
 import { TextEffect } from "@/components/motion/text-effect"
+import { AnimatedGroup } from "@/components/motion/animated-group"
 import FeaturesSection from "@/components/features-section"
 import FAQSection from "@/components/faq-section"
 import {
@@ -20,10 +20,29 @@ import {
   MorphingDialogVideo,
 } from "@/components/core/morphing-dialog"
 
+const transitionVariants = {
+  item: {
+    hidden: {
+      opacity: 0,
+      filter: "blur(12px)",
+      y: 12,
+    },
+    visible: {
+      opacity: 1,
+      filter: "blur(0px)",
+      y: 0,
+      transition: {
+        type: "spring" as const,
+        bounce: 0.3,
+        duration: 1.5,
+      },
+    },
+  },
+}
+
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [isVideoReadyToPlay, setIsVideoReadyToPlay] = useState(false)
   const supabase = createAuthBrowserClient()
   const { error: showError } = useToast()
 
@@ -127,7 +146,7 @@ export default function HomePage() {
                     }
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <img src="/brand/white-icon.svg" alt="Phion Icon" className="w-4 h-4" />
                       <span className="text-white text-sm font-medium">Meet Phion</span>
                     </div>
                     <span className="block h-4 w-0.5 border-l bg-white/50"></span>
@@ -183,19 +202,27 @@ export default function HomePage() {
                 </TextEffect>
 
                 {/* Video Demo Section */}
-                <div className="mt-16 lg:mt-24 max-w-5xl mx-auto">
+                <AnimatedGroup
+                  variants={{
+                    container: {
+                      visible: {
+                        transition: {
+                          staggerChildren: 0.05,
+                          delayChildren: 1.8,
+                        },
+                      },
+                    },
+                    ...transitionVariants,
+                  }}
+                  className="mt-16 lg:mt-24 max-w-5xl mx-auto"
+                >
                   <MorphingDialog
                     transition={{
                       duration: 0.3,
                     }}
                   >
                     <MorphingDialogTrigger>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6, ease: "easeOut", delay: 1.8 }}
-                        className="relative cursor-pointer group"
-                      >
+                      <div className="relative cursor-pointer group">
                         <Mockup>
                           <MockupFrame>
                             <div className="aspect-video bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-lg overflow-hidden relative">
@@ -203,7 +230,6 @@ export default function HomePage() {
                                 src="/phion-preview.png"
                                 alt="Phion Demo Preview"
                                 className="w-full h-full object-cover object-top"
-                                onLoad={() => setIsVideoReadyToPlay(true)}
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent group-hover:from-black/30 transition-all duration-300" />
                               <div className="absolute inset-0 flex items-center justify-center">
@@ -214,7 +240,7 @@ export default function HomePage() {
                             </div>
                           </MockupFrame>
                         </Mockup>
-                      </motion.div>
+                      </div>
                     </MorphingDialogTrigger>
 
                     <MorphingDialogContainer>
@@ -242,7 +268,7 @@ export default function HomePage() {
                       </MorphingDialogContent>
                     </MorphingDialogContainer>
                   </MorphingDialog>
-                </div>
+                </AnimatedGroup>
               </div>
             </div>
           </div>

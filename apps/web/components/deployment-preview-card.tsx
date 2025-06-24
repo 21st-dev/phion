@@ -45,16 +45,16 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
   const isBuilding = project.deploy_status === "building"
 
   return (
-    <Card className={className}>
-      <CardContent className="p-0">
+    <Card className={className} style={{ backgroundColor: "transparent", boxShadow: "none" }}>
+      <CardContent className="p-0 bg-transparent">
         {/* Preview iframe or placeholder - более компактный */}
-        <div className="relative aspect-[16/10] rounded-t-lg overflow-hidden  p-1">
+        <div className="relative aspect-[16/10] rounded-t-lg overflow-hidden p-1">
           {hasDeployUrl && !isBuilding ? (
-            <div className="w-full h-full relative aspect-[16/10] rounded-md overflow-hidden border">
+            <div className="w-full h-full relative aspect-[16/10] rounded-md overflow-hidden border-border border bg-background">
               <iframe
                 key={`iframe-${iframeKey}`}
                 src={project.netlify_url!}
-                className="w-full h-full border-0 origin-top-left pointer-events-none"
+                className="w-full h-full border-0 origin-top-left pointer-events-none bg-background"
                 title="Live Preview"
                 sandbox="allow-scripts allow-same-origin"
                 style={{
@@ -67,7 +67,7 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
               <div className="absolute inset-0 pointer-events-none" />
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full  rounded-md border border-border">
               {isBuilding ? (
                 <div className="flex flex-col items-center gap-1 text-muted-foreground">
                   <Spinner size={24} />
@@ -84,11 +84,11 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
         </div>
 
         {/* Footer with status and actions - более компактный */}
-        <div className="p-3">
+        <div className="p-3 bg-card">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1">
               <Globe className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs font-medium">Live Preview</span>
+              <span className="text-xs font-medium text-foreground">Live Preview</span>
             </div>
 
             {hasDeployUrl && (
@@ -114,7 +114,7 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
                 href={project.netlify_url!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-primary truncate block"
+                className="text-xs text-muted-foreground hover:text-primary truncate block transition-colors"
               >
                 {project.netlify_url}
               </a>

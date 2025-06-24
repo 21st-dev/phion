@@ -99,8 +99,8 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
   }
 
   return (
-    <Card className="border-border">
-      <CardContent className="p-6">
+    <Card className="border-border bg-card">
+      <CardContent className="p-6 bg-card">
         <h3 className="text-lg font-semibold text-foreground mb-4">Open in Cursor</h3>
         <p className="text-muted-foreground mb-6">
           Open your project folder in Cursor and wait for the automatic setup to complete.
@@ -112,7 +112,7 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
             <div className="text-sm font-medium text-foreground mb-2">
               1. Extract the downloaded ZIP file
             </div>
-            <div className="bg-muted rounded-md p-4 border border-border">
+            <div className="bg-muted/50 rounded-md p-4 border border-border">
               <div className="text-xs text-muted-foreground">
                 Double-click the ZIP file in your Downloads folder to extract it
               </div>
@@ -122,7 +122,7 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
           {/* Step 2: Open Cursor */}
           <div>
             <div className="text-sm font-medium text-foreground mb-2">2. Open Cursor app</div>
-            <div className="bg-muted rounded-md p-4 border border-border space-y-3">
+            <div className="bg-muted/50 rounded-md p-4 border border-border space-y-3">
               <Button size="default" onClick={handleOpenCursor} className="w-auto">
                 <Icons.cursor className="w-3.5 h-3.5 mr-2" />
                 Open Cursor
@@ -138,10 +138,10 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
             <div className="text-sm font-medium text-foreground mb-2">
               3. Open the project folder
             </div>
-            <div className="bg-muted rounded-md p-4 border border-border">
+            <div className="bg-muted/50 rounded-md p-4 border border-border">
               <div className="text-xs text-muted-foreground">
                 Press{" "}
-                <kbd className="px-2 py-1 bg-background text-foreground rounded text-xs font-mono border border-border">
+                <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
                   Cmd + O
                 </kbd>{" "}
                 or go to File → Open Folder, then select your extracted project folder
@@ -152,15 +152,15 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
           {/* Step 4: Run setup command */}
           <div>
             <div className="text-sm font-medium text-foreground mb-2">4. Run this command</div>
-            <div className="bg-muted rounded-md p-4 border border-border space-y-3">
+            <div className="bg-muted/50 rounded-md p-4 border border-border space-y-3">
               <div className="text-xs text-muted-foreground">
                 Open a terminal by pressing{" "}
-                <kbd className="px-2 py-1 bg-background text-foreground rounded text-xs font-mono border border-border">
+                <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
                   Cmd + J
                 </kbd>{" "}
                 or go to Terminal → New Terminal from the menu bar
               </div>
-              <div className="bg-background border border-border rounded p-2 flex items-center justify-between">
+              <div className="bg-background border border-border rounded p-3 flex items-center justify-between">
                 <code className="text-xs font-mono text-foreground">
                   chmod +x setup.sh && ./setup.sh
                 </code>
@@ -168,7 +168,7 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
                   size="sm"
                   variant="ghost"
                   onClick={handleCopyCommand}
-                  className="h-6 w-6 p-0 ml-2 hover:bg-muted"
+                  className="h-6 w-6 p-0 ml-2 hover:bg-muted/50 transition-colors"
                 >
                   <Copy className="h-3 w-3" />
                 </Button>
@@ -179,7 +179,7 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 border-t border-border">
             <Button
               size="lg"
               onClick={handleContinueClick}

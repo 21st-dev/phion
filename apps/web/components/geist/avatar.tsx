@@ -32,7 +32,7 @@ export const Avatar = ({ placeholder = false, size = 24, src, name, fallback }: 
 
   return (
     <span
-      className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200"
+      className="rounded-full inline-block overflow-hidden border border-gray-alpha-400 duration-200 flex items-center justify-center"
       style={{ width: size, height: size }}
     >
       {!showFallback ? (

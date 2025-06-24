@@ -47,8 +47,8 @@ export default function FeaturesSection() {
                   <h2 className="mt-6 text-center text-3xl font-semibold text-white">
                     Coding Required
                   </h2>
-                  <p className="mt-2 text-center text-sm text-white/70">
-                    Just like Bolt.new or Lovable.dev - but in your favorite IDE
+                  <p className="mt-2 text-center text-white/70">
+                    Just like Lovable or Bolt - but with the most powerfull AI agent.
                   </p>
                 </CardContent>
               </Card>
@@ -65,8 +65,8 @@ export default function FeaturesSection() {
                   <div className="relative z-10 mt-6 space-y-2 text-center">
                     <h2 className="text-lg font-medium text-white">Zero Setup Needed</h2>
                     <p className="text-white/70">
-                      No Node.js, npm, or terminal commands. Download, open in Cursor, and start
-                      building immediately.
+                      No npm, or git commands. <br />
+                      Open in Cursor, and start building immediately.
                     </p>
                   </div>
                 </CardContent>
@@ -103,8 +103,7 @@ export default function FeaturesSection() {
                   <div className="relative z-10 mt-6 space-y-2 text-center">
                     <h2 className="text-lg font-medium text-white">One-Click Environment</h2>
                     <p className="text-white/70">
-                      VS Code extension auto-starts your project and opens localhost preview.
-                      Everything just works.
+                      We auto-start your project and open preview. Everything just works.
                     </p>
                   </div>
                 </CardContent>
@@ -123,8 +122,7 @@ export default function FeaturesSection() {
                     <div className="space-y-2">
                       <h2 className="text-lg font-medium text-white">Smart Save & Deploy</h2>
                       <p className="text-white/70">
-                        Save All button handles Git commits automatically. Every save deploys to
-                        live website instantly.
+                        Every save deploys to live website instantly.
                       </p>
                     </div>
                   </div>
@@ -165,8 +163,7 @@ export default function FeaturesSection() {
                     <div className="space-y-2">
                       <h2 className="text-lg font-medium text-white">AI Error Assistant</h2>
                       <p className="text-white/70">
-                        We monitor console logs and suggest exactly what to tell your AI agent when
-                        errors occur.
+                        No console logs. &quot;Fix bugs&quot; button will fix the error.
                       </p>
                     </div>
                   </div>

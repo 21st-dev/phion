@@ -47,8 +47,18 @@ export function Logo({ width = 32, height = 32, className = "", forceDark = fals
   }
 
   if (!mounted) {
-    // Return a placeholder during SSR to avoid hydration mismatch
-    return <div className={`bg-gray-200 rounded ${className}`} style={{ width, height }} />
+    // Return a proper logo during SSR to avoid hydration mismatch
+    const logoSrc = forceDark ? "/brand/white-icon.svg" : "/brand/black-icon.svg"
+    return (
+      <img
+        src={logoSrc}
+        alt="Phion Logo"
+        width={width}
+        height={height}
+        className={`object-contain ${className}`}
+        style={{ width: `${width}px`, height: `${height}px` }}
+      />
+    )
   }
 
   const isDark = forceDark || resolvedTheme === "dark"
