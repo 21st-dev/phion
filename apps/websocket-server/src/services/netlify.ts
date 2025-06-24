@@ -1,7 +1,7 @@
-import { promisify } from "util"
+import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database"
 import { exec } from "child_process"
 import fetch from "node-fetch"
-import { getSupabaseServerClient, ProjectQueries } from "@shipvibes/database"
+import { promisify } from "util"
 
 const execAsync = promisify(exec)
 
@@ -690,7 +690,7 @@ export class NetlifyService {
         throw new Error(`Failed to get environment variables: ${response.status} ${errorText}`)
       }
 
-      return await response.json()
+      return (await response.json()) as NetlifyEnvResponse[]
     } catch (error) {
       console.error("❌ Error getting environment variables:", error)
       throw error
