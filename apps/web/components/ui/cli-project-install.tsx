@@ -124,7 +124,7 @@ export function CLIProjectInstall({ projectId, className }: CLIProjectInstallPro
 
         {Object.entries(OS_CONFIG).map(([key, config]) => (
           <TabsContent key={key} value={key} className="mt-4">
-            <CodeBlock>
+            <CodeBlock className="rounded-md">
               <div className="flex items-center justify-between p-3 border-b border-border bg-muted/50">
                 <span className="text-sm font-medium text-foreground">
                   {config.shellName} ({config.label})

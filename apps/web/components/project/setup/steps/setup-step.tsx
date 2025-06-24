@@ -6,6 +6,8 @@ import { CLIProjectInstall } from "@/components/ui/cli-project-install"
 import { useToast } from "@/hooks/use-toast"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { CursorDark } from "@/components/icons/cursor-dark"
+import { CursorLight } from "@/components/icons/cursor-light"
+import { useTheme } from "next-themes"
 
 interface SetupStepProps {
   onDeploy: () => void
@@ -15,7 +17,7 @@ interface SetupStepProps {
 
 export function SetupStep({ onDeploy, projectId, agentConnected = false }: SetupStepProps) {
   const { success, error } = useToast()
-
+  const { theme } = useTheme()
   // WebSocket для отслеживания подключения агента
   const { isConnected } = useWebSocket({
     projectId,
@@ -52,7 +54,11 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
             <div className="text-sm font-medium text-foreground mb-2">1. Open Cursor app</div>
             <div className="bg-muted/50 rounded-md p-4 border border-border space-y-3">
               <Button size="default" onClick={handleOpenCursor} className="w-auto">
-                <CursorDark className="w-3.5 h-3.5 mr-2" />
+                {theme === "dark" ? (
+                  <CursorLight className="w-5 h-5 mr-2" />
+                ) : (
+                  <CursorDark className="w-5 h-5 mr-2" />
+                )}
                 Open Cursor
               </Button>
               <div className="text-xs text-muted-foreground">

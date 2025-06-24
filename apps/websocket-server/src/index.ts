@@ -1439,6 +1439,10 @@ io.on("connection", (socket) => {
       // Получаем последний коммит
       const lastCommit = await commitQueries.getLatestCommit(projectId)
 
+      // Проверяем общее количество коммитов для проекта
+      const allCommits = await commitQueries.getProjectCommitHistory(projectId)
+      const isFirstCommitOnly = allCommits.length <= 1
+
       // Проверяем подключенных агентов
       const projectAgents = connectedAgents.get(projectId) || new Set()
       const agentConnected = projectAgents.size > 0
@@ -1462,17 +1466,19 @@ io.on("connection", (socket) => {
         deployStatus,
         agentConnected,
         netlifyUrl: project.netlify_url,
-        lastCommit: lastCommit
-          ? {
-              ...lastCommit,
-              createdAt: lastCommit.created_at,
-              filesCount: lastCommit.files_count || 0,
-              sha: lastCommit.github_commit_sha,
-              url: lastCommit.github_commit_url,
-              message: lastCommit.commit_message,
-              committedBy: lastCommit.committed_by || "Unknown",
-            }
-          : undefined,
+        // НЕ показываем lastCommit если это единственный (первый) коммит
+        lastCommit:
+          lastCommit && !isFirstCommitOnly
+            ? {
+                ...lastCommit,
+                createdAt: lastCommit.created_at,
+                filesCount: lastCommit.files_count || 0,
+                sha: lastCommit.github_commit_sha,
+                url: lastCommit.github_commit_url,
+                message: lastCommit.commit_message,
+                committedBy: lastCommit.committed_by || "Unknown",
+              }
+            : undefined,
       })
 
       if (socket.data.clientType === "toolbar") {

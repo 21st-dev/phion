@@ -508,9 +508,6 @@ export class PhionAgent {
         this.watcher = null
       }
 
-      // Устанавливаем cooldown период
-      this.gitOperationCooldown = true
-
       await execAsync("git reset --hard HEAD")
       await execAsync("git clean -fd")
 
@@ -520,18 +517,23 @@ export class PhionAgent {
         success: true,
       })
 
-      // Снимаем cooldown через 3 секунды
+      // Устанавливаем cooldown период ПОСЛЕ git операций но ДО запуска file watcher
+      this.gitOperationCooldown = true
+      if (this.config.debug) {
+        console.log("✅ Changes discarded")
+        console.log("🔄 Git operation cooldown started (5s)")
+      }
+
+      // Запускаем file watcher
+      this.startFileWatcher()
+
+      // Снимаем cooldown через 5 секунд
       setTimeout(() => {
         this.gitOperationCooldown = false
         if (this.config.debug) {
           console.log("🔄 Git operation cooldown ended")
         }
-      }, 3000)
-
-      this.startFileWatcher()
-      if (this.config.debug) {
-        console.log("✅ Changes discarded")
-      }
+      }, 5000)
     } catch (error) {
       console.error("❌ Error discarding changes:", (error as Error).message)
       this.socket?.emit("git_command_result", {
@@ -565,9 +567,6 @@ export class PhionAgent {
         this.watcher = null
       }
 
-      // Устанавливаем cooldown период
-      this.gitOperationCooldown = true
-
       const authenticatedUrl = repoUrl.replace(
         "https://github.com/",
         `https://x-access-token:${token}@github.com/`,
@@ -586,15 +585,22 @@ export class PhionAgent {
         success: true,
       })
 
-      // Снимаем cooldown через 3 секунды
+      // Устанавливаем cooldown период ПОСЛЕ git операций но ДО запуска file watcher
+      this.gitOperationCooldown = true
+      if (this.config.debug) {
+        console.log("🔄 Git operation cooldown started (5s)")
+      }
+
+      // Запускаем file watcher
+      this.startFileWatcher()
+
+      // Снимаем cooldown через 5 секунд
       setTimeout(() => {
         this.gitOperationCooldown = false
         if (this.config.debug) {
           console.log("🔄 Git operation cooldown ended")
         }
-      }, 3000)
-
-      this.startFileWatcher()
+      }, 5000)
     } catch (error) {
       console.error("❌ Error syncing:", (error as Error).message)
       this.socket?.emit("git_command_result", {

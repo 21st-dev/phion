@@ -23,9 +23,9 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
       return React.createElement(
         Badge,
         {
-          variant: "default",
+          variant: "outline",
           className:
-            "bg-green-100 text-ds-green-700 border-green-200 hover:bg-green-200 dark:bg-green-900/20 dark:border-green-800",
+            "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950/20",
         },
         "Live",
       )
@@ -33,7 +33,9 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
       return React.createElement(
         Badge,
         {
-          variant: "destructive",
+          variant: "outline",
+          className:
+            "border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/20",
         },
         "Failed",
       )
@@ -41,9 +43,9 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
       return React.createElement(
         Badge,
         {
-          variant: "default",
+          variant: "outline",
           className:
-            "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
+            "border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/20",
         },
         "Publishing",
       )
@@ -52,6 +54,7 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
         Badge,
         {
           variant: "outline",
+          className: "text-muted-foreground hover:bg-muted/50",
         },
         "Not Published",
       )
@@ -61,6 +64,7 @@ export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) =>
         Badge,
         {
           variant: "outline",
+          className: "text-muted-foreground hover:bg-muted/50",
         },
         "Pending",
       )

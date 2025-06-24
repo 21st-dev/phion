@@ -8,6 +8,19 @@ interface ToolbarProps {
   position: "top" | "bottom"
 }
 
+// Add spin animation keyframes to document if not already added
+if (typeof document !== "undefined" && !document.getElementById("phion-toolbar-styles")) {
+  const style = document.createElement("style")
+  style.id = "phion-toolbar-styles"
+  style.textContent = `
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `
+  document.head.appendChild(style)
+}
+
 export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, position }) => {
   const [client] = useState(() => new ToolbarWebSocketClient(projectId, websocketUrl))
   const [state, setState] = useState<ToolbarState>({
@@ -17,7 +30,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
     netlifyUrl: undefined,
   })
   const [isConnected, setIsConnected] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDiscarding, setIsDiscarding] = useState(false)
   const [projectName, setProjectName] = useState("Project")
   const [isSimpleBrowser, setIsSimpleBrowser] = useState(false)
   const [debugMessage, setDebugMessage] = useState<string>("")
@@ -67,11 +81,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
     }
 
     const handleSaveSuccess = () => {
-      setIsLoading(false)
+      setIsSaving(false)
     }
 
     const handleDiscardSuccess = () => {
-      setIsLoading(false)
+      setIsDiscarding(false)
     }
 
     client.on("stateChange", handleStateChange)
@@ -272,27 +286,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
       agentConnected: state.agentConnected,
       netlifyUrl: state.netlifyUrl,
       isConnected,
-      isLoading,
+      isSaving,
+      isDiscarding,
     })
-  }, [state, isConnected, isLoading])
+  }, [state, isConnected, isSaving, isDiscarding])
 
   const handleSave = () => {
     console.log(
       "[Phion Toolbar] handleSave called - pendingChanges:",
       state.pendingChanges,
-      "isLoading:",
-      isLoading,
+      "isSaving:",
+      isSaving,
     )
-    if (state.pendingChanges > 0 && !isLoading) {
+    if (state.pendingChanges > 0 && !isSaving && !isDiscarding) {
       console.log("[Phion Toolbar] Executing save...")
-      setIsLoading(true)
+      setIsSaving(true)
       client.saveAll()
     } else {
       console.log(
         "[Phion Toolbar] Save blocked - pendingChanges:",
         state.pendingChanges,
-        "isLoading:",
-        isLoading,
+        "isSaving:",
+        isSaving,
       )
     }
   }
@@ -301,19 +316,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
     console.log(
       "[Phion Toolbar] handleDiscard called - pendingChanges:",
       state.pendingChanges,
-      "isLoading:",
-      isLoading,
+      "isDiscarding:",
+      isDiscarding,
     )
-    if (state.pendingChanges > 0 && !isLoading) {
+    if (state.pendingChanges > 0 && !isSaving && !isDiscarding) {
       console.log("[Phion Toolbar] Executing discard...")
-      setIsLoading(true)
+      setIsDiscarding(true)
       client.discardAll()
     } else {
       console.log(
         "[Phion Toolbar] Discard blocked - pendingChanges:",
         state.pendingChanges,
-        "isLoading:",
-        isLoading,
+        "isDiscarding:",
+        isDiscarding,
       )
     }
   }
@@ -444,9 +459,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
   // Debug: Log button states before render
   console.log("[Phion Toolbar] Rendering buttons with:", {
     pendingChanges: state.pendingChanges,
-    isLoading,
-    saveDisabled: state.pendingChanges === 0 || isLoading,
-    discardDisabled: state.pendingChanges === 0 || isLoading,
+    isSaving,
+    isDiscarding,
+    saveDisabled: state.pendingChanges === 0 || isSaving || isDiscarding,
+    discardDisabled: state.pendingChanges === 0 || isSaving || isDiscarding,
     saveButtonColor: state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
     discardButtonColor: state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
   })
@@ -516,45 +532,55 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
 
       {/* Right side - Action buttons */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        {/* Last save time and deploy status - clickable to open preview */}
+        {/* Last save time and deploy status */}
         {state.lastCommit && (
-          <button
-            onClick={handlePreview}
-            disabled={!state.netlifyUrl}
+          <div
             style={{
-              backgroundColor: "transparent",
-              border: "none",
-              color: state.netlifyUrl ? "rgba(255, 255, 255, 0.8)" : "rgba(255, 255, 255, 0.4)",
-              fontSize: "11px",
-              fontWeight: "400",
-              cursor: state.netlifyUrl ? "pointer" : "not-allowed",
-              transition: "all 0.2s",
               display: "flex",
               alignItems: "center",
               gap: "6px",
               padding: "2px 4px",
-              borderRadius: "4px",
             }}
-            title={state.netlifyUrl ? "Click to open live preview" : "Preview not available"}
           >
-            <span style={{ opacity: 0.7 }}>
+            <span
+              style={{
+                opacity: 0.7,
+                color: "rgba(255, 255, 255, 0.8)",
+                fontSize: "11px",
+                fontWeight: "400",
+              }}
+            >
               Updated {getRelativeTime(state.lastCommit.createdAt)}
             </span>
             {state.netlifyUrl && (
               <>
-                <span style={{ opacity: 0.5, fontSize: "8px" }}>•</span>
-                <span
+                <span style={{ opacity: 0.5, fontSize: "8px", color: "rgba(255, 255, 255, 0.8)" }}>
+                  •
+                </span>
+                <button
+                  onClick={handlePreview}
                   style={{
+                    backgroundColor: "transparent",
+                    border: "none",
                     color: getDeployStatusDisplay().color,
+                    fontSize: "11px",
                     fontWeight: "500",
-                    textDecoration: state.netlifyUrl ? "underline" : "none",
+                    cursor: state.deployStatus === "building" ? "default" : "pointer",
+                    transition: "all 0.2s",
+                    textDecoration: state.deployStatus === "building" ? "none" : "underline",
+                    padding: "0",
                   }}
+                  title={
+                    state.deployStatus === "building"
+                      ? "Publishing in progress..."
+                      : "Click to open live preview"
+                  }
                 >
                   {getDeployStatusDisplay().text}
-                </span>
+                </button>
               </>
             )}
-          </button>
+          </div>
         )}
 
         {errorCount > 0 && (
@@ -578,45 +604,106 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
 
         <button
           onClick={handleDiscard}
-          disabled={state.pendingChanges === 0 || isLoading}
+          disabled={state.pendingChanges === 0 || isSaving || isDiscarding}
           style={{
             backgroundColor: "rgba(255, 255, 255, 0.1)",
-            color: state.pendingChanges > 0 ? "#ef4444" : "rgba(255, 255, 255, 0.5)",
+            color:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding
+                ? "#ef4444"
+                : "rgba(255, 255, 255, 0.5)",
             border: "1px solid rgba(255, 255, 255, 0.2)",
             borderRadius: "6px",
             padding: "6px 12px",
             fontSize: "12px",
             fontWeight: "500",
-            cursor: state.pendingChanges > 0 ? "pointer" : "not-allowed",
+            cursor:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding ? "pointer" : "not-allowed",
             transition: "all 0.2s",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
           }}
         >
+          {isDiscarding && (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.5)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ animation: "spin 1s linear infinite" }}
+            >
+              <path d="M12 2v4" />
+              <path d="m16.2 7.8 2.9-2.9" />
+              <path d="M18 12h4" />
+              <path d="m16.2 16.2 2.9 2.9" />
+              <path d="M12 18v4" />
+              <path d="m4.9 19.1 2.9-2.9" />
+              <path d="M2 12h4" />
+              <path d="m4.9 4.9 2.9 2.9" />
+            </svg>
+          )}
           Discard
         </button>
 
         <button
           onClick={handleSave}
-          disabled={state.pendingChanges === 0 || isLoading}
+          disabled={state.pendingChanges === 0 || isSaving || isDiscarding}
           style={{
-            backgroundColor: state.pendingChanges > 0 ? "#3b82f6" : "rgba(255, 255, 255, 0.1)",
-            color: state.pendingChanges > 0 ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
-            border: state.pendingChanges > 0 ? "none" : "1px solid rgba(255, 255, 255, 0.2)",
+            backgroundColor:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding
+                ? "#3b82f6"
+                : "rgba(255, 255, 255, 0.1)",
+            color:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding
+                ? "#ffffff"
+                : "rgba(255, 255, 255, 0.5)",
+            border:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding
+                ? "none"
+                : "1px solid rgba(255, 255, 255, 0.2)",
             borderRadius: "6px",
             padding: "6px 12px",
             fontSize: "12px",
             fontWeight: "500",
-            cursor: state.pendingChanges > 0 ? "pointer" : "not-allowed",
+            cursor:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding ? "pointer" : "not-allowed",
             transition: "all 0.2s",
-            boxShadow: state.pendingChanges > 0 ? "0 1px 2px rgba(0, 0, 0, 0.1)" : "none",
+            boxShadow:
+              state.pendingChanges > 0 && !isSaving && !isDiscarding
+                ? "0 1px 2px rgba(0, 0, 0, 0.1)"
+                : "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
           }}
         >
-          {isLoading
-            ? state.lastCommit
-              ? "Saving..."
-              : "Publishing..."
-            : state.lastCommit
-              ? "Save"
-              : "Publish"}
+          {isSaving && (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.5)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ animation: "spin 1s linear infinite" }}
+            >
+              <path d="M12 2v4" />
+              <path d="m16.2 7.8 2.9-2.9" />
+              <path d="M18 12h4" />
+              <path d="m16.2 16.2 2.9 2.9" />
+              <path d="M12 18v4" />
+              <path d="m4.9 19.1 2.9-2.9" />
+              <path d="M2 12h4" />
+              <path d="m4.9 4.9 2.9 2.9" />
+            </svg>
+          )}
+          {state.lastCommit ? "Save" : "Publish"}
         </button>
       </div>
     </div>
