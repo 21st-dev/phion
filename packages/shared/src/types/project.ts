@@ -1,26 +1,14 @@
-import { z } from "zod";
+import { z } from "zod"
 
 // Статусы деплоя
-export const DeployStatus = z.enum([
-  "pending",
-  "building",
-  "ready",
-  "failed",
-  "cancelled",
-]);
+export const DeployStatus = z.enum(["pending", "building", "ready", "failed", "cancelled"])
 
-export type DeployStatus = z.infer<typeof DeployStatus>;
+export type DeployStatus = z.infer<typeof DeployStatus>
 
 // Типы шаблонов проектов
-export const TemplateType = z.enum([
-  "vite-react",
-  "vite-vue",
-  "next-js",
-  "nuxt-js",
-  "vanilla-js",
-]);
+export const TemplateType = z.enum(["vite", "nextjs"])
 
-export type TemplateType = z.infer<typeof TemplateType>;
+export type TemplateType = z.infer<typeof TemplateType>
 
 // Схема проекта
 export const ProjectSchema = z.object({
@@ -36,17 +24,17 @@ export const ProjectSchema = z.object({
   github_owner: z.string().nullable(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
-});
+})
 
-export type Project = z.infer<typeof ProjectSchema>;
+export type Project = z.infer<typeof ProjectSchema>
 
 // Схема для создания проекта
 export const CreateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  template_type: TemplateType.default("vite-react"),
-});
+  template_type: TemplateType.default("vite"),
+})
 
-export type CreateProject = z.infer<typeof CreateProjectSchema>;
+export type CreateProject = z.infer<typeof CreateProjectSchema>
 
 // Схема для обновления проекта
 export const UpdateProjectSchema = z.object({
@@ -58,6 +46,6 @@ export const UpdateProjectSchema = z.object({
   github_repo_url: z.string().url().optional(),
   github_repo_name: z.string().optional(),
   github_owner: z.string().optional(),
-});
+})
 
-export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
+export type UpdateProject = z.infer<typeof UpdateProjectSchema>

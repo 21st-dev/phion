@@ -36,7 +36,7 @@ export const ALLOWED_FILE_EXTENSIONS = [
   "env",
   "gitignore",
   "gitkeep",
-];
+]
 
 // Игнорируемые директории и файлы
 export const IGNORED_PATHS = [
@@ -55,55 +55,41 @@ export const IGNORED_PATHS = [
   ".env.*.local",
   ".DS_Store",
   "Thumbs.db",
-];
+]
 
 // Максимальные размеры
-export const MAX_FILE_SIZE = 1024 * 1024 * 5; // 5MB
-export const MAX_PROJECT_NAME_LENGTH = 100;
-export const MAX_FILES_PER_PROJECT = 1000;
+export const MAX_FILE_SIZE = 1024 * 1024 * 5 // 5MB
+export const MAX_PROJECT_NAME_LENGTH = 100
+export const MAX_FILES_PER_PROJECT = 1000
 
 // WebSocket настройки
-export const WS_RECONNECT_INTERVAL = 5000; // 5 секунд
-export const WS_MAX_RECONNECT_ATTEMPTS = 10;
-export const WS_HEARTBEAT_INTERVAL = 30000; // 30 секунд
+export const WS_RECONNECT_INTERVAL = 5000 // 5 секунд
+export const WS_MAX_RECONNECT_ATTEMPTS = 10
+export const WS_HEARTBEAT_INTERVAL = 30000 // 30 секунд
 
 // Деплой настройки
-export const DEPLOY_TIMEOUT = 300000; // 5 минут
-export const BUILD_TIMEOUT = 180000; // 3 минуты
+export const DEPLOY_TIMEOUT = 300000 // 5 минут
+export const BUILD_TIMEOUT = 180000 // 3 минуты
 
 // Шаблоны проектов
 export const PROJECT_TEMPLATES = {
-  "vite-react": {
+  vite: {
     name: "Vite + React",
-    description: "Современный React проект с Vite",
+    description: "Modern React development with Vite",
     buildCommand: "npm run build",
     outputDir: "dist",
+    platform: "netlify",
+    icon: "⚡",
   },
-  "vite-vue": {
-    name: "Vite + Vue",
-    description: "Vue.js проект с Vite",
-    buildCommand: "npm run build",
-    outputDir: "dist",
-  },
-  "next-js": {
+  nextjs: {
     name: "Next.js",
-    description: "React фреймворк с SSR",
+    description: "Full-stack React framework with SSR",
     buildCommand: "npm run build",
-    outputDir: "out",
+    outputDir: ".next",
+    platform: "vercel",
+    icon: "▲",
   },
-  "nuxt-js": {
-    name: "Nuxt.js",
-    description: "Vue.js фреймворк с SSR",
-    buildCommand: "npm run build",
-    outputDir: ".output/public",
-  },
-  "vanilla-js": {
-    name: "Vanilla JavaScript",
-    description: "Простой HTML/CSS/JS проект",
-    buildCommand: null,
-    outputDir: ".",
-  },
-} as const;
+} as const
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -114,4 +100,4 @@ export const API_ENDPOINTS = {
   PROJECT_REVERT: (id: string) => `/api/projects/${id}/revert`,
   PROJECT_DOWNLOAD: (id: string) => `/api/projects/${id}/download`,
   PROJECT_DEPLOY: (id: string) => `/api/projects/${id}/deploy`,
-} as const;
+} as const

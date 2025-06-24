@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { PROJECT_TEMPLATES } from "@shipvibes/shared"
 
 interface CreateProjectDialogProps {
   trigger?: React.ReactNode
@@ -23,6 +26,7 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
   const [open, setOpen] = useState(false)
   const [projectName, setProjectName] = useState("")
+  const [templateType, setTemplateType] = useState<"vite" | "nextjs">("vite")
   const [isCreating, setIsCreating] = useState(false)
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
@@ -42,7 +46,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
         },
         body: JSON.stringify({
           name: projectName.trim(),
-          template_type: "vite-react",
+          template_type: templateType,
         }),
       })
 
@@ -57,6 +61,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
 
       setOpen(false)
       setProjectName("")
+      setTemplateType("vite")
 
       // ✅ Быстрый redirect - пользователь увидит страницу с прогрессом
       router.push(`/project/${data.project.id}/onboarding`)
@@ -91,15 +96,56 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Give your project a name to get started.
+            Choose a template and give your project a name to get started.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-6 py-4">
+          <div className="grid gap-3">
+            <Label>Template Type</Label>
+            <RadioGroup
+              value={templateType}
+              onValueChange={(value) => setTemplateType(value as "vite" | "nextjs")}
+              disabled={isCreating}
+              className="grid gap-3"
+            >
+              {(
+                Object.entries(PROJECT_TEMPLATES) as Array<
+                  [
+                    keyof typeof PROJECT_TEMPLATES,
+                    (typeof PROJECT_TEMPLATES)[keyof typeof PROJECT_TEMPLATES],
+                  ]
+                >
+              ).map(([key, template]) => (
+                <div key={key} className="flex items-center space-x-2">
+                  <RadioGroupItem value={key} id={key} />
+                  <Label htmlFor={key} className="flex-1 cursor-pointer">
+                    <Card className="transition-colors hover:bg-accent/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <span className="text-lg">{template.icon}</span>
+                          {template.name}
+                          <span className="ml-auto text-xs bg-muted px-2 py-1 rounded-full">
+                            {template.platform}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <CardDescription className="text-xs">
+                          {template.description}
+                        </CardDescription>
+                      </CardContent>
+                    </Card>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="project-name">Project Name</Label>
             <Input
@@ -109,7 +155,6 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
               onChange={(e) => setProjectName(e.target.value)}
               onKeyDown={handleKeyDown}
               maxLength={100}
-              autoFocus
               disabled={isCreating}
             />
           </div>

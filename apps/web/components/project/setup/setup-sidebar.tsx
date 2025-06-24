@@ -105,7 +105,12 @@ export function ProjectSetupSidebar({
           Project Template
         </div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-medium">{project.template_type}</span>
+          <span className="text-sm font-medium">
+            {project.template_type === "vite" ? "Vite + React" : "Next.js"}
+          </span>
+          <span className="text-xs bg-muted px-2 py-1 rounded-full">
+            {project.template_type === "vite" ? "netlify" : "vercel"}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">

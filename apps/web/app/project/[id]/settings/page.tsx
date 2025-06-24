@@ -99,8 +99,13 @@ export default function ProjectSettingsPage() {
 
             <div>
               <Label>Template Type</Label>
-              <div className="mt-1">
-                <Badge variant="outline">{project.template_type}</Badge>
+              <div className="mt-1 flex items-center gap-2">
+                <Badge variant="outline">
+                  {project.template_type === "vite" ? "Vite + React" : "Next.js"}
+                </Badge>
+                <Badge variant="secondary">
+                  {project.template_type === "vite" ? "Netlify" : "Vercel"}
+                </Badge>
               </div>
             </div>
 

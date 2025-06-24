@@ -1,7 +1,7 @@
 {
   "name": "phion",
-  "version": "0.0.6",
-  "description": "Phion Development Agent and Vite Plugin for seamless code sync and auto-deploy",
+  "version": "0.1.0-beta.1",
+  "description": "Phion Development Agent with Vite and Next.js support for seamless code sync and auto-deploy",
   "main": "dist/index.mjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
@@ -15,12 +15,15 @@
   },
   "keywords": [
     "vite",
+    "nextjs",
     "plugin",
     "development",
     "sync",
     "deploy",
     "auto-deploy",
-    "code-sync"
+    "code-sync",
+    "vercel",
+    "netlify"
   ],
   "author": "Phion Team",
   "license": "MIT",
@@ -44,7 +47,16 @@
     "typescript": "^5.3.0"
   },
   "peerDependencies": {
-    "vite": "^4.0.0 || ^5.0.0"
+    "vite": "^4.0.0 || ^5.0.0",
+    "next": "^13.0.0 || ^14.0.0 || ^15.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    }
   },
   "files": [
     "dist",
@@ -57,7 +69,11 @@
     },
     "./plugin": {
       "import": "./dist/plugin.mjs",
-      "types": "./dist/index.d.mts"
+      "types": "./dist/plugin.d.mts"
+    },
+    "./plugin-next": {
+      "import": "./dist/plugin-next.mjs",
+      "types": "./dist/plugin-next.d.mts"
     }
   }
 }

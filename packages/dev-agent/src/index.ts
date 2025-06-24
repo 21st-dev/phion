@@ -4,6 +4,10 @@ export { openPreview, detectVSCode, type VSCodeConfig } from "./vscode-utils.js"
 
 // Vite plugin exports
 export { phionPlugin as plugin } from "./plugin.js"
+
+// Next.js plugin exports
+export { withPhionToolbar, createToolbarHandler } from "./plugin-next.js"
+
 export type {
   PhionConfig,
   PhionPluginOptions,

@@ -15,6 +15,7 @@ import {
 } from "@shipvibes/database"
 // R2 импорты удалены - теперь используем GitHub API
 import { NetlifyService } from "./services/netlify.js"
+import { VercelService } from "./services/vercel.js"
 
 const app = express()
 const httpServer = createServer(app)
@@ -167,8 +168,9 @@ setInterval(() => {
 
 const PORT = process.env.WEBSOCKET_PORT || 8080
 
-// Создаем Netlify сервис
+// Создаем сервисы деплоя
 const netlifyService = new NetlifyService(io)
+const vercelService = new VercelService(io)
 
 // Каждые 30 секунд проверяем статусы всех активных деплоев
 setInterval(() => {
@@ -474,44 +476,74 @@ async function saveFullProjectSnapshot(projectId: string, commitMessage?: string
       files_count: pendingChanges.length,
     })
 
-    // 🎯 ТОЛЬКО ПОСЛЕ создания коммита проверяем нужно ли создать Netlify сайт
-    const isFirstUserCommit = !project.netlify_site_id
+    // 🎯 ТОЛЬКО ПОСЛЕ создания коммита проверяем нужно ли создать деплой сервис
+    const isViteProject = project.template_type === "vite"
+    const isNextjsProject = project.template_type === "nextjs"
+    const isFirstUserCommit = !project.netlify_site_id && !project.vercel_project_id
+
     if (isFirstUserCommit) {
       console.log(
-        `🌐 [FIRST_COMMIT] Creating Netlify site for project ${projectId} AFTER user commit...`,
+        `🌐 [FIRST_COMMIT] Creating deployment service for ${project.template_type} project ${projectId} AFTER user commit...`,
       )
 
       try {
-        // Импортируем Netlify сервис
-        const { NetlifyService } = await import("./services/netlify.js")
-        const netlifyService = new NetlifyService()
+        if (isViteProject) {
+          // Создаем Netlify сайт для Vite проектов
+          const { NetlifyService } = await import("./services/netlify.js")
+          const netlifyService = new NetlifyService()
 
-        // 🎯 Теперь создаем Netlify сайт - он сразу будет деплоить актуальный коммит с изменениями
-        const netlifySite = await netlifyService.createSiteWithGitHub(
-          projectId,
-          project.name,
-          project.github_repo_name,
-          "phion-dev",
-        )
+          const netlifySite = await netlifyService.createSiteWithGitHub(
+            projectId,
+            project.name,
+            project.github_repo_name,
+            "phion-dev",
+          )
 
-        // Сохраняем netlify_site_id в базу данных
-        await projectQueries.updateProject(projectId, {
-          netlify_site_id: netlifySite.id,
-          deploy_status: "building", // Будет автоматически деплоиться актуальный коммит
-        })
+          // Сохраняем netlify_site_id в базу данных
+          await projectQueries.updateProject(projectId, {
+            netlify_site_id: netlifySite.id,
+            deploy_status: "building",
+          })
 
-        // Настраиваем webhooks для уведомлений о деплое
-        await netlifyService.setupWebhookForSite(netlifySite.id, projectId)
+          // Настраиваем webhooks для уведомлений о деплое
+          await netlifyService.setupWebhookForSite(netlifySite.id, projectId)
 
-        console.log(
-          `✅ [FIRST_COMMIT] Netlify site created: ${netlifySite.id} for project ${projectId} - will deploy latest commit ${mainCommitSha}`,
-        )
+          console.log(
+            `✅ [FIRST_COMMIT] Netlify site created: ${netlifySite.id} for Vite project ${projectId}`,
+          )
+        } else if (isNextjsProject) {
+          // Создаем Vercel проект для Next.js проектов
+          const vercelProject = await vercelService.createProject(
+            projectId,
+            project.name,
+            project.github_repo_name!,
+            "phion-dev",
+          )
+
+          // Сохраняем vercel_project_id в базу данных
+          await projectQueries.updateProject(projectId, {
+            vercel_project_id: vercelProject.id,
+            vercel_project_name: vercelProject.name,
+            vercel_deploy_status: "building",
+          })
+
+          // Запускаем проверку статуса деплоя
+          setTimeout(() => {
+            vercelService.checkAndUpdateDeployStatus(projectId).catch((error) => {
+              console.error(`❌ Error checking Vercel deploy status: ${error}`)
+            })
+          }, 10000) // Проверяем через 10 секунд
+
+          console.log(
+            `✅ [FIRST_COMMIT] Vercel project created: ${vercelProject.id} for Next.js project ${projectId}`,
+          )
+        }
       } catch (error) {
         console.error(
-          `❌ [FIRST_COMMIT] Failed to create Netlify site for project ${projectId}:`,
+          `❌ [FIRST_COMMIT] Failed to create deployment service for project ${projectId}:`,
           error,
         )
-        // Продолжаем выполнение - коммит уже создан, Netlify не критичен
+        // Продолжаем выполнение - коммит уже создан, деплой сервис не критичен
       }
     }
 
@@ -998,52 +1030,83 @@ io.on("connection", (socket) => {
 
       console.log(`🔐 Env file change detected: ${filePath} in project ${projectId}`)
 
-      // Получаем проект и Netlify site ID
+      // Получаем проект и проверяем конфигурацию деплоя
       const supabase = getSupabaseServerClient()
       const projectQueries = new ProjectQueries(supabase)
       const project = await projectQueries.getProjectById(projectId)
 
-      if (!project || !project.netlify_site_id) {
-        console.log(`⚠️ Project ${projectId} not found or Netlify site not configured`)
+      if (!project) {
+        console.log(`⚠️ Project ${projectId} not found`)
         socket.emit("env_sync_result", {
           success: false,
-          error: "Project not configured with Netlify",
+          error: "Project not found",
+          filePath,
+        })
+        return
+      }
+
+      // Определяем тип проекта и сервис деплоя
+      const isViteProject = project.template_type === "vite"
+      const isNextjsProject = project.template_type === "nextjs"
+
+      if (!project.netlify_site_id && !project.vercel_project_id) {
+        console.log(`⚠️ Project ${projectId} not configured with deployment service`)
+        socket.emit("env_sync_result", {
+          success: false,
+          error: "Project not configured with deployment service",
           filePath,
         })
         return
       }
 
       try {
-        // Синхронизируем переменные окружения с Netlify
-        await netlifyService.syncEnvFile(project.netlify_site_id, content, {
-          context: "production", // Можно сделать конфигурируемым
-          scopes: ["builds", "functions"],
-          deleteUnused: false, // Безопасный режим - не удаляем существующие переменные
-        })
+        let serviceName = ""
 
-        console.log(`✅ Environment variables synced to Netlify for project ${projectId}`)
+        if (isViteProject && project.netlify_site_id) {
+          // Синхронизируем переменные окружения с Netlify
+          await netlifyService.syncEnvFile(project.netlify_site_id, content, {
+            context: "production",
+            scopes: ["builds", "functions"],
+            deleteUnused: false,
+          })
+          serviceName = "Netlify"
+        } else if (isNextjsProject && project.vercel_project_id) {
+          // Парсим .env файл и синхронизируем с Vercel
+          const envVars = parseEnvContent(content)
+          await vercelService.syncEnvFile(project.vercel_project_id, envVars, {
+            target: ["production", "preview", "development"],
+            type: "encrypted",
+          })
+          serviceName = "Vercel"
+        } else {
+          throw new Error("No compatible deployment service configured")
+        }
+
+        console.log(`✅ Environment variables synced to ${serviceName} for project ${projectId}`)
 
         // Уведомляем всех клиентов проекта об успешной синхронизации
         io.to(`project:${projectId}`).emit("env_sync_success", {
           projectId,
           filePath,
           timestamp: Date.now(),
-          message: "Environment variables synced with Netlify",
+          service: serviceName.toLowerCase(),
+          message: `Environment variables synced with ${serviceName}`,
         })
 
         // Отправляем подтверждение отправителю
         socket.emit("env_sync_result", {
           success: true,
           filePath,
-          message: "Environment variables synced with Netlify",
+          service: serviceName.toLowerCase(),
+          message: `Environment variables synced with ${serviceName}`,
         })
-      } catch (netlifyError) {
-        console.error(`❌ Error syncing env variables to Netlify:`, netlifyError)
+      } catch (syncError) {
+        console.error(`❌ Error syncing env variables:`, syncError)
 
         // Уведомляем об ошибке синхронизации
         socket.emit("env_sync_result", {
           success: false,
-          error: netlifyError instanceof Error ? netlifyError.message : "Sync failed",
+          error: syncError instanceof Error ? syncError.message : "Sync failed",
           filePath,
         })
 
@@ -1051,7 +1114,7 @@ io.on("connection", (socket) => {
         io.to(`project:${projectId}`).emit("env_sync_error", {
           projectId,
           filePath,
-          error: netlifyError instanceof Error ? netlifyError.message : "Sync failed",
+          error: syncError instanceof Error ? syncError.message : "Sync failed",
           timestamp: Date.now(),
         })
       }
@@ -1737,6 +1800,34 @@ io.on("connection", (socket) => {
   })
 })
 
+/**
+ * Парсинг содержимого .env файла
+ */
+function parseEnvContent(content: string): Record<string, string> {
+  const envVars: Record<string, string> = {}
+  const lines = content.split("\n")
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+
+    // Пропускаем комментарии и пустые строки
+    if (!trimmedLine || trimmedLine.startsWith("#")) {
+      continue
+    }
+
+    // Ищем паттерн KEY=VALUE
+    const match = trimmedLine.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/)
+    if (match) {
+      const [, key, value] = match
+      // Убираем кавычки если есть
+      const cleanValue = value.replace(/^["']|["']$/g, "")
+      envVars[key] = cleanValue
+    }
+  }
+
+  return envVars
+}
+
 // Запускаем сервер
 httpServer.listen(PORT, () => {
   console.log(`✅ WebSocket server running on port ${PORT}`)
@@ -1795,6 +1886,156 @@ app.post("/api/notify-status-change", async (req, res) => {
     })
   } catch (error) {
     console.error("❌ [STATUS_NOTIFY] Error sending status notification:", error)
+    res.status(500).json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
+    })
+  }
+})
+
+// Vercel webhook endpoint
+app.post("/webhooks/vercel", async (req, res) => {
+  try {
+    const {
+      projectId: vercelProjectId,
+      deploymentId,
+      state,
+      url: deploymentUrl,
+      name: projectName,
+    } = req.body
+
+    console.log(`🔔 Vercel webhook received:`, {
+      vercelProjectId,
+      deploymentId,
+      state,
+      deploymentUrl,
+      projectName,
+    })
+
+    // Находим проект по vercel_project_id
+    const supabase = getSupabaseServerClient()
+    const projectQueries = new ProjectQueries(supabase)
+
+    // Получаем проект по vercel_project_id
+    const { data: projects, error: fetchError } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("vercel_project_id", vercelProjectId)
+      .limit(1)
+
+    if (fetchError) {
+      console.error("❌ Error fetching project by vercel_project_id:", fetchError)
+      return res.status(500).json({ error: "Database error" })
+    }
+
+    if (!projects || projects.length === 0) {
+      console.log(`⚠️ No project found for vercel_project_id: ${vercelProjectId}`)
+      return res.status(404).json({ error: "Project not found" })
+    }
+
+    const project = projects[0]
+    const projectId = project.id
+    const currentStatus = project.vercel_deploy_status
+
+    // Определяем новый статус на основе состояния Vercel
+    let newStatus: "building" | "ready" | "failed"
+
+    switch (state) {
+      case "READY": // успешный деплой
+        newStatus = "ready"
+        break
+      case "ERROR": // ошибка деплоя
+      case "CANCELED": // отмененный деплой
+        newStatus = "failed"
+        break
+      case "BUILDING": // в процессе сборки
+      case "QUEUED": // в очереди
+        newStatus = "building"
+        break
+      default:
+        console.log(`⚠️ Unknown Vercel state: ${state}, defaulting to building`)
+        newStatus = "building"
+    }
+
+    // Предотвращаем деградацию статуса (аналогично Netlify)
+    if (currentStatus === "ready" && newStatus === "building") {
+      console.log(
+        `⚠️ Ignoring building status webhook for project ${projectId} - already ready (webhook delay)`,
+      )
+      return res.status(200).json({
+        success: true,
+        message: "Webhook ignored - preventing status degradation",
+        projectId,
+        currentStatus,
+        ignoredStatus: newStatus,
+      })
+    }
+
+    if (currentStatus === "failed" && newStatus === "building") {
+      console.log(`⚠️ Ignoring building status webhook for project ${projectId} - already failed`)
+      return res.status(200).json({
+        success: true,
+        message: "Webhook ignored - project already failed",
+        projectId,
+        currentStatus,
+        ignoredStatus: newStatus,
+      })
+    }
+
+    if (currentStatus === newStatus) {
+      console.log(
+        `⚠️ Skipping webhook for project ${projectId} - status unchanged (${currentStatus})`,
+      )
+      return res.status(200).json({
+        success: true,
+        message: "Webhook ignored - status unchanged",
+        projectId,
+        status: currentStatus,
+      })
+    }
+
+    console.log(
+      `📊 Updating project ${projectId} Vercel deploy status: ${currentStatus} → ${newStatus}`,
+    )
+
+    // Обновляем проект в базе данных
+    const updateData: any = {
+      vercel_deploy_status: newStatus,
+    }
+
+    // Обновляем URL только если деплой успешен и URL предоставлен
+    if (newStatus === "ready" && deploymentUrl) {
+      updateData.vercel_url = deploymentUrl
+      console.log(`🌐 Updating vercel_url to: ${deploymentUrl}`)
+    }
+
+    await projectQueries.updateProject(projectId, updateData)
+
+    // Логируем изменение статуса деплоя
+    console.log(
+      `🚀 Vercel deploy status change for project ${projectId}: ${currentStatus} -> ${newStatus}`,
+    )
+
+    // Отправляем уведомление через WebSocket всем подключенным клиентам проекта
+    io.to(`project:${projectId}`).emit("deploy_status_update", {
+      projectId,
+      status: newStatus,
+      platform: "vercel",
+      url: deploymentUrl,
+      timestamp: new Date().toISOString(),
+    })
+
+    console.log(`✅ Vercel webhook processed successfully for project ${projectId}`)
+    console.log(`📡 Emitted deploy status update: ${newStatus} - ${deploymentUrl || "no URL"}`)
+
+    res.status(200).json({
+      success: true,
+      message: "Webhook processed successfully",
+      projectId,
+      statusChange: `${currentStatus} → ${newStatus}`,
+    })
+  } catch (error) {
+    console.error("❌ Error processing Vercel webhook:", error)
     res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : "Unknown error",

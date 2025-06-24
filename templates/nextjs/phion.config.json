@@ -1,0 +1,6 @@
+{
+  "projectId": "__PROJECT_ID__",
+  "wsUrl": "__WS_URL__",
+  "templateType": "nextjs",
+  "devPort": 3000
+}

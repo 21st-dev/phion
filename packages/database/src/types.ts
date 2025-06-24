@@ -36,13 +36,17 @@ export interface ProjectRow {
   id: string
   user_id: string
   name: string
-  template_type: string
+  template_type: "vite" | "nextjs"
   github_repo_url?: string
   github_repo_name?: string
   github_owner?: string
   netlify_url?: string
   netlify_site_id?: string
   netlify_deploy_id?: string
+  vercel_project_id?: string
+  vercel_project_name?: string
+  vercel_url?: string
+  vercel_deploy_status?: "building" | "ready" | "failed"
   deploy_status: "pending" | "building" | "ready" | "failed" | "cancelled"
   created_at: string
   updated_at?: string
@@ -52,13 +56,17 @@ export interface ProjectInsert {
   id?: string
   user_id: string
   name: string
-  template_type: string
+  template_type: "vite" | "nextjs"
   github_repo_url?: string
   github_repo_name?: string
   github_owner?: string
   netlify_url?: string
   netlify_site_id?: string
   netlify_deploy_id?: string
+  vercel_project_id?: string
+  vercel_project_name?: string
+  vercel_url?: string
+  vercel_deploy_status?: "building" | "ready" | "failed"
   deploy_status?: "pending" | "building" | "ready" | "failed" | "cancelled"
   created_at?: string
   updated_at?: string
@@ -66,12 +74,17 @@ export interface ProjectInsert {
 
 export interface ProjectUpdate {
   name?: string
+  template_type?: "vite" | "nextjs"
   github_repo_url?: string
   github_repo_name?: string
   github_owner?: string
   netlify_url?: string
   netlify_site_id?: string
   netlify_deploy_id?: string
+  vercel_project_id?: string
+  vercel_project_name?: string
+  vercel_url?: string
+  vercel_deploy_status?: "building" | "ready" | "failed"
   deploy_status?: "pending" | "building" | "ready" | "failed" | "cancelled"
   updated_at?: string
 }

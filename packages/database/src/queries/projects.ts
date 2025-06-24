@@ -72,7 +72,7 @@ export class ProjectQueries {
 
     const insertData: ProjectInsert = {
       name: projectData.name || `Project ${Date.now()}`,
-      template_type: projectData.template_type || "vite-react",
+      template_type: projectData.template_type || "vite",
       deploy_status: "pending",
       user_id: projectData.user_id,
     }
