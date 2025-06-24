@@ -620,6 +620,34 @@ function activate(context) {
   const diagnosticCollection = initializeDiagnosticCollection()
   context.subscriptions.push(diagnosticCollection) // Dispose on deactivation
 
+  // Watch for phion.config.json creation/changes
+  if (workspaceFolders) {
+    const configWatcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(workspaceFolders[0], "phion.config.json"),
+    )
+
+    // Handle config file creation
+    configWatcher.onDidCreate((uri) => {
+      console.log("📄 phion.config.json created, initializing Phion project...")
+      updateConfigSettings()
+      if (isPhionProject()) {
+        startProject(context, true)
+        connectRuntimeErrorMonitoring()
+      }
+    })
+
+    // Handle config file changes
+    configWatcher.onDidChange((uri) => {
+      console.log("📄 phion.config.json changed, updating configuration...")
+      updateConfigSettings()
+      if (isPhionProject()) {
+        connectRuntimeErrorMonitoring()
+      }
+    })
+
+    context.subscriptions.push(configWatcher)
+  }
+
   // Track tab changes to detect Simple Browser state
   vscode.window.onDidChangeActiveTextEditor((editor) => {
     const isSimpleBrowser = editor && editor.document.uri.scheme === "simple-browser"

@@ -301,22 +301,12 @@ chmod +x ./scripts/install-cursor-cli.sh && ./scripts/install-cursor-cli.sh
 node scripts/check-updates.js
 
 echo ""
-echo "⚙️ Configuring Phion project..."
-
-
-
+echo "🎉 Project setup complete!"
 echo ""
-echo "🚀 Starting your Phion project..."
+echo "🔧 The Phion extension should start the project automatically"
 echo ""
-
-if command_exists pnpm; then
-    pnpm install
-    echo ""
-    echo "✅ Dependencies installed!"
-    echo "🧹 Clearing development ports..."
-    pnpm run clear:ports
-    echo "🌐 Starting development server and sync agent..."
-else
-    echo "❌ pnpm still not available. Please restart your terminal and run:"
-    echo "   pnpm start"
-fi 
+echo "💡 If the extension doesn't start, try:"
+echo "   1. Open Cursor's command palette (Cmd + Shift + P)"
+echo "   2. Find and run 'Phion: Start Project' command"
+echo "   3. If command doesn't exist, run 'Developer: Reload Window' before it"
+echo ""
