@@ -38,7 +38,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
   const setupStepRef = useRef<HTMLDivElement>(null)
 
   const [steps, setSteps] = useState<ISetupStep[]>([
-    { id: "download", title: "Get Files", status: "READY" },
+    { id: "download", title: "Project Initialization", status: "READY" },
     { id: "setup", title: "Open in Cursor", status: "QUEUED" },
   ])
 
@@ -160,7 +160,10 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
     try {
       // Отмечаем первый шаг как выполненный
       setDownloadCompleted(true)
-      showSuccess("Project downloaded", "Open the downloaded file in Cursor to continue")
+      showSuccess(
+        "Project ready",
+        "Run the commands below to download and set up your project locally",
+      )
 
       // Update steps
       setSteps((prev) =>
@@ -177,12 +180,12 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
       // Скроллим к следующему шагу
       scrollToStep(1)
     } catch (error) {
-      console.error("Error downloading project:", error)
+      console.error("Error in download step:", error)
       setSteps((prev) =>
         prev.map((step) => (step.id === "download" ? { ...step, status: "ERROR" } : step)),
       )
       // Показываем ошибку пользователю
-      showError("Failed to download project", "Please try again")
+      showError("Project initialization failed", "Please try again")
     }
   }
 
@@ -199,11 +202,11 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
 
   // Функция для возврата к шагу
   const handleStepClick = (stepIndex: number) => {
-    // Можно вернуться только к выполненным шагам или текущему
+    // Можно вернуться к любому доступному шагу
     const canGoToStep =
-      (stepIndex === 0 && downloadCompleted) ||
-      (stepIndex === 1 && setupCompleted) ||
-      stepIndex === currentStep
+      stepIndex === 0 || // Всегда можно вернуться к первому шагу
+      (stepIndex === 1 && downloadCompleted) || // Можно перейти ко второму шагу если первый завершен
+      stepIndex === currentStep // Можно остаться на текущем шаге
 
     if (canGoToStep) {
       setCurrentStep(stepIndex)
@@ -242,7 +245,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-3 space-y-6 pb-[70vh]">
+        <div className="lg:col-span-3 space-y-6 p-6 pb-[70vh]">
           {/* Steps Content */}
           <div className="space-y-6">
             <div

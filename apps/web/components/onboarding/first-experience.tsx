@@ -6,9 +6,10 @@ import { Material } from "@/components/geist/material"
 import { Spinner } from "@/components/geist/spinner"
 import { CursorDark } from "@/components/icons/cursor-dark"
 import { CursorLight } from "@/components/icons/cursor-light"
+import { SetupStep } from "@/components/project/setup/steps/setup-step"
 import { useToast } from "@/hooks/use-toast"
 import { useWebSocket } from "@/hooks/use-websocket"
-import { ArrowRight, CheckCircle2, Copy, Download, X, Zap } from "lucide-react"
+import { ArrowRight, CheckCircle2, Download, X, Zap } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
@@ -399,115 +400,18 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       case "download-setup":
         return (
           <div className="flex flex-col items-center space-y-8 max-w-xl mx-auto">
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-1">
               <h2 className="text-2xl font-bold">Almost ready!</h2>
-              <p className="text-muted-foreground">
-                Download the project and open it in Cursor to get started
-              </p>
+              <p className="text-muted-foreground">Set up your project in Cursor to get started</p>
             </div>
 
-            <Material type="base" className="p-6 space-y-6 w-full">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-primary">
-                  1
-                </div>
-                <div className="flex-1 space-y-3">
-                  <h3 className="font-medium">Download project</h3>
-                  <Button
-                    onClick={handleDownload}
-                    disabled={!projectReady}
-                    type="primary"
-                    size="medium"
-                    prefix={<Download className="w-4 h-4" />}
-                  >
-                    Download ZIP
-                  </Button>
-                  {downloadStarted && (
-                    <p className="text-sm text-green-500 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Download started
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className={`flex items-start gap-4 ${!downloadStarted ? "opacity-60" : ""}`}>
-                <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-muted text-primary" : "bg-muted text-muted-foreground"}`}
-                >
-                  2
-                </div>
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-medium mb-1">Extract and open in Cursor</h3>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>• Double-click the ZIP file to extract it</p>
-                    <p>• Open Cursor app</p>
-                    <p>
-                      • Press{" "}
-                      <kbd className="px-1.5 py-0.5 bg-background text-foreground rounded text-xs font-mono border">
-                        Cmd + O
-                      </kbd>{" "}
-                      or File → Open Folder
-                    </p>
-                    <p>• Select your extracted project folder</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`flex items-start gap-4 ${!downloadStarted ? "opacity-60" : ""}`}>
-                <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${downloadStarted ? "bg-muted text-primary" : "bg-muted text-muted-foreground"}`}
-                >
-                  3
-                </div>
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-medium mb-1">Run setup</h3>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <p>
-                      • Press{" "}
-                      <kbd className="px-1.5 py-0.5 bg-background text-foreground rounded text-xs font-mono border">
-                        Cmd + J
-                      </kbd>{" "}
-                      or Terminal → New Terminal
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span>• Run:</span>
-                      <div className="flex items-center bg-background border rounded px-2 py-1 flex-1">
-                        <code className="text-xs font-mono text-foreground flex-1">
-                          chmod +x setup.sh && ./setup.sh
-                        </code>
-                        <Button
-                          onClick={handleCopyCommand}
-                          type="tertiary"
-                          size="small"
-                          className="ml-2 h-6 w-6 p-0"
-                          prefix={<Copy className="w-3 h-3" />}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <Material type="base" className="p-6 w-full">
+              <SetupStep
+                projectId={projectId || ""}
+                agentConnected={agentConnected}
+                onDeploy={handleGoToProject}
+              />
             </Material>
-
-            {downloadStarted && (
-              <div className="text-center space-y-3">
-                <Button
-                  onClick={handleGoToProject}
-                  type="secondary"
-                  size="large"
-                  className="w-full max-w-xs"
-                  disabled={!agentConnected && countdown === null}
-                >
-                  {getButtonText()}
-                </Button>
-                {agentConnected && countdown !== null && countdown > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Agent connected! Redirecting automatically...
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         )
 
@@ -524,7 +428,7 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       className="fixed inset-0 z-50 bg-background overflow-y-auto"
     >
       <div className="min-h-screen flex flex-col">
-        <div className="px-8 pt-8 pb-4">
+        <div className="p-8">
           <button
             onClick={onComplete}
             className="absolute top-6 right-10 p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"

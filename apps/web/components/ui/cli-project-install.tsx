@@ -3,6 +3,7 @@
 import { Button } from "@/components/geist/button"
 import { CodeBlock, CodeBlockCode } from "@/components/ui/code-block"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 
 // OS detection utility
@@ -21,22 +22,15 @@ export const generateCliCommand = (projectId: string, os: "mac" | "windows" | "l
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   const apiUrl = `${baseUrl}/api/projects/${projectId}/download`
 
-  // Determine wsUrl and debug flag based on environment
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080"
-  const debugMode = process.env.NODE_ENV === "production" ? "false" : "true"
-
-  // Parameters to pass to setup scripts
-  const setupParams = `"${projectId}" "${wsUrl}" "${debugMode}"`
-
   switch (os) {
     case "mac":
-      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER" && chmod +x setup.sh && ./setup.sh ${setupParams}`
+      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER"`
 
     case "windows":
-      return `Invoke-WebRequest -Uri "${apiUrl}" -OutFile "project.zip" -UseBasicParsing; Expand-Archive -Path "project.zip" -DestinationPath "." -Force; Remove-Item "project.zip"; $folder = Get-ChildItem -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Move-Item "$($folder.Name)\\*" -Destination "." -Force; Get-ChildItem "$($folder.Name)" -Hidden | Move-Item -Destination "." -Force; Remove-Item $folder.Name -Recurse -Force; .\\setup.ps1 ${setupParams}`
+      return `Invoke-WebRequest -Uri "${apiUrl}" -OutFile "project.zip" -UseBasicParsing; Expand-Archive -Path "project.zip" -DestinationPath "." -Force; Remove-Item "project.zip"; $folder = Get-ChildItem -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Move-Item "$($folder.Name)\\*" -Destination "." -Force; Get-ChildItem "$($folder.Name)" -Hidden | Move-Item -Destination "." -Force; Remove-Item $folder.Name -Recurse -Force`
 
     case "linux":
-      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER" && chmod +x setup.sh && ./setup.sh ${setupParams}`
+      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER"`
 
     default:
       return `curl -L -O -J "${apiUrl}"`
@@ -98,6 +92,7 @@ export interface CLIProjectInstallProps {
 
 export function CLIProjectInstall({ projectId, className }: CLIProjectInstallProps) {
   const [selectedTab, setSelectedTab] = useState<string>("")
+  const { success, error } = useToast()
 
   // Auto-detect OS on mount
   useEffect(() => {
@@ -108,9 +103,10 @@ export function CLIProjectInstall({ projectId, className }: CLIProjectInstallPro
   const handleCopyCommand = async (command: string) => {
     try {
       await navigator.clipboard.writeText(command)
-      // You could add toast notification here if needed
-    } catch (error) {
-      console.error("Failed to copy command:", error)
+      success("Command copied to clipboard")
+    } catch (err) {
+      console.error("Failed to copy command:", err)
+      error("Failed to copy command", "Please try selecting and copying manually")
     }
   }
 
