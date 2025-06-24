@@ -35,6 +35,13 @@ export interface FileDelete {
   timestamp: number
 }
 
+export interface EnvFileChange {
+  projectId: string
+  filePath: string
+  content: string
+  timestamp: number
+}
+
 // Интерфейсы для данных от сервера
 export interface AuthenticatedData {
   projectId: string
@@ -60,6 +67,7 @@ export interface UpdateFilesData {
 export class PhionAgent {
   private socket: Socket | null = null
   private watcher: FSWatcher | null = null
+  private envWatcher: FSWatcher | null = null // Отдельный watcher для .env файлов
   private httpServer: http.Server | null = null
   private isConnected = false
   private isGitRepo = false
@@ -667,6 +675,53 @@ export class PhionAgent {
     this.watcher.on("error", (error: Error) => {
       console.error("❌ File watcher error:", error)
     })
+
+    // Запускаем отдельный watcher для .env файлов
+    this.startEnvWatcher()
+  }
+
+  private startEnvWatcher(): void {
+    if (this.envWatcher) {
+      return
+    }
+
+    if (this.config.debug) {
+      console.log("🔐 Watching for .env file changes...")
+    }
+
+    // Отслеживаем только .env файлы
+    this.envWatcher = chokidar.watch(
+      [
+        ".env",
+        ".env.local",
+        ".env.development",
+        ".env.production",
+        ".env.development.local",
+        ".env.production.local",
+        ".env.test",
+        ".env.test.local",
+      ],
+      {
+        ignoreInitial: true,
+        persistent: true,
+      },
+    )
+
+    this.envWatcher.on("change", (filePath: string) => {
+      this.handleEnvFileChange(filePath)
+    })
+
+    this.envWatcher.on("add", (filePath: string) => {
+      this.handleEnvFileChange(filePath)
+    })
+
+    this.envWatcher.on("unlink", (filePath: string) => {
+      this.handleEnvFileDelete(filePath)
+    })
+
+    this.envWatcher.on("error", (error: Error) => {
+      console.error("❌ Env watcher error:", error)
+    })
   }
 
   private async handleFileChange(filePath: string): Promise<void> {
@@ -728,6 +783,53 @@ export class PhionAgent {
     this.socket?.emit("file_delete", fileDelete)
   }
 
+  private async handleEnvFileChange(filePath: string): Promise<void> {
+    if (!this.isConnected) {
+      if (this.config.debug) {
+        console.log(`⏳ Not connected, skipping env file: ${filePath}`)
+      }
+      return
+    }
+
+    try {
+      const content = fs.readFileSync(filePath, "utf-8")
+
+      if (this.config.debug) {
+        console.log(`🔐 Syncing env file: ${filePath}`)
+      }
+
+      const envFileChange: EnvFileChange = {
+        projectId: this.config.projectId,
+        filePath: filePath.replace(/\\/g, "/"),
+        content: content,
+        timestamp: Date.now(),
+      }
+
+      this.socket?.emit("env_file_change", envFileChange)
+    } catch (error) {
+      console.error(`❌ Error reading env file ${filePath}:`, (error as Error).message)
+    }
+  }
+
+  private handleEnvFileDelete(filePath: string): void {
+    if (!this.isConnected) {
+      if (this.config.debug) {
+        console.log(`⏳ Not connected, skipping env file deletion: ${filePath}`)
+      }
+      return
+    }
+
+    if (this.config.debug) {
+      console.log(`🗑️ Env file deleted: ${filePath}`)
+    }
+
+    this.socket?.emit("env_file_delete", {
+      projectId: this.config.projectId,
+      filePath: filePath.replace(/\\/g, "/"),
+      timestamp: Date.now(),
+    })
+  }
+
   private async openPreviewIfEnabled(): Promise<void> {
     if (this.config.debug) {
       console.log("🔍 Checking if preview should be opened...")
@@ -783,6 +885,11 @@ export class PhionAgent {
     if (this.watcher) {
       this.watcher.close()
       this.watcher = null
+    }
+
+    if (this.envWatcher) {
+      this.envWatcher.close()
+      this.envWatcher = null
     }
 
     if (this.socket) {

@@ -986,6 +986,129 @@ io.on("connection", (socket) => {
     }
   })
 
+  // 🔐 Обработка изменений в .env файлах
+  socket.on("env_file_change", async (data) => {
+    try {
+      const { projectId, filePath, content, timestamp } = data
+
+      if (!projectId || !filePath || content === undefined) {
+        socket.emit("error", { message: "Missing required fields for env file" })
+        return
+      }
+
+      console.log(`🔐 Env file change detected: ${filePath} in project ${projectId}`)
+
+      // Получаем проект и Netlify site ID
+      const supabase = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabase)
+      const project = await projectQueries.getProjectById(projectId)
+
+      if (!project || !project.netlify_site_id) {
+        console.log(`⚠️ Project ${projectId} not found or Netlify site not configured`)
+        socket.emit("env_sync_result", {
+          success: false,
+          error: "Project not configured with Netlify",
+          filePath,
+        })
+        return
+      }
+
+      try {
+        // Синхронизируем переменные окружения с Netlify
+        await netlifyService.syncEnvFile(project.netlify_site_id, content, {
+          context: "production", // Можно сделать конфигурируемым
+          scopes: ["builds", "functions"],
+          deleteUnused: false, // Безопасный режим - не удаляем существующие переменные
+        })
+
+        console.log(`✅ Environment variables synced to Netlify for project ${projectId}`)
+
+        // Уведомляем всех клиентов проекта об успешной синхронизации
+        io.to(`project:${projectId}`).emit("env_sync_success", {
+          projectId,
+          filePath,
+          timestamp: Date.now(),
+          message: "Environment variables synced with Netlify",
+        })
+
+        // Отправляем подтверждение отправителю
+        socket.emit("env_sync_result", {
+          success: true,
+          filePath,
+          message: "Environment variables synced with Netlify",
+        })
+      } catch (netlifyError) {
+        console.error(`❌ Error syncing env variables to Netlify:`, netlifyError)
+
+        // Уведомляем об ошибке синхронизации
+        socket.emit("env_sync_result", {
+          success: false,
+          error: netlifyError instanceof Error ? netlifyError.message : "Sync failed",
+          filePath,
+        })
+
+        // Уведомляем всех клиентов проекта об ошибке
+        io.to(`project:${projectId}`).emit("env_sync_error", {
+          projectId,
+          filePath,
+          error: netlifyError instanceof Error ? netlifyError.message : "Sync failed",
+          timestamp: Date.now(),
+        })
+      }
+    } catch (error) {
+      console.error("❌ Error handling env file change:", error)
+      socket.emit("error", { message: "Failed to process env file change" })
+    }
+  })
+
+  // 🗑️ Обработка удаления .env файлов
+  socket.on("env_file_delete", async (data) => {
+    try {
+      const { projectId, filePath, timestamp } = data
+
+      if (!projectId || !filePath) {
+        socket.emit("error", { message: "Missing required fields for env file deletion" })
+        return
+      }
+
+      console.log(`🗑️ Env file deleted: ${filePath} in project ${projectId}`)
+
+      // Получаем проект
+      const supabase = getSupabaseServerClient()
+      const projectQueries = new ProjectQueries(supabase)
+      const project = await projectQueries.getProjectById(projectId)
+
+      if (!project || !project.netlify_site_id) {
+        console.log(`⚠️ Project ${projectId} not found or Netlify site not configured`)
+        return
+      }
+
+      // Логируем удаление, но НЕ очищаем переменные в Netlify автоматически
+      // Это может быть опасно - пользователь может случайно удалить файл
+      console.log(
+        `⚠️ Env file ${filePath} deleted for project ${projectId}. Netlify variables preserved for safety.`,
+      )
+
+      // Уведомляем всех клиентов проекта об удалении env файла
+      io.to(`project:${projectId}`).emit("env_file_deleted", {
+        projectId,
+        filePath,
+        timestamp: Date.now(),
+        message: "Environment file deleted. Netlify variables preserved for safety.",
+      })
+
+      // Отправляем подтверждение отправителю
+      socket.emit("env_sync_result", {
+        success: true,
+        filePath,
+        message: "Environment file deletion noted. Netlify variables preserved.",
+      })
+    } catch (error) {
+      console.error("❌ Error handling env file deletion:", error)
+      socket.emit("error", { message: "Failed to process env file deletion" })
+    }
+  })
+
   // НОВЫЙ HANDLER: Сохранение полного снапшота проекта
   socket.on("save_all_changes", async (data) => {
     try {

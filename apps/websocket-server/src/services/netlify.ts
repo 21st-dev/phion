@@ -51,6 +51,21 @@ interface NetlifyDeployResponse {
   error_message?: string
 }
 
+interface NetlifyEnvVar {
+  key: string
+  value: string
+  scopes: string[]
+  context: string
+}
+
+interface NetlifyEnvResponse {
+  key: string
+  value: string
+  scopes: string[]
+  context: string
+  updated_at: string
+}
+
 export class NetlifyService {
   private accessToken: string
   private baseUrl = "https://api.netlify.com/api/v1"
@@ -592,5 +607,201 @@ export class NetlifyService {
       })
       console.log(`📡 Emitted deploy status update: ${status} - ${message}`)
     }
+  }
+
+  /**
+   * Обновляет переменные окружения в Netlify сайте
+   */
+  async updateEnvironmentVariables(
+    siteId: string,
+    envVars: Record<string, string>,
+    context: string = "all",
+    scopes: string[] = ["builds", "functions"],
+  ): Promise<void> {
+    try {
+      console.log(`🔧 Updating environment variables for site ${siteId}:`, {
+        count: Object.keys(envVars).length,
+        context,
+        scopes,
+      })
+
+      // Netlify API требует отдельного запроса для каждой переменной
+      const updatePromises = Object.entries(envVars).map(async ([key, value]) => {
+        const envVar: NetlifyEnvVar = {
+          key,
+          value,
+          scopes,
+          context,
+        }
+
+        const response = await fetch(`${this.baseUrl}/sites/${siteId}/env`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([
+            {
+              key,
+              values: [
+                {
+                  value,
+                  context,
+                },
+              ],
+              scopes,
+            },
+          ]),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`❌ Failed to update env var ${key}:`, errorText)
+          throw new Error(`Failed to update environment variable ${key}: ${response.status}`)
+        }
+
+        return await response.json()
+      })
+
+      await Promise.all(updatePromises)
+
+      console.log(`✅ Successfully updated ${Object.keys(envVars).length} environment variables`)
+    } catch (error) {
+      console.error("❌ Error updating environment variables:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Получает все переменные окружения для сайта
+   */
+  async getEnvironmentVariables(siteId: string): Promise<NetlifyEnvResponse[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sites/${siteId}/env`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to get environment variables: ${response.status} ${errorText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("❌ Error getting environment variables:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Удаляет переменную окружения
+   */
+  async deleteEnvironmentVariable(siteId: string, key: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sites/${siteId}/env/${key}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to delete environment variable: ${response.status} ${errorText}`)
+      }
+
+      console.log(`✅ Deleted environment variable: ${key}`)
+    } catch (error) {
+      console.error("❌ Error deleting environment variable:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Синхронизирует .env файл с Netlify
+   */
+  async syncEnvFile(
+    siteId: string,
+    envContent: string,
+    options: {
+      context?: string
+      scopes?: string[]
+      deleteUnused?: boolean
+    } = {},
+  ): Promise<void> {
+    try {
+      const { context = "all", scopes = ["builds", "functions"], deleteUnused = false } = options
+
+      console.log(`🔄 Syncing .env file with Netlify site ${siteId}`)
+
+      // Парсим .env содержимое
+      const envVars = this.parseEnvContent(envContent)
+
+      if (Object.keys(envVars).length === 0) {
+        console.log("⚠️ No environment variables found in .env content")
+        return
+      }
+
+      // Получаем существующие переменные, если нужно удалить неиспользуемые
+      let existingVars: NetlifyEnvResponse[] = []
+      if (deleteUnused) {
+        existingVars = await this.getEnvironmentVariables(siteId)
+      }
+
+      // Обновляем переменные
+      await this.updateEnvironmentVariables(siteId, envVars, context, scopes)
+
+      // Удаляем неиспользуемые переменные, если указано
+      if (deleteUnused && existingVars.length > 0) {
+        const varsToDelete = existingVars
+          .filter((existing) => !envVars.hasOwnProperty(existing.key))
+          .map((v) => v.key)
+
+        for (const key of varsToDelete) {
+          await this.deleteEnvironmentVariable(siteId, key)
+        }
+
+        if (varsToDelete.length > 0) {
+          console.log(`🗑️ Deleted ${varsToDelete.length} unused environment variables`)
+        }
+      }
+
+      console.log(`✅ Environment variables synced successfully`)
+    } catch (error) {
+      console.error("❌ Error syncing env file:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Парсит содержимое .env файла в объект key-value
+   */
+  private parseEnvContent(content: string): Record<string, string> {
+    const envVars: Record<string, string> = {}
+
+    const lines = content.split("\n")
+    for (const line of lines) {
+      const trimmedLine = line.trim()
+
+      // Игнорируем комментарии и пустые строки
+      if (!trimmedLine || trimmedLine.startsWith("#")) {
+        continue
+      }
+
+      // Ищем паттерн KEY=value
+      const match = trimmedLine.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/)
+      if (match) {
+        const [, key, value] = match
+        // Удаляем кавычки, если они есть
+        const cleanValue = value.replace(/^["']|["']$/g, "")
+        envVars[key] = cleanValue
+      }
+    }
+
+    return envVars
   }
 }
