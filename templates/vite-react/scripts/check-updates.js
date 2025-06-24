@@ -14,12 +14,12 @@ const __dirname = path.dirname(__filename)
 const EXTENSIONS_TO_CHECK = [
   {
     id: "phion.phion-dev-tools",
-    registryUrl: "https://open-vsx.org/api/phion/phion-dev-tools/latest",
+    versionsUrl: "https://open-vsx.org/api/phion/phion-dev-tools/versions",
   },
   // Add more extensions here as needed
   // {
   //   id: 'publisher.extension-name',
-  //   registryUrl: 'https://open-vsx.org/api/publisher/extension-name/latest'
+  //   versionsUrl: 'https://open-vsx.org/api/publisher/extension-name/versions'
   // }
 ]
 
@@ -170,6 +170,52 @@ function installExtension(filePath) {
 }
 
 /**
+ * Get the latest version from all available versions
+ */
+function getLatestVersion(versions) {
+  const versionNumbers = Object.keys(versions)
+
+  if (versionNumbers.length === 0) {
+    return null
+  }
+
+  // Sort versions in descending order to get the highest one
+  versionNumbers.sort((a, b) => compareVersions(b, a))
+
+  return versionNumbers[0]
+}
+
+/**
+ * Fetch all versions and determine the latest one
+ */
+async function fetchLatestVersionInfo(extension) {
+  console.log(`Fetching all versions from: ${extension.versionsUrl}`)
+  const versionsData = await fetchJson(extension.versionsUrl)
+
+  if (!versionsData.versions || typeof versionsData.versions !== "object") {
+    throw new Error(`Invalid versions response format for ${extension.id}`)
+  }
+
+  const latestVersion = getLatestVersion(versionsData.versions)
+
+  if (!latestVersion) {
+    throw new Error(`No versions found for ${extension.id}`)
+  }
+
+  const latestVersionUrl = versionsData.versions[latestVersion]
+  console.log(`Latest version found: ${latestVersion}`)
+  console.log(`Fetching version details from: ${latestVersionUrl}`)
+
+  // Fetch the specific version details
+  const latestInfo = await fetchJson(latestVersionUrl)
+
+  return {
+    version: latestVersion,
+    info: latestInfo,
+  }
+}
+
+/**
  * Check and update a single extension
  */
 async function checkAndUpdateExtension(extension) {
@@ -178,14 +224,14 @@ async function checkAndUpdateExtension(extension) {
   try {
     // Fetch latest version info
     console.log(`Fetching latest version info...`)
-    const latestInfo = await fetchJson(extension.registryUrl)
+    const latestVersionData = await fetchLatestVersionInfo(extension)
 
-    if (!latestInfo.version) {
+    if (!latestVersionData.version) {
       console.error(`❌ No version found in response for ${extension.id}`)
       return false
     }
 
-    const latestVersion = latestInfo.version
+    const latestVersion = latestVersionData.version
     console.log(`📦 Latest version: ${latestVersion}`)
 
     // Get currently installed version
@@ -211,10 +257,10 @@ async function checkAndUpdateExtension(extension) {
       console.log(`📥 Extension not installed, will install latest version`)
     }
 
-    const downloadInfo = latestInfo.files?.download
+    const downloadInfo = latestVersionData.info.files?.download
     if (!downloadInfo) {
       console.error(`❌ No download URL found for ${extension.id}`)
-      console.error(`Available files:`, Object.keys(latestInfo.files || {}))
+      console.error(`Available files:`, Object.keys(latestVersionData.info.files || {}))
       return false
     }
 
