@@ -218,44 +218,6 @@ async function startProject(context, isAutoStart = false) {
     // Show terminal and run command
     terminal.show()
 
-    // First, run check-updates.js script and wait for completion
-    const checkUpdatesPath = path.join(
-      workspaceFolders[0].uri.fsPath,
-      "scripts",
-      "check-updates.js",
-    )
-    if (fs.existsSync(checkUpdatesPath)) {
-      terminal.sendText("echo '🔍 Checking for extension updates...'")
-      terminal.sendText(`node "${checkUpdatesPath}"`)
-
-      // Wait for the check-updates script to complete before proceeding
-      // We'll use a simple approach with a delay and then check if we should continue
-      await new Promise((resolve) => {
-        let checkCount = 0
-        const maxChecks = 30 // Maximum 30 seconds wait
-
-        const checkInterval = setInterval(() => {
-          checkCount++
-          if (checkCount >= maxChecks) {
-            clearInterval(checkInterval)
-            resolve(void 0)
-          }
-
-          // For now, we'll just wait a reasonable amount of time
-          // In a more sophisticated implementation, we could monitor the terminal output
-          if (checkCount >= 10) {
-            // Wait at least 10 seconds
-            clearInterval(checkInterval)
-            resolve(void 0)
-          }
-        }, 1000)
-      })
-
-      terminal.sendText("echo '✅ Extension update check completed'")
-    } else {
-      console.log("⚠️ check-updates.js not found, skipping extension update check")
-    }
-
     // Check if server is already running before starting
     const isServerActive = await checkWebsiteServer()
 
@@ -263,8 +225,20 @@ async function startProject(context, isAutoStart = false) {
       terminal.sendText("echo '⚠️ Server is already running on port 5173, skipping pnpm start'")
       vscode.window.showInformationMessage("Server is already running on port 5173")
     } else {
-      // Start the project with pnpm
-      terminal.sendText("pnpm start")
+      // First, run check-updates.js script, then start the project
+      const checkUpdatesPath = path.join(
+        workspaceFolders[0].uri.fsPath,
+        "scripts",
+        "check-updates.js",
+      )
+
+      if (fs.existsSync(checkUpdatesPath)) {
+        // Run check-updates script followed by pnpm start
+        terminal.sendText(`node "${checkUpdatesPath}" && pnpm start`)
+      } else {
+        // Just start the project with pnpm
+        terminal.sendText("pnpm start")
+      }
     }
 
     // Mark project as started
@@ -569,25 +543,11 @@ function activate(context) {
   updateConfigSettings()
   console.log("🚀 Phion extension activated")
 
-  // Run check-updates.js script if it exists
+  // Auto-start project on activation if it's a Phion project
   const workspaceFolders = vscode.workspace.workspaceFolders
-  if (workspaceFolders) {
-    const checkUpdatesPath = path.join(
-      workspaceFolders[0].uri.fsPath,
-      "scripts",
-      "check-updates.js",
-    )
-    if (fs.existsSync(checkUpdatesPath)) {
-      console.log("🔍 Running check-updates.js on activation...")
-      const terminal = vscode.window.createTerminal({
-        name: "Extension Updates",
-        cwd: workspaceFolders[0].uri.fsPath,
-      })
-      terminal.sendText(`node "${checkUpdatesPath}"`)
-      // Don't show terminal by default, let it run in background
-    } else {
-      console.log("⚠️ check-updates.js not found, skipping extension update check")
-    }
+  if (workspaceFolders && isPhionProject()) {
+    console.log("🚀 Phion project detected, auto-starting project...")
+    startProject(context, true)
   }
 
   // Initialize diagnostic collection for prompt injection
@@ -613,38 +573,9 @@ function activate(context) {
     }
   })
 
-  // Check if this is a Phion project and start monitoring
+  // Connect to runtime error monitoring for Phion projects
   if (isPhionProject()) {
-    // Connect to runtime error monitoring
-    setTimeout(() => {
-      connectRuntimeErrorMonitoring()
-    }, 2000)
-
-    // First check if server is already running
-    checkWebsiteServer().then((isServerActive) => {
-      if (isServerActive && !hasAutoOpened && !isPersistentBrowserOpened(context)) {
-        markPersistentBrowserOpened(context)
-        setTimeout(async () => {
-          await openPreview()
-        }, 1000)
-        return
-      }
-
-      // Check if we need to auto-start new project
-      if (AUTO_START_NEW_PROJECT && !hasProjectBeenStarted(context)) {
-        vscode.window.showInformationMessage("🎉 New Phion project detected! Auto-starting...")
-
-        // Auto-start project with small delay
-        setTimeout(() => {
-          startProject(context, true)
-        }, 2000)
-      } else {
-        // Just start server monitoring
-        setTimeout(() => {
-          startServerMonitoring(context)
-        }, 3000)
-      }
-    })
+    connectRuntimeErrorMonitoring()
   }
 
   // Register commands

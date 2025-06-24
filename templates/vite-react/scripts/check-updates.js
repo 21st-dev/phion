@@ -108,6 +108,27 @@ function downloadFile(url, filePath) {
 }
 
 /**
+ * Compare two semantic versions
+ * Returns: -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
+ */
+function compareVersions(v1, v2) {
+  const parts1 = v1.split(".").map(Number)
+  const parts2 = v2.split(".").map(Number)
+
+  const maxLength = Math.max(parts1.length, parts2.length)
+
+  for (let i = 0; i < maxLength; i++) {
+    const part1 = parts1[i] || 0
+    const part2 = parts2[i] || 0
+
+    if (part1 < part2) return -1
+    if (part1 > part2) return 1
+  }
+
+  return 0
+}
+
+/**
  * Get currently installed version of an extension
  */
 function getInstalledVersion(extensionId) {
@@ -173,10 +194,19 @@ async function checkAndUpdateExtension(extension) {
     if (installedVersion) {
       console.log(`💾 Installed version: ${installedVersion}`)
 
-      if (installedVersion === latestVersion) {
+      const versionComparison = compareVersions(installedVersion, latestVersion)
+
+      if (versionComparison === 0) {
         console.log(`✅ ${extension.id} is already up to date`)
         return true
+      } else if (versionComparison > 0) {
+        console.log(
+          `✅ ${extension.id} local version (${installedVersion}) is newer than registry version (${latestVersion})`,
+        )
+        return true
       }
+
+      console.log(`🔄 Updating from ${installedVersion} to ${latestVersion}`)
     } else {
       console.log(`📥 Extension not installed, will install latest version`)
     }
