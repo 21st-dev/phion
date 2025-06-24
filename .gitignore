@@ -8,7 +8,6 @@ node_modules/
 dist/
 build/
 out/
-!**/auto-browser-extension/out
 
 # Environment variables
 .env

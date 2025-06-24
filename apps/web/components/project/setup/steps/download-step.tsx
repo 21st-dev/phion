@@ -1,14 +1,15 @@
 "use client"
 
-import { Button } from "@/components/geist/button"
-import { Material } from "@/components/geist/material"
 import { useProject } from "@/components/project/project-layout-client"
+import { formatStatusText } from "@/lib/utils"
 import NumberFlow from "@number-flow/react"
 import type { ProjectRow } from "@shipvibes/database"
-import { useCallback, useEffect, useState } from "react"
+import { CheckCircle, Clock } from "lucide-react"
+import { useCallback, useEffect } from "react"
 
 interface DownloadStepProps {
   project: ProjectRow
+  projectId: string
   onDownload: () => void
   isCompleted?: boolean
   onInitializationComplete?: () => void
@@ -16,17 +17,17 @@ interface DownloadStepProps {
 
 export function DownloadStep({
   project,
+  projectId,
   onDownload,
   isCompleted = false,
   onInitializationComplete,
 }: DownloadStepProps) {
-  const [isDownloading, setIsDownloading] = useState(false)
-
   // Use project context instead of creating a new WebSocket connection
   const { project: contextProject, initializationProgress, isConnected } = useProject()
 
   // Check if project is initializing based on deploy status
   const isInitializing = contextProject.deploy_status === "pending"
+  const isReady = contextProject.deploy_status === "ready" && !contextProject.netlify_url
 
   // Memoize the completion callback to prevent infinite re-renders
   const stableOnInitializationComplete = useCallback(() => {
@@ -56,90 +57,83 @@ export function DownloadStep({
     }
   }, [contextProject.deploy_status, stableOnInitializationComplete])
 
-  const handleDownload = () => {
-    if (isInitializing || isDownloading) return
-
-    setIsDownloading(true)
-
-    const url = `/api/projects/${project.id}/download`
-    console.log(`🔽 [DownloadStep] Opening download in new tab: ${url}`)
-
-    // Simply open the download URL in a new tab
-    window.open(url, '_blank')
-    
-    // Mark as downloaded immediately
-    onDownload()
-    
-    // Reset state after a short delay
-    setTimeout(() => {
-      setIsDownloading(false)
-      console.log("✅ [DownloadStep] Download state reset")
-    }, 1000)
-  }
-
-  const getDownloadButtonText = () => {
-    if (isInitializing) return "Preparing..."
-    if (isDownloading) return "Downloading..."
-    return "Download"
-  }
+  // Auto-complete this step when project is ready
+  useEffect(() => {
+    if (isReady && !isCompleted) {
+      console.log("✅ [DownloadStep] Auto-completing step as project is ready")
+      // Call onDownload immediately without delay to prevent multiple calls
+      onDownload()
+    }
+  }, [isReady, isCompleted, onDownload])
 
   return (
-    <Material type="base" className="p-6">
-      <h3 className="text-lg font-semibold text-foreground mb-4 font-sans">Download Project</h3>
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Button
-            type="primary"
-            size="medium"
-            onClick={handleDownload}
-            loading={isDownloading || isInitializing}
-            disabled={isInitializing}
-            className="pr-1"
-            prefix={
-              !isDownloading && !isInitializing ? (
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7,10 12,15 17,10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              ) : undefined
-            }
-          >
-            <div className="flex items-center gap-2">
-              {getDownloadButtonText()}
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-foreground font-sans">Project Initialization</h3>
 
-              {isInitializing && (
-                <div className="text-sm text-muted-foreground min-w-[50px]">
-                  <NumberFlow
-                    value={initializationProgress.progress / 100}
-                    format={{
-                      style: "percent",
-                      maximumFractionDigits: 0,
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </Button>
-
+      {/* Initialization Progress Section */}
+      {isInitializing && (
+        <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+          <div className="flex-shrink-0">
+            <Clock className="w-5 h-5 text-muted-foreground animate-pulse" />
+          </div>
           <div className="flex-1">
-            {!isInitializing && !isCompleted && (
-              <div className="text-sm text-muted-foreground">
-                Download your project files to get started with local development.
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">
+                {formatStatusText(initializationProgress.stage) || "Initializing project..."}
+              </span>
+              <div className="text-sm font-mono text-muted-foreground">
+                <NumberFlow
+                  value={initializationProgress.progress / 100}
+                  format={{
+                    style: "percent",
+                    maximumFractionDigits: 0,
+                  }}
+                />
               </div>
-            )}
-
-            {isDownloading && <div className="text-sm text-muted-foreground">Opening download...</div>}
+            </div>
+            <div className="mt-2 w-full bg-border rounded-full h-2">
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${initializationProgress.progress}%` }}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </Material>
+      )}
+
+      {/* Ready State */}
+      {isReady && (
+        <div className="flex items-center gap-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex-shrink-0">
+            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="flex-1">
+            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+              Project initialized successfully
+            </span>
+            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+              Your project is ready for the next step.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Waiting State */}
+      {!isInitializing && !isReady && (
+        <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+          <div className="flex-shrink-0">
+            <Clock className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <span className="text-sm font-medium text-foreground">
+              Waiting for project initialization...
+            </span>
+            <p className="text-sm text-muted-foreground mt-1">
+              Please wait while we prepare your project files.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

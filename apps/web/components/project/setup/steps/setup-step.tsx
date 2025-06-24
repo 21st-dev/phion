@@ -3,9 +3,9 @@
 import { Icons } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CLIProjectInstall } from "@/components/ui/cli-project-install"
 import { useToast } from "@/hooks/use-toast"
 import { useWebSocket } from "@/hooks/use-websocket"
-import { Copy } from "lucide-react"
 import { useEffect, useState } from "react"
 
 interface SetupStepProps {
@@ -71,15 +71,6 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
     }
   }
 
-  const handleCopyCommand = async () => {
-    try {
-      await navigator.clipboard.writeText("chmod +x setup.sh && ./setup.sh")
-      success("Copied to clipboard", "Command copied successfully")
-    } catch (err) {
-      error("Failed to copy", "Please copy the command manually")
-    }
-  }
-
   const handleContinueClick = () => {
     // Если пользователь нажал кнопку до окончания отсчета, сразу редиректим
     if (countdown !== null) {
@@ -100,28 +91,13 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
 
   return (
     <Card className="border-border bg-card">
-      <CardContent className="p-6 bg-card">
+      <CardContent className="bg-card p-0">
         <h3 className="text-lg font-semibold text-foreground mb-4">Open in Cursor</h3>
-        <p className="text-muted-foreground mb-6">
-          Open your project folder in Cursor and wait for the automatic setup to complete.
-        </p>
 
         <div className="space-y-6">
-          {/* Step 1: Extract ZIP */}
+          {/* Step 1: Open Cursor */}
           <div>
-            <div className="text-sm font-medium text-foreground mb-2">
-              1. Extract the downloaded ZIP file
-            </div>
-            <div className="bg-muted/50 rounded-md p-4 border border-border">
-              <div className="text-xs text-muted-foreground">
-                Double-click the ZIP file in your Downloads folder to extract it
-              </div>
-            </div>
-          </div>
-
-          {/* Step 2: Open Cursor */}
-          <div>
-            <div className="text-sm font-medium text-foreground mb-2">2. Open Cursor app</div>
+            <div className="text-sm font-medium text-foreground mb-2">1. Open Cursor app</div>
             <div className="bg-muted/50 rounded-md p-4 border border-border space-y-3">
               <Button size="default" onClick={handleOpenCursor} className="w-auto">
                 <Icons.cursor className="w-3.5 h-3.5 mr-2" />
@@ -133,10 +109,10 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
             </div>
           </div>
 
-          {/* Step 3: Open folder dialog */}
+          {/* Step 2: Open folder dialog */}
           <div>
             <div className="text-sm font-medium text-foreground mb-2">
-              3. Open the project folder
+              2. Create a new folder for your project
             </div>
             <div className="bg-muted/50 rounded-md p-4 border border-border">
               <div className="text-xs text-muted-foreground">
@@ -144,38 +120,25 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
                 <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
                   Cmd + O
                 </kbd>{" "}
-                or go to File → Open Folder, then select your extracted project folder
+                or go to File → Open Folder, then choose an empty folder for your project
               </div>
             </div>
           </div>
 
-          {/* Step 4: Run setup command */}
+          {/* Step 3: Download and Setup Project */}
           <div>
-            <div className="text-sm font-medium text-foreground mb-2">4. Run this command</div>
-            <div className="bg-muted/50 rounded-md p-4 border border-border space-y-3">
-              <div className="text-xs text-muted-foreground">
-                Open a terminal by pressing{" "}
+            <div className="text-sm font-medium text-foreground mb-2">
+              3. Download and setup your project
+            </div>
+            <div className="bg-muted/50 rounded-md p-4 border border-border">
+              <div className="text-xs text-muted-foreground mb-3">
+                Open a terminal in Cursor{" "}
                 <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
                   Cmd + J
                 </kbd>{" "}
-                or go to Terminal → New Terminal from the menu bar
+                and run these command to download and set up the project:
               </div>
-              <div className="bg-background border border-border rounded p-3 flex items-center justify-between">
-                <code className="text-xs font-mono text-foreground">
-                  chmod +x setup.sh && ./setup.sh
-                </code>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleCopyCommand}
-                  className="h-6 w-6 p-0 ml-2 hover:bg-muted/50 transition-colors"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Paste this command and press Enter
-              </div>
+              <CLIProjectInstall projectId={projectId} />
             </div>
           </div>
 

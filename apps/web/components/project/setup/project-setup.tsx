@@ -38,7 +38,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
   const setupStepRef = useRef<HTMLDivElement>(null)
 
   const [steps, setSteps] = useState<ISetupStep[]>([
-    { id: "download", title: "Get Files", status: "READY" },
+    { id: "download", title: "Project Initialization", status: "READY" },
     { id: "setup", title: "Open in Cursor", status: "QUEUED" },
   ])
 
@@ -142,7 +142,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
   }, [])
 
   // Функция плавного скролла к следующему шагу
-  const scrollToStep = (stepIndex: number) => {
+  const scrollToStep = useCallback((stepIndex: number) => {
     const refs = [downloadStepRef, setupStepRef]
     const targetRef = refs[stepIndex]
 
@@ -154,15 +154,28 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
         })
       }, 500) // Небольшая задержка чтобы UI успел обновиться
     }
-  }
+  }, [])
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
+    // Prevent duplicate calls
+    if (downloadCompleted) {
+      console.log("⚠️ [ProjectSetup] Download already completed, skipping")
+      return
+    }
+
+    console.log("✅ [ProjectSetup] Completing download step")
+
     try {
       // Отмечаем первый шаг как выполненный
       setDownloadCompleted(true)
-      showSuccess("Project downloaded", "Open the downloaded file in Cursor to continue")
 
-      // Update steps
+      // Show toast only once
+      showSuccess(
+        "Project ready",
+        "Run the commands below to download and set up your project locally",
+      )
+
+      // Update steps - mark download as completed and setup as ready
       setSteps((prev) =>
         prev.map((step) =>
           step.id === "download"
@@ -172,19 +185,21 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
               : step,
         ),
       )
+
+      // Move to next step
       setCurrentStep(1)
 
       // Скроллим к следующему шагу
       scrollToStep(1)
     } catch (error) {
-      console.error("Error downloading project:", error)
+      console.error("Error in download step:", error)
       setSteps((prev) =>
         prev.map((step) => (step.id === "download" ? { ...step, status: "ERROR" } : step)),
       )
       // Показываем ошибку пользователю
-      showError("Failed to download project", "Please try again")
+      showError("Project initialization failed", "Please try again")
     }
-  }
+  }, [downloadCompleted, showSuccess, showError, scrollToStep])
 
   const handleSetupComplete = () => {
     setSetupCompleted(true)
@@ -199,11 +214,11 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
 
   // Функция для возврата к шагу
   const handleStepClick = (stepIndex: number) => {
-    // Можно вернуться только к выполненным шагам или текущему
+    // Можно вернуться к любому доступному шагу
     const canGoToStep =
-      (stepIndex === 0 && downloadCompleted) ||
-      (stepIndex === 1 && setupCompleted) ||
-      stepIndex === currentStep
+      stepIndex === 0 || // Всегда можно вернуться к первому шагу
+      (stepIndex === 1 && downloadCompleted) || // Можно перейти ко второму шагу если первый завершен
+      stepIndex === currentStep // Можно остаться на текущем шаге
 
     if (canGoToStep) {
       setCurrentStep(stepIndex)
@@ -242,7 +257,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-3 space-y-6 pb-[70vh]">
+        <div className="lg:col-span-3 space-y-6 p-6 pb-[70vh]">
           {/* Steps Content */}
           <div className="space-y-6">
             <div
@@ -257,6 +272,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
             >
               <DownloadStep
                 project={project}
+                projectId={project.id}
                 onDownload={handleDownload}
                 isCompleted={downloadCompleted}
                 onInitializationComplete={handleInitializationComplete}
@@ -270,9 +286,9 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
                   ? "" // Текущий шаг - яркий
                   : setupCompleted
                     ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
-                    : currentStep > 1 || !downloadCompleted
+                    : !downloadCompleted
                       ? "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
-                      : "opacity-50 pointer-events-none"
+                      : ""
               }`}
             >
               <SetupStep
