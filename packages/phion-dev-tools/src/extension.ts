@@ -1,11 +1,15 @@
+import { exec } from "child_process"
 import * as fs from "fs"
 import * as http from "http"
 import * as path from "path"
+import { promisify } from "util"
 import * as vscode from "vscode"
 import { startCDPRelayServer } from "./utils/cdp-relay.js"
 import { dispatchAgentCall } from "./utils/dispatch-agent-call"
 import { initializeDiagnosticCollection } from "./utils/inject-prompt-diagnostic-with-callback"
 import { PhionWebSocketClient } from "./utils/websocket-client"
+
+const execAsync = promisify(exec)
 
 // Default Vite port only
 const DEFAULT_VITE_PORT = 5173
@@ -150,6 +154,76 @@ function checkWebsiteServer() {
 }
 
 /**
+ * Kill process using a specific port
+ */
+async function killProcessOnPort(port: number): Promise<boolean> {
+  try {
+    const platform = process.platform
+
+    let command: string
+    if (platform === "win32") {
+      // Windows
+      command = `netstat -ano | findstr :${port}`
+    } else {
+      // macOS/Linux
+      command = `lsof -ti:${port}`
+    }
+
+    console.log(`🔍 Checking for processes on port ${port}...`)
+    const { stdout } = await execAsync(command)
+
+    if (!stdout.trim()) {
+      console.log(`✅ No processes found on port ${port}`)
+      return true
+    }
+
+    if (platform === "win32") {
+      // Windows: Extract PID from netstat output
+      const lines = stdout.trim().split("\n")
+      const pids = lines
+        .map((line) => {
+          const parts = line.trim().split(/\s+/)
+          return parts[parts.length - 1]
+        })
+        .filter((pid) => pid && pid !== "0")
+
+      for (const pid of pids) {
+        try {
+          await execAsync(`taskkill /PID ${pid} /F`)
+          console.log(`💀 Killed process ${pid} on port ${port}`)
+        } catch (error) {
+          console.warn(`⚠️ Could not kill process ${pid}:`, error)
+        }
+      }
+    } else {
+      // macOS/Linux: PIDs are directly in stdout
+      const pids = stdout
+        .trim()
+        .split("\n")
+        .filter((pid) => pid.trim())
+
+      for (const pid of pids) {
+        try {
+          await execAsync(`kill -9 ${pid}`)
+          console.log(`💀 Killed process ${pid} on port ${port}`)
+        } catch (error) {
+          console.warn(`⚠️ Could not kill process ${pid}:`, error)
+        }
+      }
+    }
+
+    // Wait a moment for processes to fully terminate
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    console.log(`✅ Port ${port} should now be available`)
+    return true
+  } catch (error) {
+    console.log(`ℹ️ No processes found on port ${port} or error occurred:`, error)
+    return true // Return true as port is likely available
+  }
+}
+
+/**
  * Auto-detect server startup and open browser
  */
 async function autoDetectAndOpen(context) {
@@ -218,27 +292,23 @@ async function startProject(context, isAutoStart = false) {
     // Show terminal and run command
     terminal.show()
 
-    // Check if server is already running before starting
-    const isServerActive = await checkWebsiteServer()
+    // Kill any process using port 5173 before starting
+    console.log(`🔍 Ensuring port ${DEFAULT_VITE_PORT} is available...`)
+    await killProcessOnPort(DEFAULT_VITE_PORT)
 
-    if (isServerActive) {
-      terminal.sendText("echo '⚠️ Server is already running on port 5173, skipping pnpm start'")
-      vscode.window.showInformationMessage("Server is already running on port 5173")
+    // First, run check-updates.js script, then start the project
+    const checkUpdatesPath = path.join(
+      workspaceFolders[0].uri.fsPath,
+      "scripts",
+      "check-updates.js",
+    )
+
+    if (fs.existsSync(checkUpdatesPath)) {
+      // Run check-updates script followed by pnpm start
+      terminal.sendText(`node "${checkUpdatesPath}" && pnpm start`)
     } else {
-      // First, run check-updates.js script, then start the project
-      const checkUpdatesPath = path.join(
-        workspaceFolders[0].uri.fsPath,
-        "scripts",
-        "check-updates.js",
-      )
-
-      if (fs.existsSync(checkUpdatesPath)) {
-        // Run check-updates script followed by pnpm start
-        terminal.sendText(`node "${checkUpdatesPath}" && pnpm start`)
-      } else {
-        // Just start the project with pnpm
-        terminal.sendText("pnpm start")
-      }
+      // Just start the project with pnpm
+      terminal.sendText("pnpm start")
     }
 
     // Mark project as started
@@ -545,10 +615,6 @@ function activate(context) {
 
   // Auto-start project on activation if it's a Phion project
   const workspaceFolders = vscode.workspace.workspaceFolders
-  if (workspaceFolders && isPhionProject()) {
-    console.log("🚀 Phion project detected, auto-starting project...")
-    startProject(context, true)
-  }
 
   // Initialize diagnostic collection for prompt injection
   const diagnosticCollection = initializeDiagnosticCollection()
@@ -573,8 +639,9 @@ function activate(context) {
     }
   })
 
-  // Connect to runtime error monitoring for Phion projects
-  if (isPhionProject()) {
+  if (workspaceFolders && isPhionProject()) {
+    console.log("🚀 Phion project detected, auto-starting project...")
+    startProject(context, true)
     connectRuntimeErrorMonitoring()
   }
 
