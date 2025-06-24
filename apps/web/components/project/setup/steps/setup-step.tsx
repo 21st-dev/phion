@@ -90,7 +90,7 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
   }
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-none bg-card">
       <CardContent className="bg-card p-0">
         <h3 className="text-lg font-semibold text-foreground mb-4">Open in Cursor</h3>
 

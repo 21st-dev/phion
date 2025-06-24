@@ -24,13 +24,13 @@ export const generateCliCommand = (projectId: string, os: "mac" | "windows" | "l
 
   switch (os) {
     case "mac":
-      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER"`
+      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER" && chmod +x setup.sh && ./setup.sh`
 
     case "windows":
-      return `Invoke-WebRequest -Uri "${apiUrl}" -OutFile "project.zip" -UseBasicParsing; Expand-Archive -Path "project.zip" -DestinationPath "." -Force; Remove-Item "project.zip"; $folder = Get-ChildItem -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Move-Item "$($folder.Name)\\*" -Destination "." -Force; Get-ChildItem "$($folder.Name)" -Hidden | Move-Item -Destination "." -Force; Remove-Item $folder.Name -Recurse -Force`
+      return `Invoke-WebRequest -Uri "${apiUrl}" -OutFile "project.zip" -UseBasicParsing; Expand-Archive -Path "project.zip" -DestinationPath "." -Force; Remove-Item "project.zip"; $folder = Get-ChildItem -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Move-Item "$($folder.Name)\\*" -Destination "." -Force; Get-ChildItem "$($folder.Name)" -Hidden | Move-Item -Destination "." -Force; Remove-Item $folder.Name -Recurse -Force; chmod +x setup.sh; ./setup.sh`
 
     case "linux":
-      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER"`
+      return `curl -L -O -J "${apiUrl}" && ZIPFILE=$(ls -t *.zip | head -n1) && unzip -q "$ZIPFILE" && rm "$ZIPFILE" && FOLDER=$(ls -td */ | head -n1) && bash -c "shopt -s dotglob; mv \\"$FOLDER\\"* ." && rm -rf "$FOLDER" && chmod +x setup.sh && ./setup.sh`
 
     default:
       return `curl -L -O -J "${apiUrl}"`

@@ -2,37 +2,7 @@
 
 set -e
 
-# Parse command line arguments
-PROJECT_ID="$1"
-WS_URL="$2"
-DEBUG_MODE="$3"
-
 echo "🚀 Starting Phion project setup..."
-echo ""
-
-# Validate required arguments
-if [[ -z "$PROJECT_ID" ]]; then
-    echo "❌ Error: PROJECT_ID is required as first argument"
-    echo "Usage: $0 <projectId> <wsUrl> <debug>"
-    exit 1
-fi
-
-if [[ -z "$WS_URL" ]]; then
-    echo "❌ Error: WS_URL is required as second argument"
-    echo "Usage: $0 <projectId> <wsUrl> <debug>"
-    exit 1
-fi
-
-if [[ -z "$DEBUG_MODE" ]]; then
-    echo "❌ Error: DEBUG_MODE is required as third argument"
-    echo "Usage: $0 <projectId> <wsUrl> <debug>"
-    exit 1
-fi
-
-echo "📋 Configuration:"
-echo "   Project ID: $PROJECT_ID"
-echo "   WebSocket URL: $WS_URL"
-echo "   Debug Mode: $DEBUG_MODE"
 echo ""
 
 OS="$(uname -s)"
@@ -333,29 +303,7 @@ node scripts/check-updates.js
 echo ""
 echo "⚙️ Configuring Phion project..."
 
-# Update phion.config.json with provided values
-if [[ -f "phion.config.json" ]]; then
-    echo "   📝 Updating phion.config.json..."
-    
-    # Create a temporary file for sed operations
-    TEMP_CONFIG=$(mktemp)
-    
-    # Replace placeholders in phion.config.json
-    sed "s/__PROJECT_ID__/$PROJECT_ID/g" phion.config.json > "$TEMP_CONFIG"
-    sed "s|__WS_URL__|$WS_URL|g" "$TEMP_CONFIG" > phion.config.json.tmp
-    sed "s/__DEBUG_MODE__/$DEBUG_MODE/g" phion.config.json.tmp > "$TEMP_CONFIG"
-    
-    # Move the final result back
-    mv "$TEMP_CONFIG" phion.config.json
-    rm -f phion.config.json.tmp
-    
-    echo "   ✅ Configuration updated successfully"
-    echo "      Project ID: $PROJECT_ID"
-    echo "      WebSocket URL: $WS_URL"
-    echo "      Debug Mode: $DEBUG_MODE"
-else
-    echo "   ⚠️ phion.config.json not found, skipping configuration update"
-fi
+
 
 echo ""
 echo "🚀 Starting your Phion project..."
