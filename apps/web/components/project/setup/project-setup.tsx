@@ -142,7 +142,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
   }, [])
 
   // Функция плавного скролла к следующему шагу
-  const scrollToStep = (stepIndex: number) => {
+  const scrollToStep = useCallback((stepIndex: number) => {
     const refs = [downloadStepRef, setupStepRef]
     const targetRef = refs[stepIndex]
 
@@ -154,18 +154,28 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
         })
       }, 500) // Небольшая задержка чтобы UI успел обновиться
     }
-  }
+  }, [])
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
+    // Prevent duplicate calls
+    if (downloadCompleted) {
+      console.log("⚠️ [ProjectSetup] Download already completed, skipping")
+      return
+    }
+
+    console.log("✅ [ProjectSetup] Completing download step")
+
     try {
       // Отмечаем первый шаг как выполненный
       setDownloadCompleted(true)
+
+      // Show toast only once
       showSuccess(
         "Project ready",
         "Run the commands below to download and set up your project locally",
       )
 
-      // Update steps
+      // Update steps - mark download as completed and setup as ready
       setSteps((prev) =>
         prev.map((step) =>
           step.id === "download"
@@ -175,6 +185,8 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
               : step,
         ),
       )
+
+      // Move to next step
       setCurrentStep(1)
 
       // Скроллим к следующему шагу
@@ -187,7 +199,7 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
       // Показываем ошибку пользователю
       showError("Project initialization failed", "Please try again")
     }
-  }
+  }, [downloadCompleted, showSuccess, showError, scrollToStep])
 
   const handleSetupComplete = () => {
     setSetupCompleted(true)
@@ -274,9 +286,9 @@ export function ProjectSetup({ project, agentConnected = false }: ProjectSetupPr
                   ? "" // Текущий шаг - яркий
                   : setupCompleted
                     ? "opacity-70" // Выполненный шаг - слегка затемнен но кликабелен
-                    : currentStep > 1 || !downloadCompleted
+                    : !downloadCompleted
                       ? "opacity-50 pointer-events-none" // Неактивный шаг - затемнен и некликабелен
-                      : "opacity-50 pointer-events-none"
+                      : ""
               }`}
             >
               <SetupStep

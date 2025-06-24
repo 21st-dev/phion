@@ -6,7 +6,7 @@ import type { ProjectRow } from "@shipvibes/database"
 interface SetupStep {
   id: string
   title: string
-  status: "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CURRENT"
+  status: "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CURRENT" | "COMPLETED"
 }
 
 interface ProjectSetupSidebarProps {

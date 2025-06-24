@@ -1,6 +1,7 @@
 "use client"
 
 import { useProject } from "@/components/project/project-layout-client"
+import { formatStatusText } from "@/lib/utils"
 import NumberFlow from "@number-flow/react"
 import type { ProjectRow } from "@shipvibes/database"
 import { CheckCircle, Clock } from "lucide-react"
@@ -60,7 +61,7 @@ export function DownloadStep({
   useEffect(() => {
     if (isReady && !isCompleted) {
       console.log("✅ [DownloadStep] Auto-completing step as project is ready")
-      // Add a small delay to show the success message briefly before moving to next step
+      // Call onDownload immediately without delay to prevent multiple calls
       onDownload()
     }
   }, [isReady, isCompleted, onDownload])
@@ -78,7 +79,7 @@ export function DownloadStep({
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground">
-                {initializationProgress.stage || "Initializing project..."}
+                {formatStatusText(initializationProgress.stage) || "Initializing project..."}
               </span>
               <div className="text-sm font-mono text-muted-foreground">
                 <NumberFlow
@@ -90,9 +91,6 @@ export function DownloadStep({
                 />
               </div>
             </div>
-            {initializationProgress.message && (
-              <p className="text-sm text-muted-foreground">{initializationProgress.message}</p>
-            )}
             <div className="mt-2 w-full bg-border rounded-full h-2">
               <div
                 className="bg-primary h-2 rounded-full transition-all duration-300"

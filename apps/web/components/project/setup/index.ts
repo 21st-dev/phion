@@ -1,6 +1,6 @@
+export { CongratulationsView } from "./congratulations-view"
 export { ProjectSetupLayout } from "./setup-layout"
 export { ProjectSetupSidebar } from "./setup-sidebar"
-export { CongratulationsView } from "./congratulations-view"
 
 // Steps
 export { DownloadStep } from "./steps/download-step"
@@ -11,5 +11,5 @@ export { SetupStep } from "./steps/setup-step"
 export interface SetupStep {
   id: string
   title: string
-  status: "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CURRENT"
+  status: "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CURRENT" | "COMPLETED"
 }
