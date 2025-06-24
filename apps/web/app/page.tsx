@@ -246,7 +246,7 @@ export default function HomePage() {
                     <MorphingDialogContainer>
                       <MorphingDialogContent className="relative">
                         <MorphingDialogVideo
-                          src="/phion-demo.mp4"
+                          src="/phion-demo-launch.mp4"
                           className="h-auto w-full max-w-[90vw] rounded-[4px] object-cover lg:h-[90vh]"
                           autoPlay
                           muted
