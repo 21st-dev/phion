@@ -8,7 +8,8 @@ import { CursorLight } from "@/components/icons/cursor-light"
 import { SetupStep } from "@/components/project/setup/steps/setup-step"
 import { useToast } from "@/hooks/use-toast"
 import { useWebSocket } from "@/hooks/use-websocket"
-import { ArrowRight, CheckCircle2, Download, X, Zap } from "lucide-react"
+import { createAuthBrowserClient } from "@shipvibes/database"
+import { ArrowRight, CheckCircle2, Download, X, Zap, Mail } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
@@ -27,7 +28,34 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
   const [hasCursor, setHasCursor] = useState<boolean | null>(null)
   const [agentConnected, setAgentConnected] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [isMac, setIsMac] = useState<boolean | null>(null)
+  const [isSubmittingWaitlist, setIsSubmittingWaitlist] = useState(false)
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
+  const [user, setUser] = useState<any>(null)
   const { error: showError, success: showSuccess } = useToast()
+  const supabase = createAuthBrowserClient()
+
+  // Check if user is on Mac
+  useEffect(() => {
+    const userAgent = navigator.userAgent
+    const isMacOS = /Mac OS X|MacIntel|MacPPC|Mac68K/i.test(userAgent)
+    setIsMac(isMacOS)
+  }, [])
+
+  // Get user data
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error("Error getting user:", error)
+      }
+    }
+    getUser()
+  }, [])
 
   useWebSocket({
     projectId: projectId || undefined,
@@ -62,11 +90,11 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
   // Create project when moving to the last step
   useEffect(() => {
-    if (currentStep === 2 && !projectId && !isCreatingProject) {
+    if (currentStep === 2 && !projectId && !isCreatingProject && isMac) {
       console.log("🔧 [Onboarding] Starting project creation...")
       handleCreateProject()
     }
-  }, [currentStep, projectId, isCreatingProject])
+  }, [currentStep, projectId, isCreatingProject, isMac])
 
   // Auto-redirect to overview when agent connects
   useEffect(() => {
@@ -100,6 +128,54 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
       }
     }
   }, [agentConnected, countdown, currentStep, projectId, onComplete, router])
+
+  const handleWaitlistSubmit = async () => {
+    if (!user?.email) {
+      showError("User email not found")
+      return
+    }
+
+    setIsSubmittingWaitlist(true)
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user.email,
+          name: "Non-Mac User",
+          codingExperience: "Windows/Linux user interested in Phion",
+          frustrations: {
+            selectedOptions: ["Platform compatibility"],
+            customText: "Interested in Mac support",
+          },
+          toolsUsed: "other",
+          toolDislike: "Limited to Mac only",
+          dreamProject: "Cross-platform development",
+          acceptsCall: false,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to join waitlist")
+      }
+
+      setWaitlistSubmitted(true)
+      showSuccess(
+        "You've been added to our waitlist! We'll notify you when we support your platform.",
+      )
+    } catch (error) {
+      console.error("Waitlist submission error:", error)
+      showError(
+        `Failed to join waitlist: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    } finally {
+      setIsSubmittingWaitlist(false)
+    }
+  }
 
   const handleCreateProject = async () => {
     console.log("🔧 [Onboarding] Creating project...")
@@ -158,6 +234,64 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
   }
 
   const renderStepContent = () => {
+    // Show non-Mac message if not on Mac and not submitted to waitlist
+    if (isMac === false && !waitlistSubmitted) {
+      return (
+        <div className="flex flex-col items-center space-y-8 max-w-xl mx-auto">
+          <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
+            <Logo width={40} height={40} />
+          </div>
+
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Mac Required</h2>
+            <p className="text-muted-foreground">
+              Phion currently works only on macOS. <br />
+              We're working on Windows and Linux support.
+            </p>
+          </div>
+
+          <div className="space-y-4 w-full max-w-sm">
+            {user?.email && (
+              <div className="text-center text-sm text-muted-foreground mb-4">
+                Joining with: {user.email}
+              </div>
+            )}
+            <Button
+              onClick={handleWaitlistSubmit}
+              type="primary"
+              size="large"
+              className="w-full"
+              disabled={isSubmittingWaitlist || !user?.email}
+            >
+              {isSubmittingWaitlist ? "Joining..." : "Join Windows/Linux waitlist"}
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    // Show success message if waitlist submitted
+    if (waitlistSubmitted) {
+      return (
+        <div className="flex flex-col items-center space-y-8 max-w-xl mx-auto">
+          <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
+            <CheckCircle2 className="w-12 h-12 text-green-500" />
+          </div>
+
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">You're on the list!</h2>
+            <p className="text-muted-foreground">
+              We'll email you as soon as Phion is available for your platform.
+            </p>
+          </div>
+
+          <Button onClick={onComplete} type="primary" size="large" className="w-full max-w-xs">
+            Continue
+          </Button>
+        </div>
+      )
+    }
+
     switch (steps[currentStep].content) {
       case "welcome":
         return (
@@ -309,12 +443,11 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
               <p className="text-muted-foreground">Set up your project in Cursor to get started</p>
             </div>
 
-              <SetupStep
-                projectId={projectId || ""}
-                agentConnected={agentConnected}
-                onDeploy={handleGoToProject}
+            <SetupStep
+              projectId={projectId || ""}
+              agentConnected={agentConnected}
+              onDeploy={handleGoToProject}
             />
-            
           </div>
         )
 
