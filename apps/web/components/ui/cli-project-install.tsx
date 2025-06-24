@@ -112,10 +112,10 @@ export function CLIProjectInstall({ projectId, className }: CLIProjectInstallPro
 
   return (
     <div className={className}>
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4 rounded-md h-7 p-0.5 w-[300px]">
           {Object.entries(OS_CONFIG).map(([key, config]) => (
-            <TabsTrigger key={key} value={key} className="flex items-center gap-2">
+            <TabsTrigger key={key} value={key} className="text-xs h-6 flex items-center gap-2">
               {config.icon}
               {config.label}
             </TabsTrigger>

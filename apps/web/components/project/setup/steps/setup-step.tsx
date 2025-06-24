@@ -46,8 +46,8 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
   }
 
   return (
-    <Card className="border-border bg-card shadow-none border-none">
-      <CardContent className="bg-card p-0">
+    <Card className="shadow-none border-none max-w-xl">
+      <CardContent className="p-0">
         <div className="space-y-6">
           {/* Step 1: Open Cursor */}
           <div>

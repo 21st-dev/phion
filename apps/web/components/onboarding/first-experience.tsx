@@ -44,17 +44,17 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
   const steps = [
     {
-      title: "Welcome to Phion!",
+      title: "Welcome",
       description: "We'll help you use Cursor as easily as Lovable, Bolt, and other web AI IDEs",
       content: "welcome",
     },
     {
-      title: "Cursor IDE",
+      title: "Code Editor",
       description: "Let's make sure you have everything you need to get started",
       content: "cursor-check",
     },
     {
-      title: "Download & Setup",
+      title: "Setup",
       description: "Final step - download the project and open it in Cursor",
       content: "download-setup",
     },
@@ -309,13 +309,12 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
               <p className="text-muted-foreground">Set up your project in Cursor to get started</p>
             </div>
 
-            <Material type="base" className="p-6 w-full">
               <SetupStep
                 projectId={projectId || ""}
                 agentConnected={agentConnected}
                 onDeploy={handleGoToProject}
-              />
-            </Material>
+            />
+            
           </div>
         )
 
