@@ -12,6 +12,10 @@ const EXTENSIONS_TO_CHECK = [
     id: "phion.phion-dev-tools",
     versionsUrl: "https://open-vsx.org/api/phion/phion-dev-tools/versions",
   },
+  {
+    id: "21st-dev.21st-extension",
+    versionsUrl: "https://open-vsx.org/api/21st-dev/21st-extension/versions",
+  },
   // Add more extensions here as needed
   // {
   //   id: 'publisher.extension-name',

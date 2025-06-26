@@ -1,15 +1,15 @@
 import { exec } from "child_process"
-import { promisify } from "util"
-import http from "http"
 import fs from "fs"
-import path from "path"
+import http from "http"
 import os from "os"
+import path from "path"
+import { promisify } from "util"
 
 const execAsync = promisify(exec)
 
 // Global flag to prevent multiple browser opens
 let globalBrowserOpened = false
-const BROWSER_OPENED_FLAG_FILE = path.join(os.tmpdir(), 'phion-browser-opened.flag')
+const BROWSER_OPENED_FLAG_FILE = path.join(os.tmpdir(), "phion-browser-opened.flag")
 
 export interface VSCodeConfig {
   autoOpen: boolean
@@ -165,7 +165,7 @@ export async function openInSystemBrowser(url: string): Promise<boolean> {
         command = `open "${url}"`
         break
       case "win32":
-        command = `start "" "${url}"`
+        command = `start "${url}"`
         break
       default:
         command = `xdg-open "${url}"`

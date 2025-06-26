@@ -58,6 +58,9 @@
     "vaul": "^1.0.0"
   },
   "devDependencies": {
+    "@21st-extension/react": "^0.4.9",
+    "@21st-extension/toolbar": "^0.4.8",
+    "@21st-extension/toolbar-react": "^0.4.8",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",

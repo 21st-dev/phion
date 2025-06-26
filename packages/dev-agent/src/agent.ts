@@ -1,12 +1,12 @@
-import { io, Socket } from "socket.io-client"
-import chokidar, { FSWatcher } from "chokidar"
-import fs from "fs"
-import path from "path"
-import crypto from "crypto"
 import { exec } from "child_process"
-import { promisify } from "util"
+import chokidar, { FSWatcher } from "chokidar"
+import crypto from "crypto"
+import fs from "fs"
 import http from "http"
-import { openPreview, type VSCodeConfig } from "./vscode-utils.js"
+import path from "path"
+import { io, Socket } from "socket.io-client"
+import { promisify } from "util"
+import { openInSystemBrowser, openPreview, type VSCodeConfig } from "./vscode-utils.js"
 
 const execAsync = promisify(exec)
 
@@ -128,7 +128,7 @@ export class PhionAgent {
             try {
               const { url } = JSON.parse(body)
 
-              const success = await this.openUrlInSystem(url)
+              const success = await openInSystemBrowser(url)
 
               res.writeHead(200, { "Content-Type": "application/json" })
               res.end(
@@ -194,75 +194,6 @@ export class PhionAgent {
         }
       })
     })
-  }
-
-  private async openUrlInSystem(url: string): Promise<boolean> {
-    try {
-      const platform = process.platform
-      let command: string
-
-      switch (platform) {
-        case "darwin":
-          // Try multiple approaches on macOS
-          try {
-            // Method 1: Try to open in Cursor if it's running
-            const cursorAppleScript = `
-              tell application "System Events"
-                if exists (processes where name is "Cursor") then
-                  tell application "Cursor" to activate
-                  delay 0.5
-                  keystroke "l" using {command down}
-                  delay 0.2
-                  keystroke "${url}"
-                  delay 0.2
-                  keystroke return
-                  return true
-                else
-                  return false
-                end if
-              end tell
-            `
-
-            if (this.config.debug) {
-              console.log(`🍎 Trying AppleScript for Cursor: ${url}`)
-            }
-
-            await execAsync(`osascript -e '${cursorAppleScript}'`)
-            if (this.config.debug) {
-              console.log(`✅ Opened in Cursor via AppleScript: ${url}`)
-            }
-            return true
-          } catch (cursorError) {
-            if (this.config.debug) {
-              console.log(`⚠️ Cursor AppleScript failed, falling back to system browser`)
-            }
-            // Fallback to system browser
-            command = `open "${url}"`
-          }
-          break
-        case "win32":
-          command = `start "" "${url}"`
-          break
-        default:
-          command = `xdg-open "${url}"`
-          break
-      }
-
-      if (command) {
-        await execAsync(command)
-        if (this.config.debug) {
-          console.log(`✅ Opened URL in system browser: ${url}`)
-        }
-      }
-
-      return true
-    } catch (error) {
-      console.error("❌ Failed to open URL:", (error as Error).message)
-      if (this.config.debug) {
-        console.error("❌ Full error details:", error)
-      }
-      return false
-    }
   }
 
   private async checkGitRepository(): Promise<void> {
