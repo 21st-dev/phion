@@ -1,3 +1,4 @@
+import { FREE_TIER_LIMIT, PRO_TIER_LIMIT } from "@/lib/constants"
 import {
   createAuthServerClient,
   createProject,
@@ -98,7 +99,6 @@ export async function POST(request: NextRequest) {
     }
 
     const projectCount = existingProjects?.length || 0
-    const FREE_TIER_LIMIT = 2
 
     // Проверяем подписку через 21st.dev API
     let hasActiveSubscription = false
@@ -136,18 +136,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Проверяем лимиты (отключено в dev окружении)
-    if (
-      process.env.NODE_ENV !== "development" &&
-      !hasActiveSubscription &&
-      projectCount >= FREE_TIER_LIMIT
-    ) {
+    const maxProjects = hasActiveSubscription ? PRO_TIER_LIMIT : FREE_TIER_LIMIT
+
+    if (projectCount >= maxProjects) {
       return NextResponse.json(
         {
           error: "Project limit exceeded",
-          message: `Free plan allows up to ${FREE_TIER_LIMIT} projects. Upgrade to Pro for unlimited projects.`,
+          message: `Your plan allows up to ${maxProjects} projects`,
           currentCount: projectCount,
-          maxProjects: FREE_TIER_LIMIT,
+          maxProjects: maxProjects,
         },
         { status: 403 },
       )

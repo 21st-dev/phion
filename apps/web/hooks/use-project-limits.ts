@@ -1,3 +1,4 @@
+import { FREE_TIER_LIMIT, PRO_TIER_LIMIT } from "@/lib/constants"
 import { useQuery } from "@tanstack/react-query"
 
 interface SubscriptionData {
@@ -27,8 +28,6 @@ interface ProjectLimits {
   error: string | null
   refetch: () => void
 }
-
-const FREE_TIER_LIMIT = 2
 
 async function fetchProjectLimits(): Promise<ProjectLimitsData> {
   // Параллельно загружаем проекты и подписку
@@ -84,10 +83,8 @@ export function useProjectLimits(): ProjectLimits {
   const subscriptionData = data?.subscriptionData || null
   const hasActiveSubscription = subscriptionData?.hasActiveSubscription || false
 
-  // В development окружении убираем лимиты
-  const isDevelopment = process.env.NODE_ENV === "development"
-  const maxProjects = hasActiveSubscription || isDevelopment ? Infinity : FREE_TIER_LIMIT
-  const canCreateProject = isDevelopment || projectCount < maxProjects
+  const maxProjects = hasActiveSubscription ? PRO_TIER_LIMIT : FREE_TIER_LIMIT
+  const canCreateProject = projectCount < maxProjects
 
   const currentPlan = subscriptionData?.planType || "free"
   const currentPlanName = currentPlan
@@ -99,9 +96,9 @@ export function useProjectLimits(): ProjectLimits {
   return {
     isLoading,
     canCreateProject,
-    hasActiveSubscription: hasActiveSubscription || isDevelopment,
+    hasActiveSubscription: hasActiveSubscription,
     projectCount,
-    maxProjects: hasActiveSubscription || isDevelopment ? 5 : FREE_TIER_LIMIT,
+    maxProjects: maxProjects,
     subscriptionData,
     error: error?.message || null,
     currentPlan: currentPlan,
