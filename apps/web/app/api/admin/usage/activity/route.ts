@@ -1,32 +1,12 @@
+import { createAdminClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { createAuthServerClient } from "@shipvibes/database"
-import { cookies } from "next/headers"
-
-const ADMIN_USER_ID = "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createAuthServerClient({
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-        } catch {
-          // Игнорируем ошибки установки cookies
-        }
-      },
-    })
+    // Use admin client with service role key - bypasses user authentication
+    const supabase = createAdminClient()
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user || user.id !== ADMIN_USER_ID) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Admin authentication is handled by middleware, so we can proceed directly
 
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get("days") || "30")
@@ -89,18 +69,21 @@ export async function GET(request: NextRequest) {
 
       // Подсчитываем созданные проекты
       const projectsCreated = projectActivity.filter((p) => {
+        if (!p.created_at) return false
         const createdAt = new Date(p.created_at)
         return createdAt >= dayStart && createdAt <= dayEnd
       }).length
 
       // Подсчитываем коммиты
       const commitsCount = commitActivity.filter((c) => {
+        if (!c.created_at) return false
         const createdAt = new Date(c.created_at)
         return createdAt >= dayStart && createdAt <= dayEnd
       }).length
 
       // Подсчитываем изменения файлов
       const fileChangesCount = fileActivity.filter((f) => {
+        if (!f.created_at) return false
         const createdAt = new Date(f.created_at)
         return createdAt >= dayStart && createdAt <= dayEnd
       }).length
@@ -110,6 +93,7 @@ export async function GET(request: NextRequest) {
 
       // Пользователи, создавшие проекты
       projectActivity.forEach((p) => {
+        if (!p.created_at) return
         const createdAt = new Date(p.created_at)
         if (createdAt >= dayStart && createdAt <= dayEnd) {
           activeUserIds.add(p.user_id)
@@ -118,6 +102,7 @@ export async function GET(request: NextRequest) {
 
       // Пользователи, сделавшие коммиты
       commitActivity.forEach((c) => {
+        if (!c.created_at) return
         const createdAt = new Date(c.created_at)
         if (createdAt >= dayStart && createdAt <= dayEnd) {
           const userId = projectUserMap.get(c.project_id)
@@ -129,6 +114,7 @@ export async function GET(request: NextRequest) {
 
       // Пользователи, изменившие файлы
       fileActivity.forEach((f) => {
+        if (!f.created_at) return
         const createdAt = new Date(f.created_at)
         if (createdAt >= dayStart && createdAt <= dayEnd) {
           const userId = projectUserMap.get(f.project_id)

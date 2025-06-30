@@ -1,6 +1,21 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+function handleUnauthorizedAccess(
+  request: NextRequest,
+  isAPIRoute: boolean,
+  message: string = "Forbidden - Admin access required",
+  status: number = 401,
+) {
+  if (isAPIRoute) {
+    return NextResponse.json({ error: message }, { status })
+  } else {
+    const url = request.nextUrl.clone()
+    url.pathname = "/login"
+    return NextResponse.redirect(url)
+  }
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -35,14 +50,54 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Check if this is an admin route (frontend or API)
+  const isAdminRoute =
+    request.nextUrl.pathname.startsWith("/admin") ||
+    request.nextUrl.pathname.startsWith("/api/admin")
+  const isAPIRoute = request.nextUrl.pathname.startsWith("/api/admin")
+
+  // Admin route protection
+  if (isAdminRoute) {
+    // Check if user is authenticated
+    if (!user) {
+      return handleUnauthorizedAccess(
+        request,
+        isAPIRoute,
+        "Unauthorized - Authentication required",
+        401,
+      )
+    }
+
+    // Check if user is admin by querying the users table
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single()
+
+      if (userError || !userData || !userData.is_admin) {
+        return handleUnauthorizedAccess(
+          request,
+          isAPIRoute,
+          "Forbidden - Admin access required",
+          403,
+        )
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error)
+      return handleUnauthorizedAccess(request, isAPIRoute, "Internal server error", 500)
+    }
+  }
+
   // Check if this is a user dashboard route ([user_id])
   const userDashboardMatch = request.nextUrl.pathname.match(/^\/([^\/]+)$/)
   const isUserDashboard = userDashboardMatch && userDashboardMatch[1] !== "admin"
 
-  // Защищенные роуты - перенаправляем на главную если не авторизован
+  // Защищенные роуты - перенаправляем на логин если не авторизован
   if (!user && (request.nextUrl.pathname.startsWith("/project") || isUserDashboard)) {
     const url = request.nextUrl.clone()
-    url.pathname = "/"
+    url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 

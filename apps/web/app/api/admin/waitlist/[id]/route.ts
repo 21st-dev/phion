@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
 import { createAuthServerClient } from "@shipvibes/database"
 import { cookies } from "next/headers"
+import { NextRequest, NextResponse } from "next/server"
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,7 +15,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       )
     }
 
-    // Get user for auth check
+    // Admin authentication is handled by middleware
+    // Get user for approved_by field
     const cookieStore = await cookies()
     const supabase = createAuthServerClient({
       getAll() {
@@ -36,14 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Check if user is admin (must match the same ID used in admin layout and DB policies)
-    const ADMIN_USER_ID = "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
-
-    if (user.id !== ADMIN_USER_ID) {
-      return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 })
+      return NextResponse.json({ error: "User session error" }, { status: 500 })
     }
 
     // Update waitlist entry

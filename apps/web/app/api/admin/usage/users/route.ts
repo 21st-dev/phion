@@ -1,32 +1,12 @@
+import { createAdminClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { createAuthServerClient } from "@shipvibes/database"
-import { cookies } from "next/headers"
-
-const ADMIN_USER_ID = "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createAuthServerClient({
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-        } catch {
-          // Игнорируем ошибки установки cookies
-        }
-      },
-    })
+    // Use admin client with service role key - bypasses user authentication
+    const supabase = createAdminClient()
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user || user.id !== ADMIN_USER_ID) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Admin authentication is handled by middleware, so we can proceed directly
 
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get("days") || "30")
@@ -52,6 +32,62 @@ export async function GET(request: NextRequest) {
       .order("updated_at", { ascending: false })
 
     if (projectsError) throw projectsError
+
+    // Bulk fetch all commit and file change data - MUCH faster than N+1 queries
+    const [
+      { data: totalCommitsData },
+      { data: recentCommitsData },
+      { data: totalFileChangesData },
+      { data: recentFileChangesData },
+    ] = await Promise.all([
+      // All commits
+      supabase.from("commit_history").select("project_id"),
+
+      // Recent commits
+      supabase
+        .from("commit_history")
+        .select("project_id")
+        .gte("created_at", cutoffDate.toISOString()),
+
+      // All file changes
+      supabase.from("file_history").select("project_id"),
+
+      // Recent file changes
+      supabase
+        .from("file_history")
+        .select("project_id")
+        .gte("created_at", cutoffDate.toISOString()),
+    ])
+
+    // Count commits and file changes per project
+    const totalCommitsByProject = new Map()
+    const recentCommitsByProject = new Map()
+    const totalFileChangesByProject = new Map()
+    const recentFileChangesByProject = new Map()
+
+    // Count total commits per project
+    totalCommitsData?.forEach((item) => {
+      const count = totalCommitsByProject.get(item.project_id) || 0
+      totalCommitsByProject.set(item.project_id, count + 1)
+    })
+
+    // Count recent commits per project
+    recentCommitsData?.forEach((item) => {
+      const count = recentCommitsByProject.get(item.project_id) || 0
+      recentCommitsByProject.set(item.project_id, count + 1)
+    })
+
+    // Count total file changes per project
+    totalFileChangesData?.forEach((item) => {
+      const count = totalFileChangesByProject.get(item.project_id) || 0
+      totalFileChangesByProject.set(item.project_id, count + 1)
+    })
+
+    // Count recent file changes per project
+    recentFileChangesData?.forEach((item) => {
+      const count = recentFileChangesByProject.get(item.project_id) || 0
+      recentFileChangesByProject.set(item.project_id, count + 1)
+    })
 
     // Группируем по пользователям
     const userStats = new Map()
@@ -79,74 +115,34 @@ export async function GET(request: NextRequest) {
       stats.projectsCount++
       stats.projectNames.push(project.name)
 
+      // Add commit and file change counts for this project
+      stats.totalCommits += totalCommitsByProject.get(project.id) || 0
+      stats.recentCommits += recentCommitsByProject.get(project.id) || 0
+      stats.totalFileChanges += totalFileChangesByProject.get(project.id) || 0
+      stats.recentFileChanges += recentFileChangesByProject.get(project.id) || 0
+
       // Обновляем дату присоединения (берем самый ранний проект)
-      if (new Date(project.created_at) < new Date(stats.joinedAt)) {
+      if (project.created_at && new Date(project.created_at) < new Date(stats.joinedAt)) {
         stats.joinedAt = project.created_at
       }
 
       // Обновляем последнюю активность
-      if (!stats.lastActivity || new Date(project.updated_at) > new Date(stats.lastActivity)) {
+      if (
+        project.updated_at &&
+        (!stats.lastActivity || new Date(project.updated_at) > new Date(stats.lastActivity))
+      ) {
         stats.lastActivity = project.updated_at
       }
 
       // Считаем активные проекты (обновлялись недавно)
-      if (new Date(project.updated_at) > cutoffDate) {
+      if (project.updated_at && new Date(project.updated_at) > cutoffDate) {
         stats.activeProjectsCount++
       }
 
       // Статистика по статусам деплоя
       const status = project.deploy_status
-      stats.deployStatusCounts[status] = (stats.deployStatusCounts[status] || 0) + 1
-    }
-
-    // Получаем статистику по коммитам для каждого пользователя
-    for (const [userId, stats] of Array.from(userStats.entries())) {
-      // Получаем все проекты пользователя
-      const userProjects = projects.filter((p) => p.user_id === userId)
-      const projectIds = userProjects.map((p) => p.id)
-
-      if (projectIds.length > 0) {
-        // Общее количество коммитов
-        const { count: totalCommits, error: totalCommitsError } = await supabase
-          .from("commit_history")
-          .select("*", { count: "exact", head: true })
-          .in("project_id", projectIds)
-
-        if (!totalCommitsError) {
-          stats.totalCommits = totalCommits || 0
-        }
-
-        // Коммиты за период
-        const { count: recentCommits, error: recentCommitsError } = await supabase
-          .from("commit_history")
-          .select("*", { count: "exact", head: true })
-          .in("project_id", projectIds)
-          .gte("created_at", cutoffDate.toISOString())
-
-        if (!recentCommitsError) {
-          stats.recentCommits = recentCommits || 0
-        }
-
-        // Общее количество изменений файлов
-        const { count: totalFileChanges, error: totalFileChangesError } = await supabase
-          .from("file_history")
-          .select("*", { count: "exact", head: true })
-          .in("project_id", projectIds)
-
-        if (!totalFileChangesError) {
-          stats.totalFileChanges = totalFileChanges || 0
-        }
-
-        // Изменения файлов за период
-        const { count: recentFileChanges, error: recentFileChangesError } = await supabase
-          .from("file_history")
-          .select("*", { count: "exact", head: true })
-          .in("project_id", projectIds)
-          .gte("created_at", cutoffDate.toISOString())
-
-        if (!recentFileChangesError) {
-          stats.recentFileChanges = recentFileChanges || 0
-        }
+      if (status) {
+        stats.deployStatusCounts[status] = (stats.deployStatusCounts[status] || 0) + 1
       }
     }
 

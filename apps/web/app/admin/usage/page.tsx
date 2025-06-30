@@ -1,9 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -12,36 +20,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useToast } from "@/hooks/use-toast"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Users,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  Clock,
   FolderOpen,
   GitCommit,
-  FileText,
-  Activity,
-  TrendingUp,
-  RefreshCw,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
   Loader,
+  RefreshCw,
+  TrendingUp,
+  Users,
+  XCircle,
 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useEffect, useState } from "react"
 
 interface UsageStats {
   users: {
     total: number
     activeLast7Days: number
     activeLast30Days: number
+    dau: number
+    mau: number
+    dauMauData: Array<{
+      date: string
+      dau: number
+      mau: number
+    }>
   }
   projects: {
     total: number
@@ -51,8 +57,16 @@ interface UsageStats {
   activity: {
     totalCommits: number
     commitsLast7Days: number
-    totalFileChanges: number
   }
+  retention: Array<{
+    startDate: string
+    cohortSize: number
+    retentionRates: Array<{
+      dayOffset: number
+      retainedUsers: number
+      retentionRate: number
+    }>
+  }>
   timestamp: string
 }
 
@@ -62,8 +76,6 @@ interface UserActivity {
   activeProjectsCount: number
   totalCommits: number
   recentCommits: number
-  totalFileChanges: number
-  recentFileChanges: number
   lastActivity: string | null
   deployStatusCounts: Record<string, number>
   projectNames: string[]
@@ -102,8 +114,8 @@ export default function UsageDashboard() {
 
       // Параллельный запрос статистик и пользователей
       const [statsResponse, usersResponse] = await Promise.all([
-        fetch("/api/admin/usage/stats"),
-        fetch(`/api/admin/usage/users?days=${timePeriod}&limit=20`),
+        fetch(`/api/admin/usage/stats?days=${timePeriod}`),
+        fetch(`/api/admin/usage/users?days=${timePeriod}&limit=50`),
       ])
 
       if (!statsResponse.ok || !usersResponse.ok) {
@@ -279,7 +291,7 @@ export default function UsageDashboard() {
 
           {/* Overview Stats */}
           {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
@@ -292,6 +304,32 @@ export default function UsageDashboard() {
                   <p className="text-xs text-muted-foreground">
                     {stats.users.activeLast7Days} active last 7 days
                   </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                    <Activity className="w-4 h-4 mr-2" />
+                    DAU
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">{stats.users.dau}</div>
+                  <p className="text-xs text-muted-foreground">Daily Active Users</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    MAU
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">{stats.users.mau}</div>
+                  <p className="text-xs text-muted-foreground">Monthly Active Users</p>
                 </CardContent>
               </Card>
 
@@ -326,21 +364,6 @@ export default function UsageDashboard() {
                   </p>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                    <FileText className="w-4 h-4 mr-2" />
-                    File Changes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-foreground">
-                    {stats.activity.totalFileChanges}
-                  </div>
-                  <p className="text-xs text-muted-foreground">All time file modifications</p>
-                </CardContent>
-              </Card>
             </div>
           )}
 
@@ -359,6 +382,169 @@ export default function UsageDashboard() {
                   {Object.entries(stats.projects.deployStatus).map(([status, count]) =>
                     getDeployStatusBadge(status, count),
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* DAU/MAU Table */}
+          {stats && stats.users.dauMauData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Daily & Monthly Active Users
+                </CardTitle>
+                <CardDescription>
+                  Daily Active Users (DAU) and Monthly Active Users (MAU) based on commit activity
+                  over the last {timePeriod} days. MAU shows unique users active in the 30 days
+                  leading up to each date.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="text-muted-foreground">Date</TableHead>
+                        <TableHead className="text-muted-foreground">DAU</TableHead>
+                        <TableHead className="text-muted-foreground">MAU</TableHead>
+                        <TableHead className="text-muted-foreground">DAU/MAU Ratio</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stats.users.dauMauData.map((data) => (
+                        <TableRow key={data.date} className="border-border hover:bg-muted/50">
+                          <TableCell className="font-medium text-foreground">
+                            {new Date(data.date).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            }) +
+                              ", " +
+                              new Date(data.date).toLocaleDateString("en-US", {
+                                weekday: "short",
+                              })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-foreground">{data.dau}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-foreground">
+                              {data.mau > 0 ? data.mau : "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {data.mau > 0 && data.dau > 0
+                                ? `${((data.dau / data.mau) * 100).toFixed(1)}%`
+                                : "-"}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 14-Day Retention Table */}
+          {stats && stats.retention && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  14-Day User Retention
+                </CardTitle>
+                <CardDescription>
+                  Cohort retention analysis showing what percentage of users who joined on each day
+                  remained active (made commits) on subsequent days. Each row shows a cohort based
+                  on their join date.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="text-muted-foreground min-w-[100px]">
+                          Join Date
+                        </TableHead>
+                        <TableHead className="text-muted-foreground text-center">
+                          Cohort Size
+                        </TableHead>
+                        {Array.from({ length: 14 }, (_, i) => (
+                          <TableHead
+                            key={i}
+                            className="text-muted-foreground text-center min-w-[60px]"
+                          >
+                            Day {i}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stats.retention.map((cohort) => (
+                        <TableRow
+                          key={cohort.startDate}
+                          className="border-border hover:bg-muted/50"
+                        >
+                          <TableCell className="font-medium text-foreground">
+                            {new Date(cohort.startDate).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-foreground">
+                            {cohort.cohortSize}
+                          </TableCell>
+                          {cohort.retentionRates.map((rate) => (
+                            <TableCell key={rate.dayOffset} className="text-center">
+                              <div className="flex flex-col items-center space-y-1">
+                                <span
+                                  className={`text-sm font-medium ${
+                                    rate.retentionRate > 50
+                                      ? "text-green-600 dark:text-green-400"
+                                      : rate.retentionRate > 20
+                                        ? "text-yellow-600 dark:text-yellow-400"
+                                        : rate.retentionRate > 0
+                                          ? "text-orange-600 dark:text-orange-400"
+                                          : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {rate.retentionRate.toFixed(1)}%
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {rate.retainedUsers}
+                                </span>
+                              </div>
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                      {stats.retention.length === 0 && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={16}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No retention data available
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="mt-4 text-sm text-muted-foreground">
+                  <p>
+                    • Retention rates show the percentage of users from each cohort who were active
+                    (made commits) on each day
+                  </p>
+                  <p>• Numbers below percentages show the actual count of retained users</p>
+                  <p>• Day 0 represents the join date, Day 1 is the next day, etc.</p>
                 </div>
               </CardContent>
             </Card>
@@ -390,7 +576,6 @@ export default function UsageDashboard() {
                           <TableHead className="text-muted-foreground">User ID</TableHead>
                           <TableHead className="text-muted-foreground">Projects</TableHead>
                           <TableHead className="text-muted-foreground">Commits</TableHead>
-                          <TableHead className="text-muted-foreground">File Changes</TableHead>
                           <TableHead className="text-muted-foreground">Activity Score</TableHead>
                           <TableHead className="text-muted-foreground">Last Activity</TableHead>
                           <TableHead className="text-muted-foreground">Status</TableHead>
@@ -419,16 +604,6 @@ export default function UsageDashboard() {
                                 </span>
                                 <span className="text-xs text-muted-foreground">
                                   {user.recentCommits} recent
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-medium text-foreground">
-                                  {user.totalFileChanges}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {user.recentFileChanges} recent
                                 </span>
                               </div>
                             </TableCell>

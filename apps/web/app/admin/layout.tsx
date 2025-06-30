@@ -1,9 +1,7 @@
-import { redirect } from "next/navigation"
 import { createAuthServerClient } from "@shipvibes/database"
 import { cookies } from "next/headers"
 import Link from "next/link"
-
-const ADMIN_USER_ID = "28a1b02f-d1a1-4ca4-968f-ab186dcb59e0"
+import { redirect } from "next/navigation"
 
 function AdminNavigation() {
   return (
@@ -43,9 +41,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Проверяем, авторизован ли пользователь и является ли он админом
-  if (!user || user.id !== ADMIN_USER_ID) {
+  // Проверяем, авторизован ли пользователь
+  if (!user) {
     redirect("/login")
+  }
+
+  // Проверяем, является ли пользователь админом
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
+
+  if (userError || !userData || !userData.is_admin) {
+    redirect("/")
   }
 
   return (

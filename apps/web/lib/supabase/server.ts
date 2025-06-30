@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
+import { createClient as createSupabaseJsClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import type { Database } from "./types"
 
@@ -27,4 +28,22 @@ export async function createClient() {
       },
     },
   )
+}
+
+/**
+ * Returns a Supabase client with admin (service role) access.
+ * Use this ONLY on the server for backend/admin operations.
+ */
+export function createAdminClient() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  if (!url || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
+  }
+  return createSupabaseJsClient<Database>(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 }
