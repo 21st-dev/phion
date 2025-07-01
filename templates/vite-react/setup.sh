@@ -36,6 +36,13 @@ install_macos() {
         echo "✅ Homebrew already installed"
     fi
     
+    if ! command_exists git; then
+        echo "⚙️ Installing Git..."
+        brew install git
+    else
+        echo "✅ Git already installed ($(git --version))"
+    fi
+    
     if ! command_exists node; then
         echo "⚙️ Installing Node.js..."
         brew install node
@@ -79,6 +86,13 @@ install_linux() {
     
     echo "🔄 Updating package lists..."
     $UPDATE_CMD
+    
+    if ! command_exists git; then
+        echo "⚙️ Installing Git..."
+        $INSTALL_CMD git
+    else
+        echo "✅ Git already installed ($(git --version))"
+    fi
     
     if ! command_exists node; then
         echo "⚙️ Installing Node.js..."
@@ -127,6 +141,12 @@ fi
 # Users can restart terminal or source configs manually if needed
 
 echo "🔍 Checking installed versions:"
+if command_exists git; then
+    echo "   Git: $(git --version)"
+else
+    echo "   ❌ Git not found in PATH"
+fi
+
 if command_exists node; then
     echo "   Node.js: $(node --version)"
 else

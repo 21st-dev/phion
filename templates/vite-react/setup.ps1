@@ -212,6 +212,29 @@ function Start-PhionSetup {
         Write-Host "[OK] pnpm already installed ($pnpmVersion)" -ForegroundColor Green
     }
 
+    # Check if git is installed
+    if (-not (Test-Command "git")) {
+        if ($scoopInstalled) {
+            Write-Host "[INSTALL] Installing Git via Scoop..." -ForegroundColor Yellow
+            try {
+                scoop install git
+                Update-EnvironmentPath
+                Write-Host "[OK] Git installation completed!" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "[ERROR] Failed to install Git via Scoop: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host "[INFO] Please install Git manually from: https://git-scm.com/download/win" -ForegroundColor Cyan
+            }
+        }
+        else {
+            Write-Host "[INFO] Git not found. Please install Git manually from: https://git-scm.com/download/win" -ForegroundColor Cyan
+        }
+    }
+    else {
+        $gitVersion = git --version
+        Write-Host "[OK] Git already installed ($gitVersion)" -ForegroundColor Green
+    }
+
     Write-Host ""
     Write-Host "[OK] Environment setup complete!" -ForegroundColor Green
     Write-Host ""
@@ -241,6 +264,14 @@ function Start-PhionSetup {
     }
     else {
         Write-Host "    [X] pnpm not found in PATH" -ForegroundColor Red
+    }
+
+    if (Test-Command "git") {
+        $gitVersion = git --version
+        Write-Host "    Git: $gitVersion" -ForegroundColor White
+    }
+    else {
+        Write-Host "    [X] Git not found in PATH" -ForegroundColor Red
     }
 
     # Run additional setup scripts
