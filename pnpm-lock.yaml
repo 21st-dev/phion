@@ -594,14 +594,14 @@ importers:
         version: 1.1.2(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
     devDependencies:
       '@21st-extension/react':
-        specifier: ^0.4.9
-        version: 0.4.9(@21st-extension/toolbar@0.4.8)
+        specifier: latest
+        version: 0.5.4(@21st-extension/toolbar@0.5.4)
       '@21st-extension/toolbar':
-        specifier: ^0.4.8
-        version: 0.4.8(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
+        specifier: latest
+        version: 0.5.4(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
       '@21st-extension/toolbar-react':
-        specifier: ^0.4.8
-        version: 0.4.8(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
+        specifier: latest
+        version: 0.5.4(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.1
@@ -647,21 +647,21 @@ importers:
 
 packages:
 
-  /@21st-extension/react@0.4.9(@21st-extension/toolbar@0.4.8):
-    resolution: {integrity: sha512-PKZe6ni+Sx9+6C7c0U821jO0GrbIyUWjPBPE8EXlgA387g7msPpUHz2fMPGHh39xV/ijzC45RyReKCNEqbrsBA==}
+  /@21st-extension/react@0.5.4(@21st-extension/toolbar@0.5.4):
+    resolution: {integrity: sha512-piSgxVB/SfACPiS9Ai9pWgfd5XRFScFuI3vZznQBenm71gsAHAya+gpZTm92Ft/Ypdd6MVniRpsBaZZ98tRATQ==}
     peerDependencies:
-      '@21st-extension/toolbar': 0.4.8
+      '@21st-extension/toolbar': 0.5.4
     dependencies:
-      '@21st-extension/toolbar': 0.4.8(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
+      '@21st-extension/toolbar': 0.5.4(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
     dev: true
 
-  /@21st-extension/toolbar-react@0.4.8(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-Iy/NAiBDwcjdUFW0Ei/leujaUyG64hlJKdswJzqVzfFzkrgO0tayhKBMw1iR7leyXCrJD0H+e/hopcZXwPJBxA==}
+  /@21st-extension/toolbar-react@0.5.4(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-t4ODtKnBxCKOv3aZNizEVmnQaYV/gO/9n1a5JyWbI5TL7QhOlPIPeJIFCZmelTrQbFR1OeXErVaGX1iz85VUlQ==}
     peerDependencies:
       '@types/react': '>=18.0.0'
       react: '>=18.0.0'
     dependencies:
-      '@21st-extension/toolbar': 0.4.8(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
+      '@21st-extension/toolbar': 0.5.4(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
       '@types/react': 18.3.23
       react: 18.3.1
     transitivePeerDependencies:
@@ -672,8 +672,8 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@21st-extension/toolbar@0.4.8(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-9beVogS6UKdGnoLNYZf9I4NGPg1m1U7slr+PbTZpcy8Y015m0qdy21jsEZnOKxO5MiwDsm8lXsQ8vTbpt0sYsQ==}
+  /@21st-extension/toolbar@0.5.4(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-2JEm4Vfty34Iww3bL6Sr1sRhW9+npvJIrsEmDEb0J+AP883aDYuOMCOXx0ALG+g2ma+uLIb8moHZsa4c+6gqXQ==}
     dependencies:
       '@radix-ui/react-hover-card': 1.1.14(@types/react-dom@18.3.7)(@types/react@18.3.23)(react-dom@18.3.1)(react@18.3.1)
       '@supabase/supabase-js': 2.50.2
