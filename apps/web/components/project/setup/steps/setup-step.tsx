@@ -1,13 +1,14 @@
 "use client"
 
+import { CursorDark } from "@/components/icons/cursor-dark"
+import { CursorLight } from "@/components/icons/cursor-light"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CLIProjectInstall } from "@/components/ui/cli-project-install"
 import { useToast } from "@/hooks/use-toast"
 import { useWebSocket } from "@/hooks/use-websocket"
-import { CursorDark } from "@/components/icons/cursor-dark"
-import { CursorLight } from "@/components/icons/cursor-light"
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 
 interface SetupStepProps {
   onDeploy: () => void
@@ -18,6 +19,16 @@ interface SetupStepProps {
 export function SetupStep({ onDeploy, projectId, agentConnected = false }: SetupStepProps) {
   const { success, error } = useToast()
   const { theme } = useTheme()
+  const [isWindows, setIsWindows] = useState(false)
+
+  useEffect(() => {
+    // Detect if user is on Windows
+    const userAgent = navigator.userAgent.toLowerCase()
+    const platform = navigator.platform.toLowerCase()
+    const isWindowsOS = userAgent.includes("win") || platform.includes("win")
+    setIsWindows(isWindowsOS)
+  }, [])
+
   // WebSocket для отслеживания подключения агента
   const { isConnected } = useWebSocket({
     projectId,
@@ -76,23 +87,41 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
               <div className="text-xs text-muted-foreground">
                 Press{" "}
                 <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
-                  Cmd + O
+                  {isWindows ? "Ctrl + O" : "Cmd + O"}
                 </kbd>{" "}
                 or go to File → Open Folder, then choose an empty folder for your project
               </div>
             </div>
           </div>
 
-          {/* Step 3: Download and Setup Project */}
+          {/* Step 3: Install cursor command (Windows only) */}
+          {isWindows && (
+            <div>
+              <div className="text-sm font-medium text-foreground mb-2">
+                3. Install 'cursor' command
+              </div>
+              <div className="bg-muted/50 rounded-md p-4 border border-border">
+                <div className="text-xs text-muted-foreground">
+                  Press{" "}
+                  <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
+                    Ctrl + Shift + P
+                  </kbd>{" "}
+                  and search for "Shell Command: Install 'cursor' command", then press Enter
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3/4: Download and Setup Project */}
           <div>
             <div className="text-sm font-medium text-foreground mb-2">
-              3. Download and setup your project
+              {isWindows ? "4" : "3"}. Download and setup your project
             </div>
             <div className="bg-muted/50 rounded-md p-4 border border-border">
               <div className="text-xs text-muted-foreground mb-3">
                 Open a terminal in Cursor{" "}
                 <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
-                  Cmd + J
+                  {isWindows ? "Ctrl + J" : "Cmd + J"}
                 </kbd>{" "}
                 and run these command to download and set up the project:
               </div>

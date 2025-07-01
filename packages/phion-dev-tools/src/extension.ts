@@ -296,20 +296,7 @@ async function startProject(context, isAutoStart = false) {
     console.log(`🔍 Ensuring port ${DEFAULT_VITE_PORT} is available...`)
     await killProcessOnPort(DEFAULT_VITE_PORT)
 
-    // First, run check-updates.js script, then start the project
-    const checkUpdatesPath = path.join(
-      workspaceFolders[0].uri.fsPath,
-      "scripts",
-      "check-updates.js",
-    )
-
-    if (fs.existsSync(checkUpdatesPath)) {
-      // Run check-updates script followed by pnpm start
-      terminal.sendText(`node "${checkUpdatesPath}" && pnpm start`)
-    } else {
-      // Just start the project with pnpm
-      terminal.sendText("pnpm start")
-    }
+    terminal.sendText("pnpm run start")
 
     // Mark project as started
     if (context) {

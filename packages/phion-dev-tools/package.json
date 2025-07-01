@@ -2,7 +2,7 @@
   "name": "phion-dev-tools",
   "displayName": "Phion Dev Tools",
   "description": "Tools for Phion development",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "publisher": "phion",
   "icon": "assets/icon.png",
   "engines": {
