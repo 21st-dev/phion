@@ -46,7 +46,7 @@
     "cmdk": "^1.1.1",
     "lucide-react": "^0.294.0",
     "motion": "^12.22.0",
-    "phion": "workspace:latest",
+    "phion": "latest",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.59.0",
