@@ -28,16 +28,8 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
   const [hasCursor, setHasCursor] = useState<boolean | null>(null)
   const [agentConnected, setAgentConnected] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [isMac, setIsMac] = useState<boolean | null>(null)
   const { error: showError, success: showSuccess } = useToast()
   const supabase = createAuthBrowserClient()
-
-  // Check if user is on Mac
-  useEffect(() => {
-    const userAgent = navigator.userAgent
-    const isMacOS = /Mac OS X|MacIntel|MacPPC|Mac68K/i.test(userAgent)
-    setIsMac(isMacOS)
-  }, [])
 
   useWebSocket({
     projectId: projectId || undefined,
@@ -72,11 +64,11 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
 
   // Create project when moving to the last step
   useEffect(() => {
-    if (currentStep === 2 && !projectId && !isCreatingProject && isMac) {
+    if (currentStep === 2 && !projectId && !isCreatingProject) {
       console.log("🔧 [Onboarding] Starting project creation...")
       handleCreateProject()
     }
-  }, [currentStep, projectId, isCreatingProject, isMac])
+  }, [currentStep, projectId, isCreatingProject])
 
   // Auto-redirect to overview when agent connects
   useEffect(() => {
@@ -168,29 +160,6 @@ export function FirstExperienceOnboarding({ onComplete }: FirstExperienceOnboard
   }
 
   const renderStepContent = () => {
-    // Show non-Mac message if not on Mac
-    if (isMac === false) {
-      return (
-        <div className="flex flex-col items-center space-y-8 max-w-xl mx-auto">
-          <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
-            <Logo width={40} height={40} />
-          </div>
-
-          <div className="text-center space-y-4">
-            <h2 className="text-2xl font-bold">Mac Required</h2>
-            <p className="text-muted-foreground">
-              Phion currently works only on macOS. <br />
-              We're working on Windows and Linux support.
-            </p>
-          </div>
-
-          <Button onClick={onComplete} type="primary" size="large" className="w-full max-w-xs">
-            Continue
-          </Button>
-        </div>
-      )
-    }
-
     switch (steps[currentStep].content) {
       case "welcome":
         return (
