@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "sync": "phion",
-    "start": "pnpm install && pnpm upgrade && node scripts/extension-update.js && node scripts/start-with-browser.js",
+    "start": "pnpm install && pnpm upgrade && node scripts/check-updates.js && node scripts/start-with-browser.js",
     "fix": "node scripts/fix-phion.js",
     "setup:browser": "node scripts/install-browser-extension.js",
     "clear:ports": "node -e \"require('child_process').exec(process.platform === 'win32' ? 'for /f \\\"tokens=5\\\" %a in (\\'netstat -ano ^| findstr :5173 :3333 :3334\\') do taskkill /F /PID %a' : 'lsof -ti:5173,3333,3334 | xargs kill -9 2>/dev/null || true'); console.log('✅ All dev ports (5173, 3333, 3334) cleared!');\"",

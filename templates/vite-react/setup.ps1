@@ -258,12 +258,13 @@ function Start-PhionSetup {
     Write-Host ""
     Write-Host "[*] Project setup complete!" -ForegroundColor Green
     Write-Host ""
+    
     Write-Host "[*] The Phion extension should start the project automatically" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "[*] If the extension doesn't start, try:" -ForegroundColor Cyan
     Write-Host "    1. Open Cursor's command palette (Ctrl + Shift + P)" -ForegroundColor White
     Write-Host "    2. Find and run 'Phion: Start Project' command" -ForegroundColor White
-    Write-Host "    3. If command doesn't exist, run 'Developer: Reload Window' before it" -ForegroundColor White
+    Write-Host "    3. If command doesn't exist or errors occur, reopen your IDE" -ForegroundColor White
     Write-Host ""
 
     # Network troubleshooting tips
@@ -277,9 +278,22 @@ function Start-PhionSetup {
         Write-Host ""
     }
 
-    # Pause equivalent in PowerShell
-    Write-Host "Press any key to continue..." -ForegroundColor Gray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        
+    # Start the development server
+    Write-Host "[*] Starting development server..." -ForegroundColor Cyan
+    if (Test-Command "pnpm") {
+        try {
+            Write-Host "    Running: pnpm run start" -ForegroundColor Gray
+            pnpm run start
+        }
+        catch {
+            Write-Host "[ERROR] Failed to start development server: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "    You can manually run: pnpm run start" -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Host "[ERROR] pnpm not found. Please install pnpm and run: pnpm run start" -ForegroundColor Red
+    }
 }
 
 # Execute the main setup function
