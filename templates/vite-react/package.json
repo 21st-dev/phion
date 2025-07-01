@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "sync": "phion",
-    "start": "pnpm install && node scripts/start-with-browser.js",
+    "start": "pnpm install && pnpm upgrade && node scripts/start-with-browser.js",
     "fix": "node scripts/fix-phion.js",
     "setup:browser": "node scripts/install-browser-extension.js",
     "clear:ports": "node -e \"require('child_process').exec(process.platform === 'win32' ? 'for /f \\\"tokens=5\\\" %a in (\\'netstat -ano ^| findstr :5173 :3333 :3334\\') do taskkill /F /PID %a' : 'lsof -ti:5173,3333,3334 | xargs kill -9 2>/dev/null || true'); console.log('✅ All dev ports (5173, 3333, 3334) cleared!');\"",
@@ -58,9 +58,9 @@
     "vaul": "^1.0.0"
   },
   "devDependencies": {
-    "@21st-extension/react": "^0.4.9",
-    "@21st-extension/toolbar": "^0.4.8",
-    "@21st-extension/toolbar-react": "^0.4.8",
+    "@21st-extension/react": "latest",
+    "@21st-extension/toolbar": "latest",
+    "@21st-extension/toolbar-react": "latest",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
