@@ -123,7 +123,19 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
                 <kbd className="px-2 py-1 bg-muted text-foreground rounded text-xs font-mono border border-border shadow-sm">
                   {isWindows ? "Ctrl + J" : "Cmd + J"}
                 </kbd>{" "}
-                and run these command to download and set up the project:
+                and run this command to download and set up the project.
+              </div>
+              <div className="text-xs text-muted-foreground mb-3">
+                If you're getting errors, reopen your IDE, clear your folder and try again or
+                contact us in{" "}
+                <a
+                  href="https://discord.gg/j4ZMYnMeJN"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:no-underline"
+                >
+                  Discord
+                </a>
               </div>
               <CLIProjectInstall projectId={projectId} />
             </div>
