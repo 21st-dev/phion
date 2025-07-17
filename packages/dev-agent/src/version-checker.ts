@@ -17,11 +17,11 @@ export interface VersionInfo {
  */
 export function getCurrentVersion(): string {
   try {
-    // Пробуем разные пути для package.json в ES модулях
+    // Try different paths for package.json in ES modules
     const possiblePaths = [
-      path.join(__dirname, "..", "package.json"), // Из dist/ в корень пакета
-      path.join(__dirname, "..", "..", "package.json"), // Если dist в подпапке
-      path.join(process.cwd(), "node_modules", "phion", "package.json"), // В node_modules
+      path.join(__dirname, "..", "package.json"), // From dist/ to package root
+      path.join(__dirname, "..", "..", "package.json"), // If dist is in subfolder
+      path.join(process.cwd(), "node_modules", "phion", "package.json"), // In node_modules
     ]
 
     for (const packageJsonPath of possiblePaths) {
@@ -33,7 +33,7 @@ export function getCurrentVersion(): string {
           }
         }
       } catch (pathError) {
-        // Пробуем следующий путь
+        // Try next path
         continue
       }
     }
@@ -52,7 +52,7 @@ export function getCurrentVersion(): string {
  */
 export async function checkLatestVersion(wsUrl: string): Promise<string | null> {
   try {
-    // Формируем HTTP URL из WebSocket URL
+    // Form HTTP URL from WebSocket URL
     const httpUrl = wsUrl.replace("ws://", "http://").replace("wss://", "https://")
     const versionUrl = `${httpUrl}/api/version`
 
@@ -71,7 +71,7 @@ export async function checkLatestVersion(wsUrl: string): Promise<string | null> 
       return data.latestAgentVersion || null
     }
   } catch (error) {
-    // Игнорируем ошибки - не критично для работы агента
+    // Ignore errors - not critical for agent operation
     if (process.env.DEBUG) {
       console.debug("Failed to check latest version:", error)
     }

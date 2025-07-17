@@ -33,7 +33,7 @@ export class DeployStatusQueries {
         return data;
     }
     async addLogToDeployStatus(id, logMessage) {
-        // Получаем текущие логи
+        // Get current logs
         const { data: currentData, error: fetchError } = await this.supabase
             .from('deploy_status')
             .select('logs')

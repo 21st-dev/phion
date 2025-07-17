@@ -27,11 +27,11 @@ export class ProjectQueries {
   async getUserProjects(userId?: string): Promise<ProjectRow[]> {
     let query = this.client.from("projects").select("*").order("created_at", { ascending: false })
 
-    // Если передан userId (для service role), фильтруем по нему
+    // If userId is provided (for service role), filter by it
     if (userId) {
       query = query.eq("user_id", userId)
     }
-    // Иначе RLS автоматически отфильтрует по текущему пользователю
+    // Otherwise RLS will automatically filter by current user
 
     const { data, error } = await query
 
@@ -54,7 +54,7 @@ export class ProjectQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null // Проект не найден
+        return null // Project not found
       }
       throw new Error(`Failed to fetch project: ${error.message}`)
     }
@@ -196,11 +196,11 @@ export class ProjectQueries {
       .ilike("name", `%${searchTerm}%`)
       .order("created_at", { ascending: false })
 
-    // Если передан userId (для service role), фильтруем по нему
+    // If userId is provided (for service role), filter by it
     if (userId) {
       query = query.eq("user_id", userId)
     }
-    // Иначе RLS автоматически отфильтрует по текущему пользователю
+    // Otherwise RLS will automatically filter by current user
 
     const { data, error } = await query
 
@@ -228,7 +228,7 @@ export class ProjectQueries {
       github_owner: githubInfo.github_owner || "phion-dev",
     }
 
-    // Сначала проверяем, сколько записей с таким ID существует
+    // First check how many records with this ID exist
     const { data: existingProjects, error: checkError } = await this.client
       .from("projects")
       .select("id")
@@ -245,7 +245,7 @@ export class ProjectQueries {
     if (existingProjects.length > 1) {
       console.error(`⚠️ Multiple projects found with ID ${projectId}:`, existingProjects.length)
 
-      // Если есть дубликаты, обновляем все записи, но возвращаем первую
+      // If there are duplicates, update all records but return the first one
       const { data, error } = await this.client
         .from("projects")
         .update(updateData)
@@ -267,7 +267,7 @@ export class ProjectQueries {
       return data[0] as unknown as ProjectRow
     }
 
-    // Стандартный случай - одна запись
+    // Standard case - one record
     const { data, error } = await this.client
       .from("projects")
       .update(updateData)
@@ -298,7 +298,7 @@ export class ProjectQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null // Проект не найден
+        return null // Project not found
       }
       throw new Error(`Failed to fetch project by GitHub repo: ${error.message}`)
     }

@@ -1,4 +1,4 @@
-// Экспорт всех классов запросов
+// Export all query classes
 export * from "./projects";
 export * from "./file-history";
 export * from "./pending-changes";
@@ -16,7 +16,7 @@ export async function getProjectCommits(projectId?: string, limit: number = 50):
   let query = supabase
     .from('file_history')
     .select('commit_id, commit_message, created_at, project_id')
-    .not('commit_id', 'is', null) // Исключаем записи с null commit_id
+    .not('commit_id', 'is', null) // Exclude records with null commit_id
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -31,7 +31,7 @@ export async function getProjectCommits(projectId?: string, limit: number = 50):
     throw error;
   }
 
-  // Группируем по commit_id и берем уникальные коммиты
+  // Group by commit_id and take unique commits
   const commitsMap = new Map();
   for (const item of data || []) {
     if (!commitsMap.has(item.commit_id)) {

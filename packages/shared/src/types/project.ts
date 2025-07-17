@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Статусы деплоя
+// Deploy statuses
 export const DeployStatus = z.enum([
   "pending",
   "building",
@@ -11,7 +11,7 @@ export const DeployStatus = z.enum([
 
 export type DeployStatus = z.infer<typeof DeployStatus>;
 
-// Типы шаблонов проектов
+// Project template types
 export const TemplateType = z.enum([
   "vite-react",
   "vite-vue",
@@ -22,7 +22,7 @@ export const TemplateType = z.enum([
 
 export type TemplateType = z.infer<typeof TemplateType>;
 
-// Схема проекта
+// Project schema
 export const ProjectSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -40,7 +40,7 @@ export const ProjectSchema = z.object({
 
 export type Project = z.infer<typeof ProjectSchema>;
 
-// Схема для создания проекта
+// Schema for creating project
 export const CreateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   template_type: TemplateType.default("vite-react"),
@@ -48,7 +48,7 @@ export const CreateProjectSchema = z.object({
 
 export type CreateProject = z.infer<typeof CreateProjectSchema>;
 
-// Схема для обновления проекта
+// Schema for updating project
 export const UpdateProjectSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   deploy_status: DeployStatus.optional(),

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { FileChangeSchema, FileDeleteSchema } from "./file-history";
 
-// Типы WebSocket событий
+// WebSocket event types
 export const WebSocketEventType = z.enum([
   "file_change",
   "file_delete",
@@ -15,13 +15,13 @@ export const WebSocketEventType = z.enum([
 
 export type WebSocketEventType = z.infer<typeof WebSocketEventType>;
 
-// Базовая схема WebSocket сообщения
+// Base WebSocket message schema
 export const BaseWebSocketMessageSchema = z.object({
   type: WebSocketEventType,
   timestamp: z.number().int().min(0),
 });
 
-// Сообщение об изменении файла (от клиента к серверу)
+// File change message (from client to server)
 export const FileChangeMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("file_change"),
   data: FileChangeSchema,
@@ -29,7 +29,7 @@ export const FileChangeMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type FileChangeMessage = z.infer<typeof FileChangeMessageSchema>;
 
-// Сообщение об удалении файла (от клиента к серверу)
+// File deletion message (from client to server)
 export const FileDeleteMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("file_delete"),
   data: FileDeleteSchema,
@@ -37,7 +37,7 @@ export const FileDeleteMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type FileDeleteMessage = z.infer<typeof FileDeleteMessageSchema>;
 
-// Подтверждение сохранения файла (от сервера к клиенту)
+// File save confirmation (from server to client)
 export const FileSavedMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("file_saved"),
   data: z.object({
@@ -49,7 +49,7 @@ export const FileSavedMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type FileSavedMessage = z.infer<typeof FileSavedMessageSchema>;
 
-// Уведомление о начале деплоя
+// Deploy start notification
 export const DeployStartedMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("deploy_started"),
   data: z.object({
@@ -60,7 +60,7 @@ export const DeployStartedMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type DeployStartedMessage = z.infer<typeof DeployStartedMessageSchema>;
 
-// Уведомление о завершении деплоя
+// Deploy completion notification
 export const DeployCompletedMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("deploy_completed"),
   data: z.object({
@@ -74,7 +74,7 @@ export type DeployCompletedMessage = z.infer<
   typeof DeployCompletedMessageSchema
 >;
 
-// Уведомление об ошибке деплоя
+// Deploy error notification
 export const DeployFailedMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("deploy_failed"),
   data: z.object({
@@ -86,7 +86,7 @@ export const DeployFailedMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type DeployFailedMessage = z.infer<typeof DeployFailedMessageSchema>;
 
-// Сообщение об ошибке
+// Error message
 export const ErrorMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("error"),
   data: z.object({
@@ -97,7 +97,7 @@ export const ErrorMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type ErrorMessage = z.infer<typeof ErrorMessageSchema>;
 
-// Подтверждение получения сообщения
+// Message acknowledgment
 export const AckMessageSchema = BaseWebSocketMessageSchema.extend({
   type: z.literal("ack"),
   data: z.object({
@@ -108,7 +108,7 @@ export const AckMessageSchema = BaseWebSocketMessageSchema.extend({
 
 export type AckMessage = z.infer<typeof AckMessageSchema>;
 
-// Объединенный тип всех WebSocket сообщений
+// Combined type of all WebSocket messages
 export const WebSocketMessageSchema = z.discriminatedUnion("type", [
   FileChangeMessageSchema,
   FileDeleteMessageSchema,
@@ -122,7 +122,7 @@ export const WebSocketMessageSchema = z.discriminatedUnion("type", [
 
 export type WebSocketMessage = z.infer<typeof WebSocketMessageSchema>;
 
-// Схема для аутентификации WebSocket соединения
+// Schema for WebSocket connection authentication
 export const WebSocketAuthSchema = z.object({
   project_id: z.string().uuid(),
   token: z.string().min(1),

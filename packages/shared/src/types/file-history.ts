@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Схема истории файлов
+// File history schema
 export const FileHistorySchema = z.object({
   id: z.string().uuid(),
   project_id: z.string().uuid(),
@@ -14,7 +14,7 @@ export const FileHistorySchema = z.object({
 
 export type FileHistory = z.infer<typeof FileHistorySchema>;
 
-// Схема для создания записи истории файла
+// Schema for creating file history entry
 export const CreateFileHistorySchema = z.object({
   project_id: z.string().uuid(),
   file_path: z.string().min(1),
@@ -28,7 +28,7 @@ export const CreateFileHistorySchema = z.object({
 
 export type CreateFileHistory = z.infer<typeof CreateFileHistorySchema>;
 
-// Схема для файлового изменения (от локального агента)
+// Schema for file change (from local agent)
 export const FileChangeSchema = z.object({
   project_id: z.string().uuid(),
   file_path: z.string().min(1),
@@ -39,7 +39,7 @@ export const FileChangeSchema = z.object({
 
 export type FileChange = z.infer<typeof FileChangeSchema>;
 
-// Схема для удаления файла
+// Schema for file deletion
 export const FileDeleteSchema = z.object({
   project_id: z.string().uuid(),
   file_path: z.string().min(1),
@@ -48,7 +48,7 @@ export const FileDeleteSchema = z.object({
 
 export type FileDelete = z.infer<typeof FileDeleteSchema>;
 
-// Схема для diff между версиями
+// Schema for diff between versions
 export const FileDiffSchema = z.object({
   file_path: z.string(),
   old_content: z.string().nullable(),

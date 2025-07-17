@@ -176,7 +176,7 @@ export interface PendingChangeUpdate {
   updated_at?: string
 }
 
-// Локальные типы для database пакета
+// Local types for database package
 export interface DatabaseConnection {
   connected: boolean
   url?: string

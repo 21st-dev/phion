@@ -148,92 +148,33 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const totalTime = Date.now() - startTime
     console.log(`🎉 [DOWNLOAD] Successfully completed download for ${projectId} in ${totalTime}ms`)
 
-    // Создаем безопасное имя файла для скачивания с поддержкой Unicode
+    // Create safe filename for download with Unicode support
     const originalFileName = project.name.trim() || "project"
 
-    // ASCII-safe имя для браузерной совместимости
+    // ASCII-safe filename for browser compatibility
     const safeFileName =
       originalFileName
-        .replace(/[<>:"/\\|?*]/g, "-") // Опасные символы для файловой системы
-        .replace(/\s+/g, "-") // Пробелы на дефисы
-        .replace(/-+/g, "-") // Множественные дефисы в один
-        .replace(/^-+|-+$/g, "") // Убираем дефисы в начале и конце
-        // Заменяем non-ASCII символы на ASCII аналоги
+        .replace(/[<>:"/\\|?*]/g, "-") // Dangerous symbols for filesystem
+        .replace(/\s+/g, "-") // Spaces to dashes
+        .replace(/-+/g, "-") // Multiple dashes to single
+        .replace(/^-+|-+$/g, "") // Remove dashes at start and end
+        // Replace non-ASCII symbols with ASCII equivalents
         .replace(/[^\x00-\x7F]/g, function (char) {
-          // Простая транслитерация для кириллицы
-          const cyrillicMap: { [key: string]: string } = {
-            а: "a",
-            б: "b",
-            в: "v",
-            г: "g",
-            д: "d",
-            е: "e",
-            ё: "yo",
-            ж: "zh",
-            з: "z",
-            и: "i",
-            й: "y",
-            к: "k",
-            л: "l",
-            м: "m",
-            н: "n",
-            о: "o",
-            п: "p",
-            р: "r",
-            с: "s",
-            т: "t",
-            у: "u",
-            ф: "f",
-            х: "h",
-            ц: "ts",
-            ч: "ch",
-            ш: "sh",
-            щ: "sch",
-            ъ: "",
-            ы: "y",
-            ь: "",
-            э: "e",
-            ю: "yu",
-            я: "ya",
-            А: "A",
-            Б: "B",
-            В: "V",
-            Г: "G",
-            Д: "D",
-            Е: "E",
-            Ё: "Yo",
-            Ж: "Zh",
-            З: "Z",
-            И: "I",
-            Й: "Y",
-            К: "K",
-            Л: "L",
-            М: "M",
-            Н: "N",
-            О: "O",
-            П: "P",
-            Р: "R",
-            С: "S",
-            Т: "T",
-            У: "U",
-            Ф: "F",
-            Х: "H",
-            Ц: "Ts",
-            Ч: "Ch",
-            Ш: "Sh",
-            Щ: "Sch",
-            Ъ: "",
-            Ы: "Y",
-            Ь: "",
-            Э: "E",
-            Ю: "Yu",
-            Я: "Ya",
+          // Simple transliteration for Cyrillic characters
+          const transliterationMap: Record<string, string> = {
+            а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh", з: "z", и: "i",
+            й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
+            у: "u", ф: "f", х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y",
+            ь: "", э: "e", ю: "yu", я: "ya", А: "A", Б: "B", В: "V", Г: "G", Д: "D",
+            Е: "E", Ё: "Yo", Ж: "Zh", З: "Z", И: "I", Й: "Y", К: "K", Л: "L", М: "M",
+            Н: "N", О: "O", П: "P", Р: "R", С: "S", Т: "T", У: "U", Ф: "F", Х: "H",
+            Ц: "Ts", Ч: "Ch", Ш: "Sh", Щ: "Sch", Ъ: "", Ы: "Y", Ь: "", Э: "E", Ю: "Yu", Я: "Ya"
           }
 
-          return cyrillicMap[char] || "x"
+          return transliterationMap[char] || "x"
         }) || "project"
 
-    // Создаем полное имя файла без ID проекта
+    // Create complete filename without project ID
     const fullFileName = `${safeFileName}.zip`
 
     console.log(`📁 [DOWNLOAD] Filename: "${originalFileName}" → "${fullFileName}"`)

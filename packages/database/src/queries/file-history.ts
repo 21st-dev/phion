@@ -73,7 +73,7 @@ export class FileHistoryQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Файл не найден
+        return null; // File not found
       }
       throw new Error(`Failed to fetch latest file version: ${error.message}`);
     }
@@ -182,7 +182,7 @@ export class FileHistoryQueries {
     total_size: number;
     last_updated: string | null;
   }> {
-    // Получаем все записи истории для проекта
+    // Get all history records for project
     const { data, error } = await this.client
       .from("file_history")
       .select("file_path, file_size, created_at");
@@ -197,7 +197,7 @@ export class FileHistoryQueries {
       created_at: string;
     }>;
 
-    // Подсчитываем статистику
+    // Calculate statistics
     const uniqueFiles = new Set(files.map((f) => f.file_path));
     const totalSize = files.reduce((sum, f) => sum + f.file_size, 0);
     const lastUpdated =
@@ -231,7 +231,7 @@ export class FileHistoryQueries {
       throw new Error(`Failed to fetch latest file versions: ${error.message}`);
     }
 
-    // Группируем по file_path и берем последнюю версию каждого файла
+    // Group by file_path and take latest version of each file
     const latestVersionsMap = new Map<string, FileHistoryRow>();
     
     for (const file of (data as unknown as FileHistoryRow[]) || []) {

@@ -84,7 +84,7 @@ export class CommitHistoryQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Коммит не найден
+        return null; // Commit not found
       }
       throw new Error(`Failed to fetch commit by SHA: ${error.message}`);
     }
@@ -106,7 +106,7 @@ export class CommitHistoryQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Коммитов еще нет
+        return null; // No commits yet
       }
       throw new Error(`Failed to fetch latest commit: ${error.message}`);
     }

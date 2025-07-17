@@ -1,4 +1,4 @@
-// Главный экспорт пакета @shipvibes/database
+// Main export for @shipvibes/database package
 export * from "./client";
 // Re-export types first to avoid conflicts
 import * as DatabaseTypes from "./types";

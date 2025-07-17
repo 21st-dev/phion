@@ -5,9 +5,9 @@ import { checkForUpdates as checkVersionUpdates, getCurrentVersion } from "./ver
 import fs from "fs"
 import path from "path"
 
-// Функция для чтения конфигурации
+// Function for reading configuration
 function loadConfig(): AgentConfig {
-  // 1. Пытаемся найти phion.config.json
+  // 1. Try to find phion.config.json
   const configPath = path.join(process.cwd(), "phion.config.json")
   if (fs.existsSync(configPath)) {
     try {
@@ -27,7 +27,7 @@ function loadConfig(): AgentConfig {
     }
   }
 
-  // 2. Fallback на environment variables или args
+  // 2. Fallback to environment variables or args
   const projectId = process.env.PHION_PROJECT_ID || process.argv[2]
   const wsUrl = process.env.PHION_WS_URL || "ws://localhost:8080"
 
@@ -49,13 +49,13 @@ function loadConfig(): AgentConfig {
   }
 }
 
-// Проверка версии с оповещением об обновлениях
+// Version check with update notifications
 async function checkForUpdates(wsUrl: string, debug: boolean = false): Promise<void> {
   try {
     const currentVersion = getCurrentVersion()
     console.log(`📦 Phion v${currentVersion}`)
 
-    // Проверяем обновления только если debug режим или явно запрошено
+    // Check updates only if debug mode or explicitly requested
     if (debug) {
       try {
         const versionInfo = await checkVersionUpdates(wsUrl)
@@ -70,7 +70,7 @@ async function checkForUpdates(wsUrl: string, debug: boolean = false): Promise<v
       }
     }
   } catch (error) {
-    // Игнорируем ошибки проверки обновлений
+    // Ignore update check errors
   }
 }
 
@@ -89,10 +89,10 @@ async function main() {
     process.on("SIGINT", shutdown)
     process.on("SIGTERM", shutdown)
 
-    // Запускаем агент
+    // Start agent
     await agent.start()
 
-    // Держим процесс живым
+    // Keep process alive
     process.stdin.setRawMode?.(true)
     process.stdin.resume()
     process.stdin.on("data", (key) => {

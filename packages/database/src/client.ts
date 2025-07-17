@@ -2,14 +2,14 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import { Database } from "./types";
 
-// Типы для конфигурации клиента
+// Types for client configuration
 export interface SupabaseConfig {
   url: string;
   anonKey?: string;
   serviceRoleKey?: string;
 }
 
-// Создание клиента для фронтенда (с anon key)
+// Create client for frontend (with anon key)
 export function createSupabaseClient(
   config: SupabaseConfig
 ): SupabaseClient<Database> {
@@ -25,7 +25,7 @@ export function createSupabaseClient(
   });
 }
 
-// Создание клиента для сервера (с service role key)
+// Create client for server (with service role key)
 export function createSupabaseServerClient(
   config: SupabaseConfig
 ): SupabaseClient<Database> {
@@ -43,9 +43,9 @@ export function createSupabaseServerClient(
   });
 }
 
-// ========== НОВЫЕ КЛИЕНТЫ ДЛЯ АВТОРИЗАЦИИ ПОЛЬЗОВАТЕЛЕЙ ==========
+// ========== NEW CLIENTS FOR USER AUTHENTICATION ==========
 
-// Создание браузерного клиента с поддержкой авторизации
+// Create browser client with authentication support
 export function createAuthBrowserClient(): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -59,13 +59,13 @@ export function createAuthBrowserClient(): SupabaseClient<Database> {
   return createBrowserClient<Database>(url, anonKey);
 }
 
-// Интерфейс для cookie store (Next.js)
+// Interface for cookie store (Next.js)
 interface CookieStore {
   getAll(): { name: string; value: string }[];
   setAll(cookies: { name: string; value: string; options?: any }[]): void;
 }
 
-// Создание серверного клиента с поддержкой авторизации и cookies
+// Create server client with authentication and cookies support
 export function createAuthServerClient(cookieStore: CookieStore): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -94,7 +94,7 @@ export function createAuthServerClient(cookieStore: CookieStore): SupabaseClient
   });
 }
 
-// Глобальный клиент для сервера (инициализируется один раз)
+// Global server client (initialized once)
 let serverClient: SupabaseClient<Database> | null = null;
 
 export function getSupabaseServerClient(): SupabaseClient<Database> {
@@ -114,7 +114,7 @@ export function getSupabaseServerClient(): SupabaseClient<Database> {
   return serverClient;
 }
 
-// Утилита для проверки подключения
+// Utility for connection testing
 export async function testConnection(
   client: SupabaseClient<Database>
 ): Promise<boolean> {
