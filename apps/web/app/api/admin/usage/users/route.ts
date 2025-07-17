@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
 
-    // Получаем всех пользователей с их проектами
+    // Get all users with their projects
     const { data: projects, error: projectsError } = await supabase
       .from("projects")
       .select(
@@ -89,7 +89,6 @@ export async function GET(request: NextRequest) {
       recentFileChangesByProject.set(item.project_id, count + 1)
     })
 
-    // Группируем по пользователям
     const userStats = new Map()
 
     for (const project of projects) {
@@ -121,12 +120,12 @@ export async function GET(request: NextRequest) {
       stats.totalFileChanges += totalFileChangesByProject.get(project.id) || 0
       stats.recentFileChanges += recentFileChangesByProject.get(project.id) || 0
 
-      // Обновляем дату присоединения (берем самый ранний проект)
+      // Update join date (take earliest project)
       if (project.created_at && new Date(project.created_at) < new Date(stats.joinedAt)) {
         stats.joinedAt = project.created_at
       }
 
-      // Обновляем последнюю активность
+      // Update last activity
       if (
         project.updated_at &&
         (!stats.lastActivity || new Date(project.updated_at) > new Date(stats.lastActivity))
@@ -134,23 +133,19 @@ export async function GET(request: NextRequest) {
         stats.lastActivity = project.updated_at
       }
 
-      // Считаем активные проекты (обновлялись недавно)
       if (project.updated_at && new Date(project.updated_at) > cutoffDate) {
         stats.activeProjectsCount++
       }
 
-      // Статистика по статусам деплоя
       const status = project.deploy_status
       if (status) {
         stats.deployStatusCounts[status] = (stats.deployStatusCounts[status] || 0) + 1
       }
     }
 
-    // Конвертируем в массив и сортируем по активности
     const users = Array.from(userStats.values())
       .map((stats) => ({
         ...stats,
-        // Вычисляем общий показатель активности
         activityScore:
           stats.recentCommits * 2 + stats.recentFileChanges * 1 + stats.activeProjectsCount * 3,
         isActive: stats.lastActivity ? new Date(stats.lastActivity) > cutoffDate : false,

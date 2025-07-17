@@ -3,9 +3,9 @@ export { ProjectSetupLayout } from "./setup-layout"
 export { ProjectSetupSidebar } from "./setup-sidebar"
 
 // Steps
-// DownloadStep убран из онбординга - остается только шаг открытия проекта
+// DownloadStep removed from onboarding - only project opening step remains
 export { SetupStep } from "./steps/setup-step"
-// DeployStep убран из UI онбординга, но файл сохранен для возможного использования в других местах
+// DeployStep removed from onboarding UI, but file saved for possible use elsewhere
 
 // Types
 export interface SetupStep {

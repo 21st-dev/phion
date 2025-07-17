@@ -4,7 +4,6 @@ import { generateObject } from "ai"
 import { z } from "zod"
 import { getSupabaseServerClient } from "@shipvibes/database"
 
-// Временный интерфейс для waitlist с AI полями
 interface WaitlistEntryWithAI {
   id: string
   email: string
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseServerClient()
 
-    // Получаем данные пользователя
+    // Get user data
     const { data: entry, error: fetchError } = await supabase
       .from("waitlist")
       .select("*")
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const typedEntry = entry as any as WaitlistEntryWithAI
 
-    // Проверяем, нужен ли реанализ
+    // Check, 
     if (!typedEntry.ai_needs_reanalysis && typedEntry.ai_analyzed_at) {
       return NextResponse.json({
         message: "Already analyzed",
@@ -89,7 +88,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Анализируем с помощью OpenAI
     const result = await generateObject({
       model: openai("gpt-4o"),
       schema: analysisSchema,
@@ -136,7 +134,6 @@ Analyze their experience level, check for Cursor IDE usage, identify if frustrat
       `,
     })
 
-    // Сохраняем результат анализа
     const { error: updateError } = await supabase
       .from("waitlist")
       .update({
@@ -189,12 +186,11 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = getSupabaseServerClient()
 
-    // Получаем всех пользователей, которым нужен анализ
+    // Get , 
     const { data: entries, error: fetchError } = await supabase
       .from("waitlist")
       .select("*")
       .eq("ai_needs_reanalysis", true)
-      .limit(10) // Обрабатываем по 10 за раз
 
     if (fetchError) {
       return NextResponse.json({ error: "Failed to fetch entries" }, { status: 500 })
@@ -251,7 +247,6 @@ Analyze their experience level, check for Cursor IDE usage, identify if frustrat
           `,
         })
 
-        // Сохраняем результат
         await supabase
           .from("waitlist")
           .update({

@@ -9,12 +9,10 @@ export const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
-  // После hydration компонент монтируется на клиенте
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // На сервере не рендерим ничего для избежания mismatch
   if (!mounted) {
     return (
       <fieldset className="flex h-8 p-0 m-0 rounded-[999999px] border border-shadow">

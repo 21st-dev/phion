@@ -96,7 +96,7 @@ async function main() {
     process.stdin.setRawMode?.(true)
     process.stdin.resume()
     process.stdin.on("data", (key) => {
-      // Ctrl+C для выхода
+      // Ctrl+C to exit
       if (key[0] === 3) {
         shutdown()
       }

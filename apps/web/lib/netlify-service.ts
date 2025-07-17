@@ -56,7 +56,6 @@ export class NetlifyService {
   }
 
   /**
-   * Создает новый Netlify сайт с привязкой к GitHub репозиторию
    */
   async createSiteWithGitHub(
     projectId: string,
@@ -65,7 +64,7 @@ export class NetlifyService {
     githubOwner: string,
   ): Promise<NetlifyCreateSiteResponse> {
     try {
-      // GitHub App Installation ID для организации phion
+      // GitHub App Installation ID for phion organization
       const installationId = parseInt(process.env.NETLIFY_GITHUB_INSTALLATION_ID!)
 
       if (!installationId || isNaN(installationId)) {
@@ -81,7 +80,6 @@ export class NetlifyService {
           branch: "main",
           installation_id: installationId,
         },
-        // Настройки сборки для Vite проекта
         build_settings: {
           cmd: "pnpm install && pnpm build",
           dir: "dist",
@@ -124,8 +122,6 @@ export class NetlifyService {
         repoUrl: data.build_settings?.repo_url,
       })
 
-      // НЕ настраиваем webhook здесь - это будет сделано отдельно
-      // чтобы избежать race condition с сохранением netlify_site_id
 
       return data
     } catch (error) {
@@ -135,25 +131,20 @@ export class NetlifyService {
   }
 
   /**
-   * Настраивает webhook для существующего сайта
-   * Вызывается отдельно после сохранения netlify_site_id в базу данных
    */
   async setupWebhookForSite(siteId: string, projectId: string): Promise<void> {
     await this.setupWebhook(siteId, projectId)
   }
 
   /**
-   * Настраивает webhook для сайта
    */
   private async setupWebhook(siteId: string, projectId: string): Promise<void> {
     try {
-      // В development режиме автоматически запускаем ngrok
       let webhookUrl = process.env.WEBSOCKET_SERVER_URL
 
       if (process.env.NODE_ENV === "development" || !webhookUrl) {
         try {
           console.log("🔗 Starting ngrok tunnel for development webhooks...")
-          // Динамический импорт ngrok сервиса только в development
           const { ngrokService } = await import("./ngrok-service")
           webhookUrl = await ngrokService.startTunnel()
         } catch (error) {
@@ -167,12 +158,11 @@ export class NetlifyService {
 
       console.log(`🔗 Setting up webhook for site ${siteId} → ${webhookEndpoint}`)
 
-      // Правильные события согласно документации Netlify Deploy Notifications
-      // deploy_succeeded не существует - убираем его
+              // deploy_succeeded doesn't exist - remove it
       const events = ["deploy_created", "deploy_building", "deploy_failed"]
       const webhookPromises = []
 
-      // Создаем отдельный webhook для каждого события
+      // Create separate webhook for each event
       for (const event of events) {
         const webhookPromise = fetch(`${this.baseUrl}/hooks`, {
           method: "POST",
@@ -193,10 +183,9 @@ export class NetlifyService {
         webhookPromises.push(webhookPromise)
       }
 
-      // Выполняем все запросы параллельно
       const responses = await Promise.all(webhookPromises)
 
-      // Проверяем результаты
+      // Check results
       const results = []
       for (let i = 0; i < responses.length; i++) {
         const response = responses[i]
@@ -225,13 +214,11 @@ export class NetlifyService {
       }
     } catch (error) {
       console.error(`❌ Error setting up webhook for site ${siteId}:`, error)
-      // Не прерываем создание сайта из-за ошибки webhook
       console.log("⚠️ Continuing without webhook setup")
     }
   }
 
   /**
-   * Получает информацию о сайте
    */
   async getSite(siteId: string): Promise<NetlifyCreateSiteResponse> {
     try {
@@ -256,7 +243,6 @@ export class NetlifyService {
   }
 
   /**
-   * Удаляет сайт
    */
   async deleteSite(siteId: string): Promise<void> {
     try {
@@ -280,5 +266,4 @@ export class NetlifyService {
   }
 }
 
-// Экспортируем singleton instance
 export const netlifyService = new NetlifyService()

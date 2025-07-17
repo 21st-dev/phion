@@ -4,7 +4,6 @@ import { cookies } from "next/headers"
 import { githubAppService } from "@/lib/github-service"
 
 /**
- * Удалить Netlify сайт через API
  */
 async function deleteNetlifySite(siteId: string): Promise<void> {
   const netlifyToken = process.env.NETLIFY_ACCESS_TOKEN
@@ -36,7 +35,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
       try {
         cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
       } catch {
-        // Игнорируем ошибки установки cookies
+        // Ignore errors setting cookies
       }
     },
   })
@@ -55,7 +54,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Проверяем, что это dev environment
+    // Check, that this is dev environment
     if (process.env.NODE_ENV !== "development") {
       return NextResponse.json(
         { error: "This endpoint is only available in development environment" },
@@ -70,7 +69,7 @@ export async function DELETE(request: NextRequest) {
 
     const projectQueries = new ProjectQueries(supabase)
 
-    // Получаем все проекты пользователя
+    // Get all user projects
     const { data: projects, error: fetchError } = await supabase
       .from("projects")
       .select("*")
@@ -94,12 +93,12 @@ export async function DELETE(request: NextRequest) {
     let deletedCount = 0
     let errors: string[] = []
 
-    // Удаляем каждый проект
+    // Remove each project
     for (const project of projects) {
       try {
         console.log(`🗑️ [DEV] Deleting project ${project.id}: ${project.name}`)
 
-        // Если у проекта есть Netlify сайт, удаляем его
+        // If project has Netlify , remove it
         if (project.netlify_site_id) {
           try {
             console.log(`🌐 [DEV] Deleting Netlify site: ${project.netlify_site_id}`)
@@ -114,7 +113,7 @@ export async function DELETE(request: NextRequest) {
           }
         }
 
-        // Если у проекта есть GitHub репозиторий, удаляем его
+        // If project has GitHub , remove it
         if (project.github_repo_name) {
           try {
             console.log(`🐙 [DEV] Deleting GitHub repository: ${project.github_repo_name}`)
@@ -131,7 +130,7 @@ export async function DELETE(request: NextRequest) {
           }
         }
 
-        // Удаляем проект из базы данных
+        // Remove project from database
         console.log(`🗄️ [DEV] Deleting project from database: ${project.id}`)
         await projectQueries.deleteProject(project.id)
         console.log(`✅ [DEV] Project deleted successfully: ${project.id}`)

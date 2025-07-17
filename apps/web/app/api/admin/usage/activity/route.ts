@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get("days") || "30")
 
-    // Создаем массив дат для последних N дней
+    // Create  N 
     const dates = []
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date()
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Получаем активность по проектам
+    // Get  project
     const { data: projectActivity, error: projectError } = await supabase
       .from("projects")
       .select("created_at, updated_at, user_id")
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     if (projectError) throw projectError
 
-    // Получаем активность коммитов
+    // Get 
     const { data: commitActivity, error: commitError } = await supabase
       .from("commit_history")
       .select("created_at, project_id")
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     if (commitError) throw commitError
 
-    // Получаем активность файлов
+    // Get 
     const { data: fileActivity, error: fileError } = await supabase
       .from("file_history")
       .select("created_at, project_id")
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     if (fileError) throw fileError
 
-    // Получаем проекты для связи с пользователями
+    // Get project
     const { data: projects, error: projectsError } = await supabase
       .from("projects")
       .select("id, user_id")
@@ -62,36 +62,30 @@ export async function GET(request: NextRequest) {
       projectUserMap.set(p.id, p.user_id)
     })
 
-    // Заполняем статистику по дням
     const dailyStats = dates.map((dayData) => {
       const dayStart = new Date(dayData.date + "T00:00:00")
       const dayEnd = new Date(dayData.date + "T23:59:59")
 
-      // Подсчитываем созданные проекты
       const projectsCreated = projectActivity.filter((p) => {
         if (!p.created_at) return false
         const createdAt = new Date(p.created_at)
         return createdAt >= dayStart && createdAt <= dayEnd
       }).length
 
-      // Подсчитываем коммиты
       const commitsCount = commitActivity.filter((c) => {
         if (!c.created_at) return false
         const createdAt = new Date(c.created_at)
         return createdAt >= dayStart && createdAt <= dayEnd
       }).length
 
-      // Подсчитываем изменения файлов
       const fileChangesCount = fileActivity.filter((f) => {
         if (!f.created_at) return false
         const createdAt = new Date(f.created_at)
         return createdAt >= dayStart && createdAt <= dayEnd
       }).length
 
-      // Подсчитываем уникальных активных пользователей
       const activeUserIds = new Set()
 
-      // Пользователи, создавшие проекты
       projectActivity.forEach((p) => {
         if (!p.created_at) return
         const createdAt = new Date(p.created_at)
@@ -100,7 +94,6 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Пользователи, сделавшие коммиты
       commitActivity.forEach((c) => {
         if (!c.created_at) return
         const createdAt = new Date(c.created_at)
@@ -112,7 +105,6 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Пользователи, изменившие файлы
       fileActivity.forEach((f) => {
         if (!f.created_at) return
         const createdAt = new Date(f.created_at)
@@ -130,7 +122,7 @@ export async function GET(request: NextRequest) {
         commits: commitsCount,
         fileChanges: fileChangesCount,
         activeUsers: activeUserIds.size,
-        // Добавляем человеко-читаемую дату
+        // Add -
         displayDate: dayStart.toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -138,7 +130,6 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Вычисляем тренды
     const totalActivity = dailyStats.reduce(
       (acc, day) => ({
         projects: acc.projects + day.projects,

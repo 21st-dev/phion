@@ -4,7 +4,6 @@ export class FileHistoryQueries {
         this.client = client;
     }
     /**
-     * Получить историю файлов проекта
      */
     async getProjectFileHistory(projectId, limit = 100, offset = 0) {
         const { data, error } = await this.client
@@ -19,7 +18,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить историю конкретного файла
      */
     async getFileHistory(projectId, filePath, limit = 50) {
         const { data, error } = await this.client
@@ -35,7 +33,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить последнюю версию файла
      */
     async getLatestFileVersion(projectId, filePath) {
         const { data, error } = await this.client
@@ -55,7 +52,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Создать запись истории файла
      */
     async createFileHistory(historyData) {
         const insertData = {
@@ -79,7 +75,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Получить запись по ID
      */
     async getFileHistoryById(id) {
         const { data, error } = await this.client
@@ -96,7 +91,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Найти файлы по хешу содержимого (дедупликация)
      */
     async findFilesByContentHash(contentHash) {
         const { data, error } = await this.client
@@ -110,7 +104,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить изменения между двумя версиями
      */
     async getChangesBetweenVersions(projectId, fromDate, toDate) {
         const { data, error } = await this.client
@@ -126,7 +119,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить статистику по файлам проекта (упрощенная версия)
      */
     async getProjectFileStats(projectId) {
         // Get all history records for project
@@ -152,7 +144,6 @@ export class FileHistoryQueries {
         };
     }
     /**
-     * Получить последние версии всех файлов проекта
      */
     async getLatestFileVersions(projectId) {
         const { data, error } = await this.client
@@ -176,7 +167,6 @@ export class FileHistoryQueries {
         return Array.from(latestVersionsMap.values());
     }
     /**
-     * Создать запись истории файла с GitHub информацией
      */
     async createFileHistoryWithGitHub(historyData) {
         const insertData = {
@@ -202,7 +192,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Обновить GitHub информацию для записи истории файла
      */
     async updateGitHubInfo(fileHistoryId, githubInfo) {
         const updateData = {
@@ -221,7 +210,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Получить файлы по GitHub commit SHA
      */
     async getFilesByGitHubCommit(projectId, githubCommitSha) {
         const { data, error } = await this.client
@@ -236,7 +224,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить записи без GitHub информации (для миграции)
      */
     async getFilesWithoutGitHubInfo(projectId, limit = 100) {
         let query = this.client

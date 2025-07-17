@@ -8,7 +8,6 @@ export * from "./commit-history";
 import { getSupabaseServerClient } from "../client";
 
 /**
- * Получить коммиты проекта (группированные по commit_id)
  */
 export async function getProjectCommits(projectId?: string, limit: number = 50): Promise<any[]> {
   const supabase = getSupabaseServerClient();
@@ -48,7 +47,6 @@ export async function getProjectCommits(projectId?: string, limit: number = 50):
 }
 
 /**
- * Получить файлы конкретного коммита
  */
 export async function getCommitFiles(commitId: string): Promise<any[]> {
   const supabase = getSupabaseServerClient();

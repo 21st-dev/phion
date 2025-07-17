@@ -6,7 +6,6 @@ export * from "./deploy-status";
 export * from "./commit-history";
 import { getSupabaseServerClient } from "../client";
 /**
- * Получить коммиты проекта (группированные по commit_id)
  */
 export async function getProjectCommits(projectId, limit = 50) {
     const supabase = getSupabaseServerClient();
@@ -39,7 +38,6 @@ export async function getProjectCommits(projectId, limit = 50) {
     return Array.from(commitsMap.values());
 }
 /**
- * Получить файлы конкретного коммита
  */
 export async function getCommitFiles(commitId) {
     const supabase = getSupabaseServerClient();

@@ -7,19 +7,19 @@ async function startWithNgrok() {
   console.log("🚀 Starting Phion Web with ngrok tunnel...\n")
 
   try {
-    // 1. Сначала запускаем ngrok туннель
+    // 1. First start ngrok tunnel
     console.log("🔗 Setting up ngrok tunnel...")
     const tunnelUrl = await ngrokService.startTunnel()
     console.log(`✅ Ngrok tunnel ready: ${tunnelUrl}\n`)
 
-    // 2. Затем запускаем Next.js dev сервер
+    // 2. Then start Next.js dev server
     console.log("📦 Starting Next.js dev server...")
     const nextProcess = spawn("pnpm", ["dev"], {
       stdio: "inherit",
       cwd: process.cwd(),
       env: {
         ...process.env,
-        WEBSOCKET_SERVER_URL: tunnelUrl, // Передаем URL в переменную окружения
+        WEBSOCKET_SERVER_URL: tunnelUrl, // Pass URL to environment variable
       },
     })
 
@@ -48,5 +48,5 @@ async function startWithNgrok() {
   }
 }
 
-// Запускаем
+// Start
 startWithNgrok().catch(console.error)

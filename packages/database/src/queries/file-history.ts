@@ -11,7 +11,6 @@ export class FileHistoryQueries {
   constructor(private client: SupabaseClient<Database>) {}
 
   /**
-   * Получить историю файлов проекта
    */
   async getProjectFileHistory(
     projectId: string,
@@ -33,7 +32,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить историю конкретного файла
    */
   async getFileHistory(
     projectId: string,
@@ -56,7 +54,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить последнюю версию файла
    */
   async getLatestFileVersion(
     projectId: string,
@@ -82,7 +79,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Создать запись истории файла
    */
   async createFileHistory(
     historyData: CreateFileHistory
@@ -112,7 +108,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить запись по ID
    */
   async getFileHistoryById(id: string): Promise<FileHistoryRow | null> {
     const { data, error } = await this.client
@@ -132,7 +127,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Найти файлы по хешу содержимого (дедупликация)
    */
   async findFilesByContentHash(contentHash: string): Promise<FileHistoryRow[]> {
     const { data, error } = await this.client
@@ -149,7 +143,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить изменения между двумя версиями
    */
   async getChangesBetweenVersions(
     projectId: string,
@@ -174,7 +167,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить статистику по файлам проекта (упрощенная версия)
    */
   async getProjectFileStats(projectId: string): Promise<{
     total_files: number;
@@ -218,7 +210,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить последние версии всех файлов проекта
    */
   async getLatestFileVersions(projectId: string): Promise<FileHistoryRow[]> {
     const { data, error } = await this.client
@@ -247,7 +238,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Создать запись истории файла с GitHub информацией
    */
   async createFileHistoryWithGitHub(
     historyData: CreateFileHistory & {
@@ -282,7 +272,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Обновить GitHub информацию для записи истории файла
    */
   async updateGitHubInfo(
     fileHistoryId: string,
@@ -311,7 +300,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить файлы по GitHub commit SHA
    */
   async getFilesByGitHubCommit(
     projectId: string,
@@ -332,7 +320,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить записи без GitHub информации (для миграции)
    */
   async getFilesWithoutGitHubInfo(
     projectId?: string,

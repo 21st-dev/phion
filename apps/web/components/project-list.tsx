@@ -11,12 +11,10 @@ export function ProjectList() {
   const { data: projects, isLoading, error } = useProjects()
   const { error: showError } = useToast()
 
-  // Показываем ошибку через toast, если есть
   if (error) {
     showError("Failed to load projects", "Please refresh the page to try again")
   }
 
-  // Конвертируем данные для совместимости с ProjectCard
   const formatProjectsForCards = (projects: ProjectRow[] | undefined) => {
     if (!projects) return []
 

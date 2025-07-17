@@ -29,15 +29,15 @@ import { PendingChangesQueries } from "./queries/pending-changes";
 const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient());
 // Export pending changes functions
 export const getPendingChanges = (projectId) => pendingChangesQueries.getPendingChanges(projectId);
-// GitHub функции для проектов
+// GitHub functions for projects
 export const updateGitHubData = (projectId, githubData) => projectQueries.updateGitHubInfo(projectId, githubData);
 export const getProjectsWithGitHub = () => projectQueries.getProjectsWithGitHub();
-// Commit history функции
+// Commit history functions
 export const getProjectCommitHistory = (projectId, limit, offset) => commitHistoryQueries.getProjectCommitHistory(projectId, limit, offset);
 export const createCommitHistory = (commitData) => commitHistoryQueries.createCommitHistory(commitData);
 export const getCommitBySha = (projectId, githubCommitSha) => commitHistoryQueries.getCommitBySha(projectId, githubCommitSha);
 export const getLatestCommit = (projectId) => commitHistoryQueries.getLatestCommit(projectId);
-// GitHub функции для file history
+// GitHub functions for file history
 export const createFileHistoryWithGitHub = (historyData) => fileHistoryQueries.createFileHistoryWithGitHub(historyData);
 export const getFilesByGitHubCommit = (projectId, githubCommitSha) => fileHistoryQueries.getFilesByGitHubCommit(projectId, githubCommitSha);
 // Export new class for advanced usage

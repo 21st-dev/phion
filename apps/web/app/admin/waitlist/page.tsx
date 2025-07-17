@@ -89,7 +89,6 @@ export default function AdminWaitlistPage() {
   useEffect(() => {
     fetchWaitlistEntries()
 
-    // Автообновление каждые 30 секунд
     const interval = setInterval(fetchWaitlistEntries, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -109,7 +108,7 @@ export default function AdminWaitlistPage() {
         throw new Error(result.error || "Failed to analyze entry")
       }
 
-      // Обновляем локальное состояние
+      // Update local state
       setEntries((prev) =>
         prev.map((entry) =>
           entry.id === entryId
@@ -153,7 +152,7 @@ export default function AdminWaitlistPage() {
 
       showSuccess("Bulk analysis completed", `Processed ${result.processed} entries`)
 
-      // Обновляем данные
+      // Update data
       await fetchWaitlistEntries()
     } catch (err) {
       showError("Bulk analysis failed", err instanceof Error ? err.message : "Please try again")
@@ -245,11 +244,9 @@ export default function AdminWaitlistPage() {
         setSelectedEntry((prev) => (prev ? { ...prev, ...result.data } : null))
       }
 
-      // Автоматически отправляем email при аппруве
       if (newStatus === "approved") {
         setTimeout(() => {
           sendApprovalEmail(entryId)
-        }, 1000) // Небольшая задержка чтобы пользователь увидел успешное обновление статуса
       }
     } catch (err) {
       showError("Failed to update status", err instanceof Error ? err.message : "Please try again")
@@ -295,7 +292,6 @@ export default function AdminWaitlistPage() {
     })
   }
 
-  // Фильтрация и сортировка
   const filteredAndSortedEntries = entries
     .filter((entry) => {
       switch (filterBy) {

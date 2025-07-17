@@ -6,7 +6,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
 
-    // Проверяем авторизацию через пользовательский Supabase клиент
+    // Check  Supabase 
     const supabase = await createClient()
     const {
       data: { user },
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Используем server client для запросов к pending_changes
+    // Use server client  pending_changes
     const serverSupabase = getSupabaseServerClient()
     const pendingQueries = new PendingChangesQueries(serverSupabase)
 

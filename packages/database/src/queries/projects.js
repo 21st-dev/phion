@@ -4,7 +4,6 @@ export class ProjectQueries {
     this.client = client;
   }
   /**
-   * Получить все проекты (только для admin/service role)
    */
   async getAllProjects() {
     const { data, error } = await this.client
@@ -17,7 +16,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Получить проекты пользователя (работает с RLS)
    */
   async getUserProjects(userId) {
     let query = this.client
@@ -36,7 +34,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Получить проект по ID
    */
   async getProjectById(projectId) {
     const { data, error } = await this.client
@@ -53,7 +50,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Создать новый проект
    */
   async createProject(projectData) {
     const insertData = {
@@ -73,7 +69,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Обновить проект
    */
   async updateProject(projectId, updateData) {
     const { data, error } = await this.client
@@ -88,7 +83,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Удалить проект
    */
   async deleteProject(projectId) {
     const { error } = await this.client
@@ -100,7 +94,6 @@ export class ProjectQueries {
     }
   }
   /**
-   * Обновить статус деплоя
    */
   async updateDeployStatus(projectId, status, netlifyUrl, netlifyId) {
     const updateData = {
@@ -124,7 +117,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Получить проекты с определенным статусом деплоя
    */
   async getProjectsByDeployStatus(status) {
     const { data, error } = await this.client
@@ -140,7 +132,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Поиск проектов по имени
    */
   async searchProjects(searchTerm) {
     const { data, error } = await this.client
@@ -154,7 +145,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Поиск проектов пользователя по имени
    */
   async searchUserProjects(searchTerm, userId) {
     let query = this.client
@@ -174,7 +164,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Обновить GitHub информацию проекта
    */
   async updateGitHubInfo(projectId, githubInfo) {
     const updateData = {
@@ -240,7 +229,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Получить проекты по GitHub репозиторию
    */
   async getProjectByGitHubRepo(repoName, owner = "phion-dev") {
     const { data, error } = await this.client
@@ -260,7 +248,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Получить все проекты с настроенным GitHub репозиторием
    */
   async getProjectsWithGitHub() {
     const { data, error } = await this.client

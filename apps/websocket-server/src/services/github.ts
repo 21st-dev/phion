@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken"
 import fetch from "node-fetch"
 import type { Response as NodeFetchResponse } from "node-fetch"
 
-// Интерфейсы для GitHub API
 interface GitHubInstallationToken {
   token: string
   expires_at: string
@@ -94,7 +93,6 @@ export class GitHubAppService {
   private readonly baseUrl = "https://api.github.com"
   private readonly organization = "phion-dev"
 
-  // Кэш токена для избежания частых запросов
   private tokenCache: {
     token: string
     expiresAt: Date
@@ -119,7 +117,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Повторяет запрос с экспоненциальной задержкой при ошибках
    */
   private async withRetry<T>(
     operation: () => Promise<T>,
@@ -135,7 +132,6 @@ export class GitHubAppService {
       } catch (error) {
         lastError = error as Error
 
-        // Определяем, стоит ли повторять
         const shouldRetry = this.shouldRetryError(error)
 
         if (attempt === maxAttempts || !shouldRetry) {
@@ -157,12 +153,10 @@ export class GitHubAppService {
   }
 
   /**
-   * Определяет, стоит ли повторять запрос при данной ошибке
    */
   private shouldRetryError(error: any): boolean {
     if (!error) return false
 
-    // Сетевые ошибки
     if (
       error.code === "ECONNRESET" ||
       error.code === "ENOTFOUND" ||
@@ -172,7 +166,7 @@ export class GitHubAppService {
       return true
     }
 
-    // HTTP статусы, которые стоит повторить
+    // HTTP statuses, worth retrying
     if (error.status >= 500 || error.status === 429) {
       return true
     }
@@ -181,7 +175,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Генерирует JWT токен для GitHub App
    */
   private generateJWT(): string {
     const now = Math.floor(Date.now() / 1000)
@@ -195,11 +188,8 @@ export class GitHubAppService {
   }
 
   /**
-   * Получает installation token для GitHub App
-   * Токен кэшируется и автоматически обновляется при истечении
    */
   async getInstallationToken(): Promise<string> {
-    // Проверяем кэш (оставляем больше буфера - 10 минут до истечения)
     if (this.tokenCache && this.tokenCache.expiresAt > new Date(Date.now() + 10 * 60 * 1000)) {
       console.log("🔄 Using cached installation token")
       return this.tokenCache.token
@@ -235,7 +225,6 @@ export class GitHubAppService {
 
         const data = (await response.json()) as GitHubInstallationToken
 
-        // Кэшируем токен (он действует 60 минут, кэшируем на 50 минут для безопасности)
         this.tokenCache = {
           token: data.token,
           expiresAt: new Date(Date.now() + 50 * 60 * 1000),
@@ -255,7 +244,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Выполняет авторизованный запрос к GitHub API
    */
   private async makeAuthenticatedRequest(
     endpoint: string,
@@ -278,24 +266,20 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает новый приватный репозиторий в организации phion-dev 
    */
   async createRepository(projectId: string, description?: string): Promise<GitHubRepository> {
     const repoName = `phion-project-${projectId}`
 
     return this.withRetry(
       async () => {
-        // Проверяем существование репозитория перед созданием
         const existingRepo = await this.checkRepositoryExists(repoName)
         if (existingRepo) {
           console.log(`⚠️ Repository ${repoName} already exists. Checking if it's orphaned...`)
 
-          // Попытаемся удалить существующий репозиторий
           try {
             await this.deleteRepository(repoName)
             console.log(`🧹 Deleted orphaned repository: ${repoName}`)
 
-            // Небольшая задержка после удаления
             await new Promise((resolve) => setTimeout(resolve, 1000))
           } catch (deleteError) {
             console.error(`❌ Failed to delete existing repository ${repoName}:`, deleteError)
@@ -309,7 +293,7 @@ export class GitHubAppService {
           name: repoName,
           description: description || `Phion project ${projectId}`,
           private: true,
-          auto_init: true, // GitHub автоматически создаст README и initial commit
+          auto_init: true, // GitHub automatically will create README and initial commit
         }
 
         const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}/repos`, {
@@ -344,7 +328,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Проверяет существование репозитория
    */
   async checkRepositoryExists(repoName: string): Promise<GitHubRepository | null> {
     try {
@@ -367,7 +350,6 @@ export class GitHubAppService {
         return null
       }
 
-      // Для других ошибок выбрасываем исключение
       const error = await response.text()
       throw new Error(`Failed to check repository existence: ${response.status} ${error}`)
     } catch (error) {
@@ -380,8 +362,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Удаляет репозиторий из организации
-   * ВНИМАНИЕ: Это необратимая операция!
    */
   async deleteRepository(repoName: string): Promise<void> {
     try {
@@ -395,7 +375,6 @@ export class GitHubAppService {
       if (!response.ok) {
         const error = await response.text()
 
-        // Если репозиторий уже не существует, считаем это успехом
         if (response.status === 404) {
           console.log("⚠️ Repository already deleted or not found", {
             repoName,
@@ -420,7 +399,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает или обновляет файл в репозитории
    */
   async createOrUpdateFile(
     repoName: string,
@@ -432,14 +410,12 @@ export class GitHubAppService {
     try {
       let fileSha = sha
 
-      // Если SHA не предоставлен, пытаемся получить существующий файл
       if (!fileSha) {
         try {
           const existingFile = await this.getFileContent(repoName, filePath)
           fileSha = existingFile.sha
           console.log("🔍 Found existing file, using SHA for update:", fileSha)
         } catch (error) {
-          // Файл не существует, создаем новый (SHA не нужен)
           console.log("📄 File does not exist, creating new file")
         }
       }
@@ -499,7 +475,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Получает содержимое файла из репозитория
    */
   async getFileContent(
     repoName: string,
@@ -521,7 +496,6 @@ export class GitHubAppService {
 
       const fileContent = (await response.json()) as GitHubFileContent
 
-      // Декодируем содержимое из base64
       if (fileContent.encoding === "base64") {
         fileContent.content = Buffer.from(fileContent.content, "base64").toString("utf8")
       }
@@ -538,7 +512,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Удаляет файл из репозитория
    */
   async deleteFile(
     repoName: string,
@@ -594,7 +567,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Скачивает ZIP архив репозитория
    */
   async downloadRepositoryZip(repoName: string, ref = "main"): Promise<Buffer> {
     try {
@@ -627,7 +599,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Получает список коммитов в репозитории
    */
   async getCommits(repoName: string, branch = "main", limit = 30): Promise<GitHubCommit[]> {
     try {
@@ -660,16 +631,12 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает временный токен для git операций (для локального агента)
    */
   async createTemporaryToken(): Promise<string> {
-    // Возвращаем installation token, который действует 60 минут
-    // Этого достаточно для локальных git операций
     return this.getInstallationToken()
   }
 
   /**
-   * Создает blob объект в GitHub
    */
   async createBlob(repoName: string, content: string): Promise<{ sha: string }> {
     return this.withRetry(
@@ -704,7 +671,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает tree объект в GitHub
    */
   async createTree(
     repoName: string,
@@ -750,7 +716,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает commit в GitHub
    */
   async createCommit(
     repoName: string,
@@ -797,7 +762,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Обновляет ссылку (ref) в GitHub
    */
   async updateRef(repoName: string, ref: string, sha: string): Promise<void> {
     return this.withRetry(
@@ -824,7 +788,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Создает новую ссылку (ref) в GitHub
    */
   async createRef(repoName: string, ref: string, sha: string): Promise<void> {
     try {
@@ -850,7 +813,6 @@ export class GitHubAppService {
   }
 
   /**
-   * Получает последний commit из main ветки
    */
   async getLatestCommit(repoName: string, ref = "main"): Promise<{ sha: string } | null> {
     console.log(`🔍 [getLatestCommit] Checking for latest commit in ${repoName}/${ref}`)
@@ -865,12 +827,10 @@ export class GitHubAppService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          // Ветка не существует (пустой репозиторий)
           console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (404), returning null`)
           return null
         }
         if (response.status === 409) {
-          // Конфликт - пустой репозиторий
           console.log(`✅ [getLatestCommit] Repository ${repoName} is empty (409), returning null`)
           return null
         }
@@ -899,13 +859,11 @@ export class GitHubAppService {
   }
 
   /**
-   * Проверяет доступность GitHub API и статус GitHub App
    */
   async healthCheck(): Promise<{ status: "ok" | "error"; details: any }> {
     try {
       const token = await this.getInstallationToken()
 
-      // Проверяем доступ к организации
       const response = await this.makeAuthenticatedRequest(`/orgs/${this.organization}`)
 
       if (!response.ok) {
@@ -941,5 +899,4 @@ export class GitHubAppService {
   }
 }
 
-// Экспортируем singleton instance
 export const githubAppService = new GitHubAppService()

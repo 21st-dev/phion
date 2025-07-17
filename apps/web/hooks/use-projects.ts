@@ -18,7 +18,7 @@ export function useProjects() {
   })
 }
 
-// Хук для инвалидации кеша проектов (для использования после создания/удаления проектов)
+// Hook for invalidating projects cache (for use after creating/deleting projects)
 export function useInvalidateProjects() {
   const queryClient = useQueryClient()
 

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const supabase = getSupabaseServerClient()
     const projectQueries = new ProjectQueries(supabase)
 
-    // Получаем проект
+    // Get project
     const project = await projectQueries.getProjectById(id)
 
     if (!project) {

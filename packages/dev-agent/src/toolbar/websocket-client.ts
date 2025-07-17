@@ -371,7 +371,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Настройка глобальных обработчиков ошибок браузера
    */
   private setupErrorHandlers() {
     if (this.errorHandlersInstalled) return
@@ -432,7 +431,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Обработка runtime ошибки и отправка на сервер
    */
   private handleRuntimeError(errorInfo: any) {
     try {
@@ -513,7 +511,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Отправка runtime ошибки на сервер (теперь буферизуется вместо прямой отправки)
    */
   private sendRuntimeError(payload: string) {
     if (this.socket && this.socket.connected) {
@@ -523,7 +520,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Отправка события insert_prompt с буферизованными ошибками
    */
   sendInsertPrompt() {
     console.log(`[Phion Toolbar] sendInsertPrompt called. Buffer size: ${this.errorBuffer.length}`)
@@ -568,7 +564,6 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Очистка буфера ошибок с уведомлением UI
    */
   private clearErrorBuffer() {
     this.errorBuffer = []
@@ -580,7 +575,6 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Буферизация ошибки для отправки после подключения
    */
   private bufferError(payload: string) {
     this.errorBuffer.push(payload)
@@ -604,7 +598,6 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Отправка буферизованных ошибок после подключения
    */
   private flushErrorBuffer() {
     if (this.errorBuffer.length === 0) return
@@ -619,7 +612,6 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Публичный метод для ручной отправки ошибки
    */
   reportError(error: Error, context?: string) {
     this.handleRuntimeError({
@@ -631,14 +623,12 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Получить текущий размер буфера ошибок (для отладки)
    */
   getErrorBufferSize(): number {
     return this.errorBuffer.length
   }
 
   /**
-   * Установить callback для уведомления об изменении буфера ошибок
    */
   setErrorBufferChangeCallback(callback: (count: number) => void) {
     this.onErrorBufferChange = callback

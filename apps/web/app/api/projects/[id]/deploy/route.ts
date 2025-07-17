@@ -9,7 +9,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Project ID is required" }, { status: 400 })
     }
 
-    // Получаем проект из базы данных
+    // Get project from database
     const supabase = getSupabaseServerClient()
     const projectQueries = new ProjectQueries(supabase)
 
@@ -18,12 +18,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    // Обновляем статус деплоя на "building"
+    // Update  "building"
     await projectQueries.updateProject(projectId, {
       deploy_status: "building",
     })
 
-    // Отправляем запрос на деплой через WebSocket сервер
+    // Send  WebSocket 
     try {
       const websocketServerUrl = process.env.WEBSOCKET_SERVER_URL || "http://localhost:8080"
       const deployResponse = await fetch(`${websocketServerUrl}/api/deploy`, {
@@ -39,7 +39,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       if (!deployResponse.ok) {
         console.error("Failed to trigger deploy via WebSocket server")
-        // Возвращаемся к старому статусу если деплой не удался
         await projectQueries.updateProject(projectId, {
           deploy_status: "failed",
         })
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.log("Deploy triggered successfully via WebSocket server")
     } catch (error) {
       console.error("Error communicating with WebSocket server:", error)
-      // Установим статус failed если что-то пошло не так
       await projectQueries.updateProject(projectId, {
         deploy_status: "failed",
       })

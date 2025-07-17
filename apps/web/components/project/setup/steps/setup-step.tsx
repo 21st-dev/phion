@@ -29,16 +29,14 @@ export function SetupStep({ onDeploy, projectId, agentConnected = false }: Setup
     setIsWindows(isWindowsOS)
   }, [])
 
-  // WebSocket для отслеживания подключения агента
+  // WebSocket to track agent connection
   const { isConnected } = useWebSocket({
     projectId,
     onAgentConnected: () => {
       console.log("🟢 [SetupStep] Agent connected")
       success("Agent connected", "Your project is now syncing automatically")
-      // Автоматически переходим на overview при подключении
       setTimeout(() => {
         onDeploy()
-      }, 2000) // Небольшая задержка чтобы пользователь увидел уведомление
     },
     onAgentDisconnected: () => {
       console.log("🔴 [SetupStep] Agent disconnected")

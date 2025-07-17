@@ -6,7 +6,6 @@ export class ProjectQueries {
   constructor(private client: SupabaseClient<Database>) {}
 
   /**
-   * Получить все проекты (только для admin/service role)
    */
   async getAllProjects(): Promise<ProjectRow[]> {
     const { data, error } = await this.client
@@ -22,7 +21,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Получить проекты пользователя (работает с RLS)
    */
   async getUserProjects(userId?: string): Promise<ProjectRow[]> {
     let query = this.client.from("projects").select("*").order("created_at", { ascending: false })
@@ -43,7 +41,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Получить проект по ID
    */
   async getProjectById(projectId: string): Promise<ProjectRow | null> {
     const { data, error } = await this.client
@@ -63,7 +60,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Создать новый проект
    */
   async createProject(projectData: CreateProject & { user_id: string }): Promise<ProjectRow> {
     if (!projectData.user_id) {
@@ -87,7 +83,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Обновить проект
    */
   async updateProject(projectId: string, updateData: UpdateProject): Promise<ProjectRow> {
     const { data, error } = await this.client
@@ -105,7 +100,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Удалить проект
    */
   async deleteProject(projectId: string): Promise<void> {
     const { error } = await this.client.from("projects").delete().eq("id", projectId)
@@ -116,7 +110,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Обновить статус деплоя
    */
   async updateDeployStatus(
     projectId: string,
@@ -151,7 +144,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Получить проекты с определенным статусом деплоя
    */
   async getProjectsByDeployStatus(
     status: "pending" | "building" | "ready" | "failed" | "cancelled",
@@ -170,7 +162,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Поиск проектов по имени
    */
   async searchProjects(searchTerm: string): Promise<ProjectRow[]> {
     const { data, error } = await this.client
@@ -187,7 +178,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Поиск проектов пользователя по имени
    */
   async searchUserProjects(searchTerm: string, userId?: string): Promise<ProjectRow[]> {
     let query = this.client
@@ -212,7 +202,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Обновить GitHub информацию проекта
    */
   async updateGitHubInfo(
     projectId: string,
@@ -283,7 +272,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Получить проекты по GitHub репозиторию
    */
   async getProjectByGitHubRepo(
     repoName: string,
@@ -307,7 +295,6 @@ export class ProjectQueries {
   }
 
   /**
-   * Получить все проекты с настроенным GitHub репозиторием
    */
   async getProjectsWithGitHub(): Promise<ProjectRow[]> {
     const { data, error } = await this.client

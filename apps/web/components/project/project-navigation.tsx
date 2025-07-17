@@ -6,11 +6,9 @@ import { cn } from "@/lib/utils"
 
 interface ProjectNavigationProps {
   projectId: string
-  project?: any // Проект с данными для определения показывать ли онбординг
 }
 
 export function ProjectNavigation({ projectId, project }: ProjectNavigationProps) {
-  // Скрываем Onboarding если уже есть netlify_site_id (первый деплой был сделан)
   const showOnboarding = !project?.netlify_site_id
 
   const tabs = [

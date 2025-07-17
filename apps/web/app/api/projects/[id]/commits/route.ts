@@ -14,18 +14,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const supabase = getSupabaseServerClient()
 
     if (commitId) {
-      // Получить файлы конкретного коммита (save point)
       const fileHistoryQueries = new FileHistoryQueries(supabase)
       const files = await fileHistoryQueries.getFilesByGitHubCommit(projectId, commitId)
       return NextResponse.json({ files })
     } else {
-      // Получить список коммитов проекта (save points)
       const commitHistoryQueries = new CommitHistoryQueries(supabase)
       const commits = await commitHistoryQueries.getProjectCommitHistory(projectId)
 
-      // Преобразуем в формат, понятный для UI (скрываем GitHub детали)
       const savePoints = commits.map((commit) => ({
-        commit_id: commit.github_commit_sha, // Используем как ID для обратной совместимости
+        commit_id: commit.github_commit_sha, // Use  ID 
         commit_message: commit.commit_message,
         created_at: commit.created_at,
         project_id: commit.project_id,

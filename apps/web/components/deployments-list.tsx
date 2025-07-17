@@ -478,7 +478,6 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
     agentConnected,
   } = useProject()
 
-  // Вспомогательная функция для безопасного преобразования статуса
   const getValidDeployStatus = (status: string | null): Deployment["status"] => {
     if (!status) return "no_deploy"
     if (["building", "ready", "failed", "pending"].includes(status)) {
@@ -487,7 +486,6 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
     return "no_deploy"
   }
 
-  // Логируем изменения в history
   useEffect(() => {
     console.log("🚀 [DeploymentsList] History updated:", {
       historyLength: history?.length || 0,
@@ -496,7 +494,6 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
     })
   }, [history])
 
-  // Логируем изменения статуса деплоя
   useEffect(() => {
     console.log("🔄 [DeploymentsList] Deploy status updated:", {
       deployStatus: project.deploy_status,
@@ -517,7 +514,7 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
           isLoading={isSaving}
         />
 
-        {/* Показываем карточку в зависимости от статуса */}
+        {/* Show card based on status */}
         <motion.div
           layout
           initial={{ opacity: 0, y: 20 }}
@@ -525,7 +522,6 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
           {project.deploy_status === "failed" ? (
-            // Карточка ошибки инициализации
             <div className="border rounded-lg bg-card border-border border-destructive/20">
               <div className="p-4">
                 <div className="flex items-start gap-3">
@@ -552,7 +548,6 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
               </div>
             </div>
           ) : (
-            // Карточка инициализации проекта
             <div className="border rounded-lg bg-card border-border">
               <div className="p-4">
                 <div className="flex items-start gap-3">
@@ -599,11 +594,10 @@ export function DeploymentsList({ onRevert }: DeploymentsListProps) {
         {history.map((commit: Commit, index) => {
           const isLatest = index === 0
 
-          // Создаем объект деплоймента на основе коммита
+          // Create deployment object based on commit
           const deployment: Deployment = {
             id: `deploy_${commit.commit_id?.substring(0, 8) || "unknown"}`,
             commit_id: commit.commit_id || "",
-            status: isLatest ? getValidDeployStatus(project.deploy_status) : "no_deploy", // Старые коммиты не имеют активного деплоя
             deploy_url: isLatest ? project.netlify_url || undefined : undefined,
             created_at: commit.created_at,
           }

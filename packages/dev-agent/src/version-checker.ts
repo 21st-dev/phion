@@ -13,7 +13,6 @@ export interface VersionInfo {
 }
 
 /**
- * Получает текущую версию из package.json
  */
 export function getCurrentVersion(): string {
   try {
@@ -38,17 +37,15 @@ export function getCurrentVersion(): string {
       }
     }
 
-    // Fallback версия
+    // Fallback version
     return "0.0.1"
   } catch (error) {
-    // Fallback версия
+    // Fallback version
     return "0.0.1"
   }
 }
 
 /**
- * Проверяет последнюю версию с сервера Phion
- * В будущем можно расширить для проверки npm registry
  */
 export async function checkLatestVersion(wsUrl: string): Promise<string | null> {
   try {
@@ -81,7 +78,6 @@ export async function checkLatestVersion(wsUrl: string): Promise<string | null> 
 }
 
 /**
- * Сравнивает две версии (семантическое версионирование)
  */
 export function isNewerVersion(latest: string, current: string): boolean {
   try {
@@ -103,7 +99,6 @@ export function isNewerVersion(latest: string, current: string): boolean {
 }
 
 /**
- * Выполняет полную проверку версии и возвращает информацию
  */
 export async function checkForUpdates(wsUrl: string): Promise<VersionInfo> {
   const current = getCurrentVersion()

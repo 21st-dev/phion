@@ -27,7 +27,7 @@ export function useUpdateProjectSettings() {
   return useMutation({
     mutationFn: updateProjectSettings,
     onSuccess: () => {
-      // Обновляем кеш проектов после успешного обновления
+      // Update projects cache after successful update
       queryClient.invalidateQueries({ queryKey: ["projects"] })
     },
   })
