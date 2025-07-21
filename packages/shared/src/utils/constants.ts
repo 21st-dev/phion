@@ -1,8 +1,8 @@
-// Константы для проекта
+// Project constants
 
-// Поддерживаемые расширения файлов для синхронизации
+// Supported file extensions for synchronization
 export const ALLOWED_FILE_EXTENSIONS = [
-  // Web файлы
+  // Web files
   "html",
   "htm",
   "css",
@@ -19,26 +19,26 @@ export const ALLOWED_FILE_EXTENSIONS = [
   // Vue/Svelte
   "vue",
   "svelte",
-  // Конфигурационные файлы
+  // Configuration files
   "json",
   "yaml",
   "yml",
   "toml",
   "ini",
-  // Markdown и документация
+  // Markdown and documentation
   "md",
   "mdx",
   "txt",
-  // Изображения (для веб)
+  // Images (for web)
   "svg",
   "ico",
-  // Другие
+  // Other
   "env",
   "gitignore",
   "gitkeep",
 ];
 
-// Игнорируемые директории и файлы
+// Ignored directories and files
 export const IGNORED_PATHS = [
   "node_modules/**",
   ".git/**",
@@ -57,49 +57,49 @@ export const IGNORED_PATHS = [
   "Thumbs.db",
 ];
 
-// Максимальные размеры
+// Maximum sizes
 export const MAX_FILE_SIZE = 1024 * 1024 * 5; // 5MB
 export const MAX_PROJECT_NAME_LENGTH = 100;
 export const MAX_FILES_PER_PROJECT = 1000;
 
-// WebSocket настройки
-export const WS_RECONNECT_INTERVAL = 5000; // 5 секунд
+// WebSocket settings
+export const WS_RECONNECT_INTERVAL = 5000; // 5 seconds
 export const WS_MAX_RECONNECT_ATTEMPTS = 10;
-export const WS_HEARTBEAT_INTERVAL = 30000; // 30 секунд
+export const WS_HEARTBEAT_INTERVAL = 30000; // 30 seconds
 
-// Деплой настройки
-export const DEPLOY_TIMEOUT = 300000; // 5 минут
-export const BUILD_TIMEOUT = 180000; // 3 минуты
+// Deploy settings
+export const DEPLOY_TIMEOUT = 300000; // 5 minutes
+export const BUILD_TIMEOUT = 180000; // 3 minutes
 
-// Шаблоны проектов
+// Project templates
 export const PROJECT_TEMPLATES = {
   "vite-react": {
     name: "Vite + React",
-    description: "Современный React проект с Vite",
+    description: "Modern React project with Vite",
     buildCommand: "npm run build",
     outputDir: "dist",
   },
   "vite-vue": {
     name: "Vite + Vue",
-    description: "Vue.js проект с Vite",
+    description: "Vue.js project with Vite",
     buildCommand: "npm run build",
     outputDir: "dist",
   },
   "next-js": {
     name: "Next.js",
-    description: "React фреймворк с SSR",
+    description: "React framework with SSR",
     buildCommand: "npm run build",
     outputDir: "out",
   },
   "nuxt-js": {
     name: "Nuxt.js",
-    description: "Vue.js фреймворк с SSR",
+    description: "Vue.js framework with SSR",
     buildCommand: "npm run build",
     outputDir: ".output/public",
   },
   "vanilla-js": {
     name: "Vanilla JavaScript",
-    description: "Простой HTML/CSS/JS проект",
+    description: "Simple HTML/CSS/JS project",
     buildCommand: null,
     outputDir: ".",
   },

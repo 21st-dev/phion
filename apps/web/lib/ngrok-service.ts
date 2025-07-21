@@ -1,11 +1,10 @@
-// NgrokService использует динамический импорт для избежания webpack ошибок
+// NgrokService uses dynamic import to avoid webpack errors
 
 export class NgrokService {
   private tunnelUrl: string | null = null
   private isStarted = false
 
   /**
-   * Запускает ngrok туннель для websocket сервера
    */
   async startTunnel(): Promise<string> {
     if (this.isStarted && this.tunnelUrl) {
@@ -16,13 +15,10 @@ export class NgrokService {
     try {
       console.log("🚀 Starting ngrok tunnel for port 8080...")
 
-      // Динамический импорт ngrok только когда нужен
       const ngrok = await import("@ngrok/ngrok")
 
-      // Запускаем туннель на порт websocket сервера
       const listener = await ngrok.default.forward({
         addr: 8080,
-        authtoken_from_env: true, // Использует NGROK_AUTHTOKEN из .env
       })
 
       this.tunnelUrl = listener.url()
@@ -31,14 +27,13 @@ export class NgrokService {
       console.log(`✅ Ngrok tunnel started: ${this.tunnelUrl}`)
       console.log(`🌐 Webhooks endpoint: ${this.tunnelUrl}/webhooks/netlify`)
 
-      // Установим переменную окружения для использования в Netlify service
       process.env.WEBSOCKET_SERVER_URL = this.tunnelUrl || ""
 
       return this.tunnelUrl || ""
     } catch (error) {
       console.error("❌ Failed to start ngrok tunnel:", error)
 
-      // Fallback к localhost если ngrok не работает
+      // Fallback to localhost if ngrok doesn't work
       console.log("⚠️ Falling back to localhost:8080")
       this.tunnelUrl = "http://localhost:8080"
       process.env.WEBSOCKET_SERVER_URL = this.tunnelUrl || ""
@@ -48,7 +43,6 @@ export class NgrokService {
   }
 
   /**
-   * Останавливает ngrok туннель
    */
   async stopTunnel(): Promise<void> {
     if (!this.isStarted) {
@@ -58,7 +52,6 @@ export class NgrokService {
     try {
       console.log("🛑 Stopping ngrok tunnel...")
 
-      // Динамический импорт ngrok только когда нужен
       const ngrok = await import("@ngrok/ngrok")
       await ngrok.default.disconnect()
       await ngrok.default.kill()
@@ -73,21 +66,18 @@ export class NgrokService {
   }
 
   /**
-   * Получает текущий URL туннеля
    */
   getTunnelUrl(): string | null {
     return this.tunnelUrl
   }
 
   /**
-   * Проверяет, запущен ли туннель
    */
   isRunning(): boolean {
     return this.isStarted && this.tunnelUrl !== null
   }
 }
 
-// Экспортируем singleton instance
 export const ngrokService = new NgrokService()
 
 // Graceful shutdown

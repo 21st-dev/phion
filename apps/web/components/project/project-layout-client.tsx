@@ -46,7 +46,6 @@ export function ProjectLayoutClient({
   initialPendingChanges,
   children,
 }: ProjectLayoutClientProps) {
-  // Логируем что приходит от сервера
   console.log("🎯 ProjectLayoutClient: Initializing with:", {
     projectId: initialProject.id,
     initialHistoryLength: initialHistory?.length || 0,
@@ -67,7 +66,6 @@ export function ProjectLayoutClient({
     message: "Initializing...",
   })
 
-  // Логируем изменения pendingChanges
   useEffect(() => {
     console.log("📊 [ProjectLayout] Pending changes state changed:", {
       count: pendingChanges.length,
@@ -78,7 +76,7 @@ export function ProjectLayoutClient({
     })
   }, [pendingChanges])
 
-  // WebSocket для real-time обновлений
+  // WebSocket for real-time updates
   const {
     isConnected,
     saveAllChanges: socketSaveAllChanges,
@@ -117,13 +115,13 @@ export function ProjectLayoutClient({
           setPendingChanges((prev) => {
             const existing = prev.find((change) => change.file_path === data.filePath)
 
-            // Если файл удален, убираем его из pending changes
+            // If file deleted, remove it from pending changes
             if (data.action === "deleted") {
               return prev.filter((change) => change.file_path !== data.filePath)
             }
 
             if (existing) {
-              // Обновляем существующее изменение
+              // Update existing change
               return prev.map((change) =>
                 change.file_path === data.filePath
                   ? {
@@ -137,7 +135,7 @@ export function ProjectLayoutClient({
                   : change,
               )
             } else {
-              // Добавляем новое изменение
+              // Add new change
               return [
                 ...prev,
                 {
@@ -152,7 +150,6 @@ export function ProjectLayoutClient({
           })
           setLastUpdated(new Date())
 
-          // Логируем что pending changes были обновлены
           console.log("📊 [ProjectLayout] Pending changes updated for file:", {
             filePath: data.filePath,
             action: data.action,
@@ -166,7 +163,6 @@ export function ProjectLayoutClient({
         console.log("💾 [ProjectLayout] Save success received:", data)
         if (data.projectId === project.id) {
           setIsSaving(false)
-          // Очищаем pending changes после успешного сохранения
           setPendingChanges([])
           setLastUpdated(new Date())
         }
@@ -186,7 +182,7 @@ export function ProjectLayoutClient({
 
         if (data.projectId === project.id && data.commit) {
           console.log("✅ [ProjectLayout] Adding commit to history")
-          // Добавляем новый коммит в начало истории
+          // Add new commit to history beginning
           setHistory((prev) => {
             console.log("📊 [ProjectLayout] History before:", prev)
             const newHistory = [data.commit, ...prev]
@@ -210,7 +206,7 @@ export function ProjectLayoutClient({
       }) => {
         console.log("🚀 [ProjectLayout] Deploy status update:", data)
         if (data.projectId === project.id) {
-          // Обновляем статус проекта в реальном времени
+          // Update project status in real time
           setProject((prev: ProjectRow) => ({
             ...prev,
             deploy_status: data.status as "pending" | "building" | "ready" | "failed" | "cancelled",

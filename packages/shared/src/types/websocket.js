@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FileChangeSchema, FileDeleteSchema } from "./file-history";
-// Типы WebSocket событий
+// WebSocket event types
 export const WebSocketEventType = z.enum([
     "file_change",
     "file_delete",
@@ -11,22 +11,22 @@ export const WebSocketEventType = z.enum([
     "error",
     "ack",
 ]);
-// Базовая схема WebSocket сообщения
+// Base WebSocket message schema
 export const BaseWebSocketMessageSchema = z.object({
     type: WebSocketEventType,
     timestamp: z.number().int().min(0),
 });
-// Сообщение об изменении файла (от клиента к серверу)
+// File change message (from client to server)
 export const FileChangeMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("file_change"),
     data: FileChangeSchema,
 });
-// Сообщение об удалении файла (от клиента к серверу)
+// File deletion message (from client to server)
 export const FileDeleteMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("file_delete"),
     data: FileDeleteSchema,
 });
-// Подтверждение сохранения файла (от сервера к клиенту)
+// File save confirmation (from server to client)
 export const FileSavedMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("file_saved"),
     data: z.object({
@@ -35,7 +35,7 @@ export const FileSavedMessageSchema = BaseWebSocketMessageSchema.extend({
         project_id: z.string().uuid(),
     }),
 });
-// Уведомление о начале деплоя
+// Deploy start notification
 export const DeployStartedMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("deploy_started"),
     data: z.object({
@@ -43,7 +43,7 @@ export const DeployStartedMessageSchema = BaseWebSocketMessageSchema.extend({
         deploy_id: z.string(),
     }),
 });
-// Уведомление о завершении деплоя
+// Deploy completion notification
 export const DeployCompletedMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("deploy_completed"),
     data: z.object({
@@ -52,7 +52,7 @@ export const DeployCompletedMessageSchema = BaseWebSocketMessageSchema.extend({
         url: z.string().url(),
     }),
 });
-// Уведомление об ошибке деплоя
+// Deploy error notification
 export const DeployFailedMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("deploy_failed"),
     data: z.object({
@@ -61,7 +61,7 @@ export const DeployFailedMessageSchema = BaseWebSocketMessageSchema.extend({
         error: z.string(),
     }),
 });
-// Сообщение об ошибке
+// Error message
 export const ErrorMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("error"),
     data: z.object({
@@ -69,7 +69,7 @@ export const ErrorMessageSchema = BaseWebSocketMessageSchema.extend({
         code: z.string().optional(),
     }),
 });
-// Подтверждение получения сообщения
+// Message acknowledgment
 export const AckMessageSchema = BaseWebSocketMessageSchema.extend({
     type: z.literal("ack"),
     data: z.object({
@@ -77,7 +77,7 @@ export const AckMessageSchema = BaseWebSocketMessageSchema.extend({
         success: z.boolean(),
     }),
 });
-// Объединенный тип всех WebSocket сообщений
+// Combined type of all WebSocket messages
 export const WebSocketMessageSchema = z.discriminatedUnion("type", [
     FileChangeMessageSchema,
     FileDeleteMessageSchema,
@@ -88,7 +88,7 @@ export const WebSocketMessageSchema = z.discriminatedUnion("type", [
     ErrorMessageSchema,
     AckMessageSchema,
 ]);
-// Схема для аутентификации WebSocket соединения
+// Schema for WebSocket connection authentication
 export const WebSocketAuthSchema = z.object({
     project_id: z.string().uuid(),
     token: z.string().min(1),

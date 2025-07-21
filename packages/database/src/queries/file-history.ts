@@ -11,7 +11,6 @@ export class FileHistoryQueries {
   constructor(private client: SupabaseClient<Database>) {}
 
   /**
-   * Получить историю файлов проекта
    */
   async getProjectFileHistory(
     projectId: string,
@@ -33,7 +32,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить историю конкретного файла
    */
   async getFileHistory(
     projectId: string,
@@ -56,7 +54,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить последнюю версию файла
    */
   async getLatestFileVersion(
     projectId: string,
@@ -73,7 +70,7 @@ export class FileHistoryQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Файл не найден
+        return null; // File not found
       }
       throw new Error(`Failed to fetch latest file version: ${error.message}`);
     }
@@ -82,7 +79,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Создать запись истории файла
    */
   async createFileHistory(
     historyData: CreateFileHistory
@@ -112,7 +108,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить запись по ID
    */
   async getFileHistoryById(id: string): Promise<FileHistoryRow | null> {
     const { data, error } = await this.client
@@ -132,7 +127,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Найти файлы по хешу содержимого (дедупликация)
    */
   async findFilesByContentHash(contentHash: string): Promise<FileHistoryRow[]> {
     const { data, error } = await this.client
@@ -149,7 +143,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить изменения между двумя версиями
    */
   async getChangesBetweenVersions(
     projectId: string,
@@ -174,7 +167,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить статистику по файлам проекта (упрощенная версия)
    */
   async getProjectFileStats(projectId: string): Promise<{
     total_files: number;
@@ -182,7 +174,7 @@ export class FileHistoryQueries {
     total_size: number;
     last_updated: string | null;
   }> {
-    // Получаем все записи истории для проекта
+    // Get all history records for project
     const { data, error } = await this.client
       .from("file_history")
       .select("file_path, file_size, created_at");
@@ -197,7 +189,7 @@ export class FileHistoryQueries {
       created_at: string;
     }>;
 
-    // Подсчитываем статистику
+    // Calculate statistics
     const uniqueFiles = new Set(files.map((f) => f.file_path));
     const totalSize = files.reduce((sum, f) => sum + f.file_size, 0);
     const lastUpdated =
@@ -218,7 +210,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить последние версии всех файлов проекта
    */
   async getLatestFileVersions(projectId: string): Promise<FileHistoryRow[]> {
     const { data, error } = await this.client
@@ -231,7 +222,7 @@ export class FileHistoryQueries {
       throw new Error(`Failed to fetch latest file versions: ${error.message}`);
     }
 
-    // Группируем по file_path и берем последнюю версию каждого файла
+    // Group by file_path and take latest version of each file
     const latestVersionsMap = new Map<string, FileHistoryRow>();
     
     for (const file of (data as unknown as FileHistoryRow[]) || []) {
@@ -247,7 +238,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Создать запись истории файла с GitHub информацией
    */
   async createFileHistoryWithGitHub(
     historyData: CreateFileHistory & {
@@ -282,7 +272,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Обновить GitHub информацию для записи истории файла
    */
   async updateGitHubInfo(
     fileHistoryId: string,
@@ -311,7 +300,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить файлы по GitHub commit SHA
    */
   async getFilesByGitHubCommit(
     projectId: string,
@@ -332,7 +320,6 @@ export class FileHistoryQueries {
   }
 
   /**
-   * Получить записи без GitHub информации (для миграции)
    */
   async getFilesWithoutGitHubInfo(
     projectId?: string,

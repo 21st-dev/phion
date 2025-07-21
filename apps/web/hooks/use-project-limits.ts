@@ -30,7 +30,7 @@ interface ProjectLimits {
 }
 
 async function fetchProjectLimits(): Promise<ProjectLimitsData> {
-  // Параллельно загружаем проекты и подписку
+      // Load projects and subscription in parallel
   const [projectsResponse, subscriptionResponse] = await Promise.all([
     fetch("/api/projects"),
     fetch("/api/subscription/check"),
@@ -57,7 +57,7 @@ async function fetchProjectLimits(): Promise<ProjectLimitsData> {
       console.warn("Failed to parse subscription response, defaulting to free tier")
     }
   } else {
-    // Если проверка подписки не удалась, считаем что подписки нет
+    // If subscription check failed, assume no subscription
     console.warn("Subscription check failed, defaulting to free tier")
   }
 

@@ -4,7 +4,6 @@ import { cookies } from "next/headers"
 import { githubAppService } from "@/lib/github-service"
 
 /**
- * Удалить Netlify сайт через API
  */
 async function deleteNetlifySite(siteId: string): Promise<void> {
   const netlifyToken = process.env.NETLIFY_ACCESS_TOKEN
@@ -36,7 +35,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
       try {
         cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
       } catch {
-        // Игнорируем ошибки установки cookies
+        // Ignore errors setting cookies
       }
     },
   })
@@ -64,7 +63,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const projectQueries = new ProjectQueries(supabase)
 
-    // RLS автоматически проверит, что пользователь имеет доступ к проекту
+    // RLS automatically ,  project
     const project = await projectQueries.getProjectById(id)
 
     if (!project) {
@@ -90,7 +89,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const projectQueries = new ProjectQueries(supabase)
 
-    // RLS автоматически проверит, что пользователь может обновить проект
+    // RLS automatically ,  project
     const updatedProject = await projectQueries.updateProject(id, body)
 
     return NextResponse.json(updatedProject)
@@ -114,7 +113,7 @@ export async function DELETE(
 
     const projectQueries = new ProjectQueries(supabase)
 
-    // Сначала получаем информацию о проекте для удаления Netlify сайта
+    // First  project Netlify 
     const project = await projectQueries.getProjectById(id)
 
     if (!project) {
@@ -123,7 +122,7 @@ export async function DELETE(
 
     console.log(`🗑️ Deleting project ${id}: ${project.name}`)
 
-    // Если у проекта есть Netlify сайт, удаляем его
+    // If project has Netlify , remove it
     if (project.netlify_site_id) {
       try {
         console.log(`🌐 Deleting Netlify site: ${project.netlify_site_id}`)
@@ -131,14 +130,12 @@ export async function DELETE(
         console.log(`✅ Netlify site deleted successfully: ${project.netlify_site_id}`)
       } catch (netlifyError) {
         console.error(`❌ Error deleting Netlify site ${project.netlify_site_id}:`, netlifyError)
-        // Продолжаем удаление проекта даже если не удалось удалить Netlify сайт
-        // Это может произойти если сайт уже был удален вручную или есть проблемы с API
       }
     } else {
       console.log(`📝 Project ${id} has no Netlify site to delete`)
     }
 
-    // Если у проекта есть GitHub репозиторий, удаляем его
+    // If project has GitHub , remove it
     if (project.github_repo_name) {
       try {
         console.log(`🐙 Deleting GitHub repository: ${project.github_repo_name}`)
@@ -149,14 +146,12 @@ export async function DELETE(
           `❌ Error deleting GitHub repository ${project.github_repo_name}:`,
           githubError,
         )
-        // Продолжаем удаление проекта даже если не удалось удалить GitHub репозиторий
-        // Это может произойти если репозиторий уже был удален вручную или есть проблемы с API
       }
     } else {
       console.log(`📝 Project ${id} has no GitHub repository to delete`)
     }
 
-    // Удаляем проект из базы данных
+    // Remove project from database
     console.log(`🗄️ Deleting project from database: ${id}`)
     await projectQueries.deleteProject(id)
     console.log(`✅ Project deleted successfully: ${id}`)

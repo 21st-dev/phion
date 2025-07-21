@@ -69,7 +69,7 @@ interface NetlifyEnvResponse {
 export class NetlifyService {
   private accessToken: string
   private baseUrl = "https://api.netlify.com/api/v1"
-  private io?: any // Socket.io instance для real-time обновлений
+  private io?: any // Socket.io instance for real-time updates
 
   constructor(io?: any) {
     this.accessToken = process.env.NETLIFY_ACCESS_TOKEN!
@@ -81,16 +81,12 @@ export class NetlifyService {
   }
 
   /**
-   * В новой архитектуре GitHub + Netlify не нужно проверять файлы
-   * Netlify автоматически получает код из GitHub репозитория
    */
   async hasProjectFiles(projectId: string): Promise<boolean> {
-    console.log(`📋 GitHub архитектура: проект ${projectId} деплоится автоматически из GitHub`)
-    return true // Всегда true, так как Netlify работает с GitHub
+    console.log(`📋 GitHub architecture: project ${projectId} deploys automatically from GitHub`)
   }
 
   /**
-   * Создать новый сайт на Netlify
    */
   async createSite(projectId: string, projectName: string): Promise<NetlifyCreateSiteResponse> {
     try {
@@ -123,7 +119,6 @@ export class NetlifyService {
   }
 
   /**
-   * Создает новый Netlify сайт с привязкой к GitHub репозиторию
    */
   async createSiteWithGitHub(
     projectId: string,
@@ -132,7 +127,7 @@ export class NetlifyService {
     githubOwner: string,
   ): Promise<NetlifyCreateSiteResponse> {
     try {
-      // GitHub App Installation ID для организации phion-dev
+      // GitHub App Installation ID for organization phion-dev
       const installationId = parseInt(process.env.NETLIFY_GITHUB_INSTALLATION_ID!)
 
       if (!installationId || isNaN(installationId)) {
@@ -148,7 +143,6 @@ export class NetlifyService {
           branch: "main",
           installation_id: installationId,
         },
-        // Настройки сборки для Vite проекта
         build_settings: {
           cmd: "pnpm install && pnpm build",
           dir: "dist",
@@ -191,8 +185,6 @@ export class NetlifyService {
         repoUrl: data.build_settings?.repo_url,
       })
 
-      // НЕ настраиваем webhook здесь - это будет сделано отдельно
-      // чтобы избежать race condition с сохранением netlify_site_id
 
       return data
     } catch (error) {
@@ -202,8 +194,6 @@ export class NetlifyService {
   }
 
   /**
-   * Настраивает webhook для существующего сайта
-   * Вызывается отдельно после сохранения netlify_site_id в базу данных
    */
   async setupWebhookForSite(siteId: string, projectId: string): Promise<void> {
     await this.setupWebhook(siteId, projectId)
@@ -212,22 +202,18 @@ export class NetlifyService {
   private static ngrokUrl: string | null = null
 
   /**
-   * Настраивает webhook для сайта
    */
   private async setupWebhook(siteId: string, projectId: string): Promise<void> {
     try {
-      // В development режиме автоматически запускаем ngrok
       let webhookUrl = process.env.WEBSOCKET_SERVER_URL
 
       if (process.env.NODE_ENV === "development" || !webhookUrl) {
         try {
           console.log("🔗 Starting ngrok tunnel for development webhooks...")
 
-          // Используем глобальный ngrok URL или создаем новый
           if (!NetlifyService.ngrokUrl) {
             const ngrok = await import("@ngrok/ngrok")
 
-            // Запускаем ngrok туннель для порта 8080
             const listener = await ngrok.forward({
               addr: 8080,
               authtoken_from_env: true,
@@ -254,11 +240,9 @@ export class NetlifyService {
 
       console.log(`🔗 Setting up webhook for site ${siteId} → ${webhookEndpoint}`)
 
-      // Правильные события согласно документации Netlify Deploy Notifications
       const events = ["deploy_created", "deploy_building", "deploy_failed"]
       const webhookPromises: Promise<any>[] = []
 
-      // Создаем отдельный webhook для каждого события
       for (const event of events) {
         const webhookPromise = fetch(`${this.baseUrl}/hooks`, {
           method: "POST",
@@ -279,10 +263,8 @@ export class NetlifyService {
         webhookPromises.push(webhookPromise)
       }
 
-      // Выполняем все запросы параллельно
       const responses = await Promise.all(webhookPromises)
 
-      // Проверяем результаты
       const results: { event: string; hookId: string }[] = []
       for (let i = 0; i < responses.length; i++) {
         const response = responses[i]
@@ -311,17 +293,14 @@ export class NetlifyService {
       }
     } catch (error) {
       console.error(`❌ Error setting up webhook for site ${siteId}:`, error)
-      // Не прерываем создание сайта из-за ошибки webhook
       console.log("⚠️ Continuing without webhook setup")
     }
   }
 
   /**
-   * Проверить и обновить статус деплоя в базе данных
    */
   async checkAndUpdateDeployStatus(projectId: string): Promise<void> {
     try {
-      // Получаем текущий проект
       const supabase = getSupabaseServerClient()
       const projectQueries = new ProjectQueries(supabase)
       const project = await projectQueries.getProjectById(projectId)
@@ -333,25 +312,20 @@ export class NetlifyService {
         return
       }
 
-      // Если нет deploy_id, получаем последний деплой для сайта
       let deployInfo: NetlifyDeployResponse
 
       if (project.netlify_deploy_id) {
-        // Используем конкретный deploy_id если есть
         deployInfo = await this.getDeployStatus(project.netlify_site_id, project.netlify_deploy_id)
       } else {
-        // Получаем последний деплой для сайта
         deployInfo = await this.getLatestDeploy(project.netlify_site_id)
       }
 
       console.log(`📊 Netlify deploy status for ${projectId}: ${deployInfo.state}`)
 
-      // Проверяем, изменился ли статус
       if (
         (deployInfo.state === "ready" && project.deploy_status !== "ready") ||
         (deployInfo.state === "error" && project.deploy_status !== "failed")
       ) {
-        // Обновляем статус в базе данных
         const newStatus = deployInfo.state === "ready" ? "ready" : "failed"
 
         const updateData: any = {
@@ -359,7 +333,6 @@ export class NetlifyService {
           netlify_deploy_id: deployInfo.id,
         }
 
-        // Получаем правильный URL сайта
         if (newStatus === "ready") {
           try {
             const siteInfo = await this.getSite(project.netlify_site_id)
@@ -377,13 +350,11 @@ export class NetlifyService {
 
         await projectQueries.updateProject(projectId, updateData)
 
-        // Логируем изменение статуса деплоя
         const oldStatus = project.deploy_status || "building"
         console.log(
           `🚀 Deploy status changed for project ${projectId}: ${oldStatus} -> ${newStatus}`,
         )
 
-        // Отправляем уведомление через WebSocket
         if (this.io) {
           this.io.to(`project:${projectId}`).emit("deploy_status_update", {
             projectId,
@@ -398,7 +369,6 @@ export class NetlifyService {
         }
       }
 
-      // Если статус все еще building, запланируем еще одну проверку
       if (
         deployInfo.state === "building" ||
         deployInfo.state === "enqueued" ||
@@ -408,21 +378,16 @@ export class NetlifyService {
           this.checkAndUpdateDeployStatus(projectId).catch((err) => {
             console.error(`❌ Error checking deploy status: ${err.message}`)
           })
-        }, 10000) // Проверяем каждые 10 секунд
       }
     } catch (error) {
       console.error(`❌ Error checking deploy status:`, error)
-      // Продолжим пытаться, пока не получим ответ
       setTimeout(() => {
         this.checkAndUpdateDeployStatus(projectId).catch(() => {
-          // Игнорируем ошибки внутри обработчика таймаута
         })
-      }, 15000) // Увеличенный интервал при ошибке
     }
   }
 
   /**
-   * Получить последний деплой для сайта
    */
   async getLatestDeploy(siteId: string): Promise<NetlifyDeployResponse> {
     try {
@@ -453,8 +418,6 @@ export class NetlifyService {
   }
 
   /**
-   * В новой GitHub архитектуре Netlify автоматически деплоит из GitHub
-   * Эта функция только отмечает статус и возвращает мок ответ
    */
   async deployProject(
     siteId: string,
@@ -463,10 +426,9 @@ export class NetlifyService {
     title: string = "Update from Phion",
   ): Promise<NetlifyDeployResponse> {
     console.log(
-      `🚀 GitHub архитектура: Netlify автоматически деплоит commit ${commitId} для сайта ${siteId}`,
+      `🚀 GitHub architecture: Netlify automatically deploys commit ${commitId} for site ${siteId}`,
     )
 
-    // Возвращаем мок ответ, так как реальный деплой происходит автоматически
     const mockResponse: NetlifyDeployResponse = {
       id: `auto-deploy-${Date.now()}`,
       url: `https://${siteId}.netlify.app`,
@@ -474,9 +436,8 @@ export class NetlifyService {
       state: "building",
     }
 
-    console.log(`✅ Netlify автодеплой инициирован: ${mockResponse.deploy_url}`)
+    console.log(`✅ Netlify auto-deploy initiated: ${mockResponse.deploy_url}`)
 
-    // Запускаем проверку статуса через 10 секунд (дольше, так как GitHub webhook может быть медленным)
     setTimeout(() => {
       this.checkAndUpdateDeployStatus(projectId).catch((error) => {
         console.error(`❌ Error starting deploy status check for project ${projectId}:`, error)
@@ -487,7 +448,6 @@ export class NetlifyService {
   }
 
   /**
-   * Получить статус деплоя
    */
   async getDeployStatus(siteId: string, deployId: string): Promise<NetlifyDeployResponse> {
     try {
@@ -512,7 +472,6 @@ export class NetlifyService {
   }
 
   /**
-   * Получить информацию о сайте
    */
   async getSite(siteId: string): Promise<NetlifyCreateSiteResponse> {
     try {
@@ -537,7 +496,6 @@ export class NetlifyService {
   }
 
   /**
-   * Удалить сайт
    */
   async deleteSite(siteId: string): Promise<void> {
     try {
@@ -561,25 +519,21 @@ export class NetlifyService {
   }
 
   /**
-   * Проверить статус всех активных деплоев
    */
   async checkAllActiveDeployments(): Promise<void> {
     try {
       const supabase = getSupabaseServerClient()
       const projectQueries = new ProjectQueries(supabase)
 
-      // Получаем все проекты со статусом "building"
       const buildingProjects = await projectQueries.getProjectsByDeployStatus("building")
 
       console.log(`🔍 Found ${buildingProjects.length} projects with building status`)
 
-      // Проверяем статус каждого проекта
       for (const project of buildingProjects) {
         if (project.netlify_deploy_id) {
           console.log(`🔄 Checking status for project ${project.id}`)
           await this.checkAndUpdateDeployStatus(project.id)
 
-          // Небольшая задержка между запросами, чтобы не перегружать API
           await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
@@ -589,7 +543,6 @@ export class NetlifyService {
   }
 
   /**
-   * Отправить обновление статуса деплоя через WebSocket
    */
   private emitDeployStatus(
     projectId: string,
@@ -610,7 +563,6 @@ export class NetlifyService {
   }
 
   /**
-   * Обновляет переменные окружения в Netlify сайте
    */
   async updateEnvironmentVariables(
     siteId: string,
@@ -625,7 +577,7 @@ export class NetlifyService {
         scopes,
       })
 
-      // Netlify API требует отдельного запроса для каждой переменной
+      // Netlify API requires separate request for each variable
       const updatePromises = Object.entries(envVars).map(async ([key, value]) => {
         const envVar: NetlifyEnvVar = {
           key,
@@ -673,7 +625,6 @@ export class NetlifyService {
   }
 
   /**
-   * Получает все переменные окружения для сайта
    */
   async getEnvironmentVariables(siteId: string): Promise<NetlifyEnvResponse[]> {
     try {
@@ -698,7 +649,6 @@ export class NetlifyService {
   }
 
   /**
-   * Удаляет переменную окружения
    */
   async deleteEnvironmentVariable(siteId: string, key: string): Promise<void> {
     try {
@@ -722,7 +672,6 @@ export class NetlifyService {
   }
 
   /**
-   * Синхронизирует .env файл с Netlify
    */
   async syncEnvFile(
     siteId: string,
@@ -738,7 +687,6 @@ export class NetlifyService {
 
       console.log(`🔄 Syncing .env file with Netlify site ${siteId}`)
 
-      // Парсим .env содержимое
       const envVars = this.parseEnvContent(envContent)
 
       if (Object.keys(envVars).length === 0) {
@@ -746,16 +694,13 @@ export class NetlifyService {
         return
       }
 
-      // Получаем существующие переменные, если нужно удалить неиспользуемые
       let existingVars: NetlifyEnvResponse[] = []
       if (deleteUnused) {
         existingVars = await this.getEnvironmentVariables(siteId)
       }
 
-      // Обновляем переменные
       await this.updateEnvironmentVariables(siteId, envVars, context, scopes)
 
-      // Удаляем неиспользуемые переменные, если указано
       if (deleteUnused && existingVars.length > 0) {
         const varsToDelete = existingVars
           .filter((existing) => !envVars.hasOwnProperty(existing.key))
@@ -778,7 +723,6 @@ export class NetlifyService {
   }
 
   /**
-   * Парсит содержимое .env файла в объект key-value
    */
   private parseEnvContent(content: string): Record<string, string> {
     const envVars: Record<string, string> = {}
@@ -787,16 +731,13 @@ export class NetlifyService {
     for (const line of lines) {
       const trimmedLine = line.trim()
 
-      // Игнорируем комментарии и пустые строки
       if (!trimmedLine || trimmedLine.startsWith("#")) {
         continue
       }
 
-      // Ищем паттерн KEY=value
       const match = trimmedLine.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/)
       if (match) {
         const [, key, value] = match
-        // Удаляем кавычки, если они есть
         const cleanValue = value.replace(/^["']|["']$/g, "")
         envVars[key] = cleanValue
       }

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const daysParam = parseInt(searchParams.get("days") || "30")
 
-    // Получаем общие статистики (using UTC consistently)
+    // Get general statistics (using UTC consistently)
     const now = new Date()
     const last7Days = new Date()
     last7Days.setUTCDate(now.getUTCDate() - 7)
@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     const tomorrow = new Date(today)
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
 
-    // Общее количество пользователей с проектами
     const { data: totalUsers, error: totalUsersError } = await supabase
       .from("projects")
       .select("user_id")
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
 
     const uniqueUsers = Array.from(new Set(totalUsers.map((p) => p.user_id))).length
 
-    // Активные пользователи за последние 7 дней (создали проект или коммитили)
     const { data: activeUsers7d, error: activeUsers7dError } = await supabase
       .from("projects")
       .select("user_id")
@@ -46,7 +44,6 @@ export async function GET(request: NextRequest) {
 
     const activeUsersLast7Days = Array.from(new Set(activeUsers7d.map((p) => p.user_id))).length
 
-    // Активные пользователи за последние 30 дней
     const { data: activeUsers30d, error: activeUsers30dError } = await supabase
       .from("projects")
       .select("user_id")
@@ -135,14 +132,12 @@ export async function GET(request: NextRequest) {
     const todayDAU = dauMauData[0]?.dau || 0
     const todayMAU = dauMauData[0]?.mau || 0
 
-    // Общее количество проектов
     const { count: totalProjects, error: totalProjectsError } = await supabase
       .from("projects")
       .select("*", { count: "exact", head: true })
 
     if (totalProjectsError) throw totalProjectsError
 
-    // Проекты созданные за последние 7 дней
     const { count: projectsLast7Days, error: projects7dError } = await supabase
       .from("projects")
       .select("*", { count: "exact", head: true })
@@ -150,14 +145,12 @@ export async function GET(request: NextRequest) {
 
     if (projects7dError) throw projects7dError
 
-    // Общее количество коммитов
     const { count: totalCommits, error: totalCommitsError } = await supabase
       .from("commit_history")
       .select("*", { count: "exact", head: true })
 
     if (totalCommitsError) throw totalCommitsError
 
-    // Коммиты за последние 7 дней
     const { count: commitsLast7Days, error: commits7dError } = await supabase
       .from("commit_history")
       .select("*", { count: "exact", head: true })
@@ -165,14 +158,12 @@ export async function GET(request: NextRequest) {
 
     if (commits7dError) throw commits7dError
 
-    // Общее количество изменений файлов
     const { count: totalFileChanges, error: totalFileChangesError } = await supabase
       .from("file_history")
       .select("*", { count: "exact", head: true })
 
     if (totalFileChangesError) throw totalFileChangesError
 
-    // Статистика по статусам деплоя
     const { data: deployStats, error: deployStatsError } = await supabase
       .from("projects")
       .select("deploy_status")

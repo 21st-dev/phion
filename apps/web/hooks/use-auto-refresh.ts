@@ -14,7 +14,7 @@ export function useAutoRefresh<T>(
 ) {
   const {
     enabled = true,
-    refetchInterval = false, // По умолчанию автообновление отключено
+    refetchInterval = false, // Auto-refresh disabled by default
   } = options
 
   const query = useQuery({
@@ -23,7 +23,7 @@ export function useAutoRefresh<T>(
     enabled,
     refetchInterval,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 30, // 30 секунд
+          staleTime: 1000 * 30, // 30 seconds
   })
 
   return {

@@ -146,7 +146,7 @@ export class ToolbarWebSocketClient {
 
         const filePath = data.filePath || data.file || "unknown"
 
-        // Добавляем файл в набор измененных файлов
+        // Add file to set of changed files
         this.changedFiles.add(filePath)
 
         // Clear error buffer on file changes since errors might be fixed
@@ -155,7 +155,7 @@ export class ToolbarWebSocketClient {
           this.clearErrorBuffer()
         }
 
-        // Обновляем счетчик на основе количества уникальных файлов
+        // Update counter based on number of unique files
         this.state = {
           ...this.state,
           pendingChanges: this.changedFiles.size,
@@ -167,7 +167,7 @@ export class ToolbarWebSocketClient {
     this.socket.on(
       "commit_created",
       (data: { commitId: string; message: string; commit?: any }) => {
-        // Очищаем набор измененных файлов после коммита
+        // Clear set of changed files after commit
         this.changedFiles.clear()
 
         this.state = {
@@ -197,7 +197,7 @@ export class ToolbarWebSocketClient {
     this.socket.on("discard_success", () => {
       console.log("[Phion Toolbar] Discard success")
 
-      // Очищаем набор измененных файлов после отмены
+      // Clear set of changed files after cancellation
       this.changedFiles.clear()
 
       this.state = {
@@ -211,7 +211,7 @@ export class ToolbarWebSocketClient {
     this.socket.on("toolbar_status", (status: ToolbarState) => {
       console.log("[Phion Toolbar] Status update:", status)
 
-      // Синхронизируем локальный набор с состоянием сервера
+      // Synchronize local set with server state
       if (status.pendingChanges === 0) {
         this.changedFiles.clear()
       }
@@ -269,7 +269,7 @@ export class ToolbarWebSocketClient {
       },
     )
 
-    // Добавляем обработчик подтверждения получения ошибки
+    // Add error confirmation handler
     this.socket.on("runtime_error_received", (data: { success: boolean; errorId?: string }) => {
       if (data.success) {
         console.log("[Phion Toolbar] Runtime error sent successfully:", data.errorId)
@@ -371,14 +371,13 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Настройка глобальных обработчиков ошибок браузера
    */
   private setupErrorHandlers() {
     if (this.errorHandlersInstalled) return
 
     console.log("[Phion Toolbar] Setting up runtime error handlers")
 
-    // Перехват синхронных JavaScript ошибок
+    // Intercept synchronous JavaScript errors
     window.addEventListener(
       "error",
       (event: ErrorEvent) => {
@@ -392,7 +391,7 @@ export class ToolbarWebSocketClient {
       true,
     )
 
-    // Перехват необработанных Promise ошибок
+    // Intercept unhandled Promise errors
     window.addEventListener(
       "unhandledrejection",
       (event: PromiseRejectionEvent) => {
@@ -406,7 +405,7 @@ export class ToolbarWebSocketClient {
       true,
     )
 
-    // Перехват ошибок ресурсов (изображения, скрипты и т.д.)
+    // Intercept resource errors (images, scripts, etc.)
     window.addEventListener(
       "error",
       (event: Event) => {
@@ -432,7 +431,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Обработка runtime ошибки и отправка на сервер
    */
   private handleRuntimeError(errorInfo: any) {
     try {
@@ -500,10 +498,10 @@ export class ToolbarWebSocketClient {
 
       const payload = serializedErrorInfo
 
-      // ВСЕГДА буферизуем ошибку локально для кнопки "Fix errors"
+      // ALWAYS buffer error locally for "Fix errors" button
       this.bufferError(payload as any)
 
-      // Если WebSocket подключен, также отправляем на сервер для логирования
+      // If WebSocket is connected, also send to server for logging
       if (this.socket && this.socket.connected) {
         this.sendRuntimeError(payload as any)
       }
@@ -513,7 +511,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Отправка runtime ошибки на сервер (теперь буферизуется вместо прямой отправки)
    */
   private sendRuntimeError(payload: string) {
     if (this.socket && this.socket.connected) {
@@ -523,7 +520,6 @@ export class ToolbarWebSocketClient {
   }
 
   /**
-   * Отправка события insert_prompt с буферизованными ошибками
    */
   sendInsertPrompt() {
     console.log(`[Phion Toolbar] sendInsertPrompt called. Buffer size: ${this.errorBuffer.length}`)
@@ -541,7 +537,7 @@ export class ToolbarWebSocketClient {
     // Log the raw error buffer before processing
     console.log("[Phion Toolbar] Raw error buffer before processing:", this.errorBuffer)
 
-    // Создаем промпт из всех ошибок в буфере (используя сериализованные данные)
+    // Create prompt from all errors in buffer (using serialized data)
     const errorMessages = this.errorBuffer
       .map((errorData, index) => {
         return `${index + 1}. Runtime Error:
@@ -563,12 +559,11 @@ Please analyze these serialized errors and provide fixes for the underlying issu
       prompt: prompt,
     })
 
-    // Очищаем буфер после отправки
+    // Clear buffer after sending
     this.clearErrorBuffer()
   }
 
   /**
-   * Очистка буфера ошибок с уведомлением UI
    */
   private clearErrorBuffer() {
     this.errorBuffer = []
@@ -580,12 +575,11 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Буферизация ошибки для отправки после подключения
    */
   private bufferError(payload: string) {
     this.errorBuffer.push(payload)
 
-    // Ограничиваем размер буфера
+    // Limit buffer size
     if (this.errorBuffer.length > this.MAX_ERROR_BUFFER) {
       this.errorBuffer.shift()
     }
@@ -597,29 +591,27 @@ Please analyze these serialized errors and provide fixes for the underlying issu
     // Log the actual error data being buffered
     console.log("[Phion Toolbar] Error buffer entry:", payload)
 
-    // Уведомляем UI об изменении количества ошибок через callback
+    // Notify UI about error count change via callback
     if (this.onErrorBufferChange) {
       this.onErrorBufferChange(this.errorBuffer.length)
     }
   }
 
   /**
-   * Отправка буферизованных ошибок после подключения
    */
   private flushErrorBuffer() {
     if (this.errorBuffer.length === 0) return
 
     console.log(`[Phion Toolbar] Flushing ${this.errorBuffer.length} buffered errors to server`)
 
-    // Отправляем все буферизованные ошибки на сервер, но НЕ очищаем буфер
-    // (ошибки должны остаться для кнопки "Fix errors")
+    // Send all buffered errors to server, but DON'T clear buffer
+    // (errors should remain for "Fix errors" button)
     this.errorBuffer.forEach((error) => {
       this.sendRuntimeError(error)
     })
   }
 
   /**
-   * Публичный метод для ручной отправки ошибки
    */
   reportError(error: Error, context?: string) {
     this.handleRuntimeError({
@@ -631,14 +623,12 @@ Please analyze these serialized errors and provide fixes for the underlying issu
   }
 
   /**
-   * Получить текущий размер буфера ошибок (для отладки)
    */
   getErrorBufferSize(): number {
     return this.errorBuffer.length
   }
 
   /**
-   * Установить callback для уведомления об изменении буфера ошибок
    */
   setErrorBufferChangeCallback(callback: (count: number) => void) {
     this.onErrorBufferChange = callback

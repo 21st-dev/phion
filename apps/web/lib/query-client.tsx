@@ -9,8 +9,8 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60, // 1 минута
-            refetchInterval: 1000 * 60, // Автообновление каждую минуту по умолчанию
+            staleTime: 1000 * 60, // 1 minute
+            refetchInterval: 1000 * 60, // Auto-refresh every minute by default
             refetchOnWindowFocus: false,
           },
         },

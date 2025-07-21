@@ -1,4 +1,4 @@
-// Главный экспорт пакета @shipvibes/shared
+// Main export for @shipvibes/shared package
 export * from './types';
 export * from './utils/validation';
 export * from './utils/constants';

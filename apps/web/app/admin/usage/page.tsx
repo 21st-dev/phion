@@ -112,7 +112,6 @@ export default function UsageDashboard() {
       setLoading(true)
       setError(null)
 
-      // Параллельный запрос статистик и пользователей
       const [statsResponse, usersResponse] = await Promise.all([
         fetch(`/api/admin/usage/stats?days=${timePeriod}`),
         fetch(`/api/admin/usage/users?days=${timePeriod}&limit=50`),

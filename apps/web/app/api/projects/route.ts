@@ -10,7 +10,7 @@ import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 // Project logger removed - using console.log instead
 
-// Загружаем переменные окружения
+// Load environment variables
 if (process.env.NODE_ENV === "development") {
   require("dotenv").config({ path: ".env.local" })
 }
@@ -26,7 +26,7 @@ export async function GET(_request: NextRequest) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
-          // Игнорируем ошибки установки cookies
+          // Ignore errors setting cookies
         }
       },
     })
@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Получаем проекты пользователя (RLS автоматически фильтрует)
+    // Get project (RLS automatically )
     const projects = await getUserProjects(user.id)
     return NextResponse.json(projects)
   } catch (error) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
-          // Игнорируем ошибки установки cookies
+          // Ignore errors setting cookies
         }
       },
     })
@@ -81,13 +81,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name and template_type are required" }, { status: 400 })
     }
 
-    // Проверяем лимиты проектов
+    // Check  project
     const email = user.email
     if (!email) {
       return NextResponse.json({ error: "User email not found" }, { status: 400 })
     }
 
-    // Проверяем текущее количество проектов пользователя
+    // Check  project
     const { data: existingProjects, error: countError } = await supabase
       .from("projects")
       .select("id")
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     const projectCount = existingProjects?.length || 0
 
-    // Проверяем подписку через 21st.dev API
+    // Check  21st.dev API
     let hasActiveSubscription = false
     const subscriptionApiKey = process.env.SUBSCRIPTION_API_KEY
 
@@ -132,7 +132,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (subscriptionError) {
         console.error("Error checking subscription:", subscriptionError)
-        // Продолжаем без проверки подписки если API недоступен
       }
     }
 
@@ -150,7 +149,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ✅ 1. СРАЗУ создаем проект в БД (быстрая операция)
     const project = await createProject({
       name,
       template_type,
@@ -159,20 +157,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎉 Project created: ${project.id} by user ${user.id}`)
 
-    // ✅ 2. НЕМЕДЛЕННО возвращаем ответ пользователю для быстрого redirect
     const response = NextResponse.json({
       projectId: project.id, // Add projectId for frontend compatibility
       project: {
         ...project,
-        deploy_status: "pending", // Показываем что проект инициализируется
       },
       downloadUrl: `/api/projects/${project.id}/download`,
-      status: "pending", // Клиент знает что проект инициализируется
       message: "Project created! Setting up GitHub repository and template files...",
     })
 
-    // ✅ 3. Запускаем полную инициализацию через WebSocket сервер
-    // WebSocket сервер обработает все в фоне - создание репо + шаблон
+    // WebSocket  -  + 
     await triggerCompleteInitialization(project.id, name, template_type, user.id)
 
     return response
@@ -183,8 +177,6 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * ✅ Простая функция для запуска полной инициализации через WebSocket сервер
- * Все тяжелые операции выполняются на WebSocket сервере
  */
 async function triggerCompleteInitialization(
   projectId: string,
@@ -314,5 +306,3 @@ function shouldRetryError(error: any): boolean {
   return false
 }
 
-// ✅ Функции generateTemplateFiles, collectTemplateFiles и uploadTemplateFilesInBackground
-// перенесены в WebSocket сервер для надежного выполнения в non-serverless окружении

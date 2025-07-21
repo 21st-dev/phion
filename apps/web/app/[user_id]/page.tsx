@@ -41,9 +41,9 @@ export default function UserDashboard() {
   }, [router, supabase.auth])
 
   useEffect(() => {
-    // Проверяем, нужно ли показать онбординг
+    // Check if need to show onboarding
     if (!loading && !projectsLoading && user) {
-      // Если у пользователя нет проектов и нет сохраненного флага о прохождении онбординга
+      // If user has no projects and no saved onboarding completion flag
       const hasSeenOnboarding = localStorage.getItem(`onboarding-seen-${user.id}`)
       console.log("Onboarding check:", {
         loading,
@@ -60,7 +60,6 @@ export default function UserDashboard() {
   }, [loading, projectsLoading, projects, user])
 
   const handleDeleteAllSuccess = () => {
-    // Инвалидируем кеш проектов
     invalidateProjects()
   }
 

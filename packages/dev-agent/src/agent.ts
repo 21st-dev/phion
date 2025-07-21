@@ -42,7 +42,7 @@ export interface EnvFileChange {
   timestamp: number
 }
 
-// Интерфейсы для данных от сервера
+// Interfaces for server data
 export interface AuthenticatedData {
   projectId: string
 }
@@ -67,12 +67,12 @@ export interface UpdateFilesData {
 export class PhionAgent {
   private socket: Socket | null = null
   private watcher: FSWatcher | null = null
-  private envWatcher: FSWatcher | null = null // Отдельный watcher для .env файлов
+  private envWatcher: FSWatcher | null = null // Separate watcher for .env files
   private httpServer: http.Server | null = null
   private isConnected = false
   private isGitRepo = false
   private config: AgentConfig
-  private gitOperationCooldown = false // Новое поле для предотвращения ложных событий
+  private gitOperationCooldown = false // New field to prevent false events
 
   constructor(config: AgentConfig) {
     this.config = config
@@ -85,16 +85,16 @@ export class PhionAgent {
       console.log(`🆔 Project ID: ${this.config.projectId}`)
     }
 
-    // Запускаем локальный HTTP сервер для команд
+    // Start local HTTP server for commands
     await this.startLocalServer()
 
-    // Проверяем, что мы в git репозитории
+    // Check that we're in a git repository
     await this.checkGitRepository()
 
-    // Подключаемся к WebSocket
+    // Connect to WebSocket
     await this.connectWebSocket()
 
-    // Запускаем file watcher
+    // Start file watcher
     this.startFileWatcher()
 
     console.log("✅ Agent running - edit files to sync changes")
@@ -203,7 +203,7 @@ export class PhionAgent {
       if (this.config.debug) {
         console.log("✅ Git repository detected")
 
-        // Проверяем remote origin
+        // Check remote origin
         try {
           const { stdout } = await execAsync("git remote get-url origin")
           console.log(`🔗 Remote origin: ${stdout.trim()}`)
@@ -212,7 +212,7 @@ export class PhionAgent {
         }
       }
     } catch (error) {
-      // Git репозиторий не найден - инициализируем
+      // Git repository not found - initialize
       if (this.config.debug) {
         console.log("⚠️ Not a git repository - initializing...")
       }
@@ -226,14 +226,11 @@ export class PhionAgent {
         console.log("🔧 Initializing git repository...")
       }
 
-      // 1. Инициализируем git
       await execAsync("git init")
 
-      // 2. Настраиваем remote origin для GitHub репозитория проекта
       const repoUrl = `https://github.com/phion-dev/phion-project-${this.config.projectId}.git`
       await execAsync(`git remote add origin ${repoUrl}`)
 
-      // 3. Создаем initial commit если файлы уже есть
       try {
         await execAsync("git add .")
         await execAsync('git commit -m "Initial commit from Phion template"')
@@ -291,13 +288,13 @@ export class PhionAgent {
         }
         this.isConnected = true
 
-        // Открываем превью в VS Code после успешного подключения
+        // Open preview in VS Code after successful connection
         this.openPreviewIfEnabled()
 
         resolve()
       })
 
-      // Таймаут для подключения
+      // Connection timeout
       setTimeout(() => {
         if (!this.isConnected) {
           if (this.config.debug) {
@@ -314,7 +311,7 @@ export class PhionAgent {
   private setupEventHandlers(): void {
     if (!this.socket) return
 
-    // Добавляем логирование всех входящих событий для отладки
+    // Add logging of all incoming events for debugging
     this.socket.onAny((eventName, ...args) => {
       if (this.config.debug) {
         console.log(`📡 [Agent] Received event: ${eventName}`, args.length > 0 ? args[0] : "")
@@ -357,7 +354,7 @@ export class PhionAgent {
       await this.updateLocalFiles(data.files)
     })
 
-    // Добавляем обработчики для save событий
+    // Add handlers for save events
     this.socket.on("save_success", (data) => {
       if (this.config.debug) {
         console.log("💾 [AGENT] Save operation completed successfully")
@@ -448,17 +445,17 @@ export class PhionAgent {
         success: true,
       })
 
-      // Устанавливаем cooldown период ПОСЛЕ git операций но ДО запуска file watcher
+      // Set cooldown period AFTER git operations but BEFORE starting file watcher
       this.gitOperationCooldown = true
       if (this.config.debug) {
         console.log("✅ Changes discarded")
         console.log("🔄 Git operation cooldown started (5s)")
       }
 
-      // Запускаем file watcher
+      // Start file watcher
       this.startFileWatcher()
 
-      // Снимаем cooldown через 5 секунд
+      // Remove cooldown after 5 seconds
       setTimeout(() => {
         this.gitOperationCooldown = false
         if (this.config.debug) {
@@ -516,16 +513,16 @@ export class PhionAgent {
         success: true,
       })
 
-      // Устанавливаем cooldown период ПОСЛЕ git операций но ДО запуска file watcher
+      // Set cooldown period AFTER git operations but BEFORE starting file watcher
       this.gitOperationCooldown = true
       if (this.config.debug) {
         console.log("🔄 Git operation cooldown started (5s)")
       }
 
-      // Запускаем file watcher
+      // Start file watcher
       this.startFileWatcher()
 
-      // Снимаем cooldown через 5 секунд
+      // Remove cooldown after 5 seconds
       setTimeout(() => {
         this.gitOperationCooldown = false
         if (this.config.debug) {
@@ -638,7 +635,7 @@ export class PhionAgent {
       console.error("❌ File watcher error:", error)
     })
 
-    // Запускаем отдельный watcher для .env файлов
+    // Start separate watcher for .env files
     this.startEnvWatcher()
   }
 
@@ -651,7 +648,7 @@ export class PhionAgent {
       console.log("🔐 Watching for .env file changes...")
     }
 
-    // Отслеживаем только .env файлы
+    // Track only .env files
     this.envWatcher = chokidar.watch(
       [
         ".env",
@@ -694,7 +691,7 @@ export class PhionAgent {
       return
     }
 
-    // Игнорируем изменения файлов во время git операций
+    // Ignore file changes during git operations
     if (this.gitOperationCooldown) {
       if (this.config.debug) {
         console.log(`🔄 Git operation in progress, skipping file change: ${filePath}`)
@@ -806,7 +803,7 @@ export class PhionAgent {
       console.log("📋 Toolbar config:", JSON.stringify(this.config.toolbar, null, 2))
     }
 
-    // Проверяем, включен ли toolbar и autoOpen
+    // Check if toolbar and autoOpen are enabled
     const toolbarConfig = this.config.toolbar
     if (!toolbarConfig?.enabled) {
       if (this.config.debug) {
@@ -826,14 +823,14 @@ export class PhionAgent {
       console.log("✅ Preview will be opened in 3 seconds...")
     }
 
-    // Настройки для VS Code
+    // Settings for VS Code
     const vsCodeConfig: VSCodeConfig = {
       autoOpen: true,
       port: 5173, // Vite default port
     }
 
-    // Увеличенная задержка чтобы дать время dev-серверу запуститься
-    // и избежать race condition с browser extension
+    // Increased delay to give dev-server time to start
+    // and avoid race condition with browser extension
     setTimeout(async () => {
       if (this.config.debug) {
         console.log("🚀 Opening preview now...")

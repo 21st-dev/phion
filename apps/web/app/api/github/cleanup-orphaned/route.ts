@@ -13,7 +13,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
       try {
         cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
       } catch {
-        // Игнорируем ошибки установки cookies
+        // Ignore errors setting cookies
       }
     },
   })
@@ -32,7 +32,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Проверяем, что это dev environment (для безопасности)
+    // Check, that this is dev environment (for security)
     if (process.env.NODE_ENV !== "development") {
       return NextResponse.json(
         { error: "This endpoint is only available in development environment" },
@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
 
     console.log("🔍 [CLEANUP] Starting orphaned repositories scan...")
 
-    // Получаем все репозитории phion-project-* из GitHub
+    // Get all repositories phion-project-* from GitHub
     const githubRepositories = await githubAppService.findOrphanedRepositories()
 
-    // Получаем все проекты из базы данных
+    // Get all projects from database
     const projectQueries = new ProjectQueries(supabase)
     const { data: dbProjects } = await supabase
       .from("projects")
@@ -60,7 +60,6 @@ export async function GET(request: NextRequest) {
       dbProjects?.filter((p) => p.github_repo_name).map((p) => p.github_repo_name) || [],
     )
 
-    // Находим осиротевшие репозитории (есть в GitHub, но нет в БД)
     const orphanedRepos = githubRepositories.filter((repo) => !dbRepoNames.has(repo.name))
 
     console.log(
@@ -89,7 +88,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Проверяем, что это dev environment (для безопасности)
+    // Check, that this is dev environment (for security)
     if (process.env.NODE_ENV !== "development") {
       return NextResponse.json(
         { error: "This endpoint is only available in development environment" },

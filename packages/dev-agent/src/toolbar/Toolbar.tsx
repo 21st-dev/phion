@@ -406,7 +406,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
     const now = new Date()
     const past = new Date(dateString)
 
-    // Проверяем валидность даты
+    // Check date validity
     if (isNaN(past.getTime())) return null
 
     const diffMs = now.getTime() - past.getTime()
@@ -422,7 +422,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
 
   // Get deploy status display
   const getDeployStatusDisplay = () => {
-    // Если нет netlify_url, значит еще не деплоился
+    // If no netlify_url, not deployed yet
     if (!state.netlifyUrl) {
       return { text: "Not deployed", color: "#9ca3af" }
     }
@@ -435,7 +435,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ projectId, websocketUrl, posit
       case "failed":
         return { text: "Failed", color: "#ef4444" }
       case "pending":
-        // Если есть netlify_url но статус pending - скорее всего уже готово
+        // If there's netlify_url but status is pending - likely already ready
         return state.netlifyUrl
           ? { text: "Live", color: "#10b981" }
           : { text: "Pending", color: "#9ca3af" }

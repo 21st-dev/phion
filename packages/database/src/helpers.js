@@ -2,11 +2,11 @@ import { getSupabaseServerClient } from "./client";
 import { ProjectQueries } from "./queries/projects";
 import { FileHistoryQueries } from "./queries/file-history";
 import { CommitHistoryQueries } from "./queries/commit-history";
-// Создаем экземпляры классов запросов
+// Create instances of query classes
 const projectQueries = new ProjectQueries(getSupabaseServerClient());
 const fileHistoryQueries = new FileHistoryQueries(getSupabaseServerClient());
 const commitHistoryQueries = new CommitHistoryQueries(getSupabaseServerClient());
-// Экспортируем удобные функции для проектов
+// Export convenient functions for projects
 export const getAllProjects = () => projectQueries.getAllProjects();
 export const getUserProjects = (userId) => projectQueries.getUserProjects(userId);
 export const getProjectById = (projectId) => projectQueries.getProjectById(projectId);
@@ -15,30 +15,30 @@ export const updateProject = (projectId, updateData) => projectQueries.updatePro
 export const deleteProject = (projectId) => projectQueries.deleteProject(projectId);
 export const updateDeployStatus = (projectId, status) => projectQueries.updateDeployStatus(projectId, status);
 export const getProjectsByDeployStatus = (status) => projectQueries.getProjectsByDeployStatus(status);
-// Экспортируем удобные функции для истории файлов
+// Export convenient functions for file history
 export const getProjectFileHistory = (projectId, limit, offset) => fileHistoryQueries.getProjectFileHistory(projectId, limit, offset);
 export const getFileHistory = (projectId, filePath, limit) => fileHistoryQueries.getFileHistory(projectId, filePath, limit);
 export const createFileHistory = (historyData) => fileHistoryQueries.createFileHistory(historyData);
 export const getLatestFileVersion = (projectId, filePath) => fileHistoryQueries.getLatestFileVersion(projectId, filePath);
 export const getFileHistoryById = (id) => fileHistoryQueries.getFileHistoryById(id);
 export const getLatestFileVersions = (projectId) => fileHistoryQueries.getLatestFileVersions(projectId);
-// Экспортируем классы для продвинутого использования
+// Export classes for advanced usage
 export { ProjectQueries, FileHistoryQueries } from "./queries";
 // Import and initialize PendingChangesQueries
 import { PendingChangesQueries } from "./queries/pending-changes";
 const pendingChangesQueries = new PendingChangesQueries(getSupabaseServerClient());
 // Export pending changes functions
 export const getPendingChanges = (projectId) => pendingChangesQueries.getPendingChanges(projectId);
-// GitHub функции для проектов
+// GitHub functions for projects
 export const updateGitHubData = (projectId, githubData) => projectQueries.updateGitHubInfo(projectId, githubData);
 export const getProjectsWithGitHub = () => projectQueries.getProjectsWithGitHub();
-// Commit history функции
+// Commit history functions
 export const getProjectCommitHistory = (projectId, limit, offset) => commitHistoryQueries.getProjectCommitHistory(projectId, limit, offset);
 export const createCommitHistory = (commitData) => commitHistoryQueries.createCommitHistory(commitData);
 export const getCommitBySha = (projectId, githubCommitSha) => commitHistoryQueries.getCommitBySha(projectId, githubCommitSha);
 export const getLatestCommit = (projectId) => commitHistoryQueries.getLatestCommit(projectId);
-// GitHub функции для file history
+// GitHub functions for file history
 export const createFileHistoryWithGitHub = (historyData) => fileHistoryQueries.createFileHistoryWithGitHub(historyData);
 export const getFilesByGitHubCommit = (projectId, githubCommitSha) => fileHistoryQueries.getFilesByGitHubCommit(projectId, githubCommitSha);
-// Экспортируем новый класс для продвинутого использования
+// Export new class for advanced usage
 export { CommitHistoryQueries } from "./queries";

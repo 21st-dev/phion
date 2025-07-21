@@ -31,10 +31,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
   }
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Проверяем, что клик был не по кнопке
+    // Check, that click was not on button
     const target = e.target as HTMLElement
     if (target.closest("button")) {
-      return // Не переходим если кликнули по кнопке
     }
     router.push(`/project/${project.id}`)
   }
@@ -50,7 +49,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {/* Project name and status */}
           <div className="flex items-center space-x-3 mb-2">
             <span className="text-lg font-semibold text-gray-1000 truncate">{project.name}</span>
-            {/* Показываем статус только если проект готов (есть URL) или есть ошибка */}
+            {/* Show status only if project is ready (has URL) or has error */}
             {project.deploy_status && (project.url || project.deploy_status === "ERROR") && (
               <StatusDot state={project.deploy_status} />
             )}

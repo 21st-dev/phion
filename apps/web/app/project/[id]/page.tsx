@@ -8,15 +8,14 @@ interface ProjectPageProps {
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { id } = await params
 
-  // Получаем данные проекта для определения нужен ли онбординг
+  // Get project data to determine if onboarding needed
 
   const project = await getProjectById(id)
 
-  // Если у проекта нет netlify_site_id, значит онбординг еще не пройден
+  // If project has no netlify_site_id, 
   if (!project?.netlify_site_id) {
     redirect(`/project/${id}/onboarding`)
   } else {
-    // Онбординг пройден, идем на overview
     redirect(`/project/${id}/overview`)
   }
 }

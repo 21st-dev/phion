@@ -6,7 +6,7 @@ export type DeployStatus = "ready" | "failed" | "building" | "pending" | "no_dep
 export const getStatusBadge = (status: string | null, hasDeployUrl?: boolean) => {
   const deployStatus = status || "pending"
 
-  // Если статус ready но нет deploy_url - это значит коммит без деплоя
+      // If status is ready but no deploy_url - this means commit without deploy
   if (deployStatus === "ready" && !hasDeployUrl) {
     return React.createElement(
       Badge,

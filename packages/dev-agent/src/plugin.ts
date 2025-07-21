@@ -156,7 +156,7 @@ export function phionPlugin(options: PhionPluginOptions = {}): Plugin {
           // (config was already read in configResolved hook)
           const toolbarConfig = {
             projectId: config?.projectId || "",
-            websocketUrl: config?.wsUrl || websocketUrl, // ✅ Всегда из конфига в первую очередь
+            websocketUrl: config?.wsUrl || websocketUrl, // Always from config first
             position: config?.toolbar?.position || "top",
             version: PLUGIN_VERSION,
             autoUpdate: config?.toolbar?.autoUpdate !== false,

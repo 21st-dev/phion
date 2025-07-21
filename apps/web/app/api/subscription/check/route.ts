@@ -2,7 +2,6 @@ import { createAuthServerClient } from "@shipvibes/database"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 
-// Загружаем переменные окружения
 if (process.env.NODE_ENV === "development") {
   require("dotenv").config({ path: ".env.local" })
 }
@@ -40,7 +39,7 @@ export async function GET(_request: NextRequest) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
-          // Игнорируем ошибки установки cookies
+          // Ignore errors setting cookies
         }
       },
     })
@@ -59,10 +58,9 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "User email not found" }, { status: 400 })
     }
 
-    // Проверяем подписку через 21st.dev API
+    // Check  21st.dev API
     const subscriptionApiKey = process.env.SUBSCRIPTION_API_KEY
 
-    // В development режиме можно отключить проверку подписки
     const isDevelopment = process.env.NODE_ENV === "development"
 
     if (!subscriptionApiKey) {

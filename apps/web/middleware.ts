@@ -94,14 +94,14 @@ export async function middleware(request: NextRequest) {
   const userDashboardMatch = request.nextUrl.pathname.match(/^\/([^\/]+)$/)
   const isUserDashboard = userDashboardMatch && userDashboardMatch[1] !== "admin"
 
-  // Защищенные роуты - перенаправляем на логин если не авторизован
+  // Protected routes - redirect to login if not authenticated
   if (!user && (request.nextUrl.pathname.startsWith("/project") || isUserDashboard)) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  // Если пользователь авторизован и находится на главной странице, перенаправляем на дашборд
+  // If user is authenticated and on main page, redirect to dashboard
   if (user && request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone()
     url.pathname = `/${user.id}`

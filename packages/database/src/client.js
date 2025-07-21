@@ -2,7 +2,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
-// Создание клиента для фронтенда (с anon key)
+// Create client for frontend (with anon key)
 export function createSupabaseClient(config) {
     if (!config.anonKey) {
         throw new Error("Anon key is required for client-side Supabase client");
@@ -14,7 +14,7 @@ export function createSupabaseClient(config) {
         },
     });
 }
-// Создание клиента для сервера (с service role key)
+// Create client for server (with service role key)
 export function createSupabaseServerClient(config) {
     if (!config.serviceRoleKey) {
         throw new Error("Service role key is required for server-side Supabase client");
@@ -26,8 +26,8 @@ export function createSupabaseServerClient(config) {
         },
     });
 }
-// ========== НОВЫЕ КЛИЕНТЫ ДЛЯ АВТОРИЗАЦИИ ПОЛЬЗОВАТЕЛЕЙ ==========
-// Создание браузерного клиента с поддержкой авторизации
+// ========== NEW CLIENTS FOR USER AUTHENTICATION ==========
+// Create browser client with authentication support
 export function createAuthBrowserClient() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -36,7 +36,7 @@ export function createAuthBrowserClient() {
     }
     return createBrowserClient(url, anonKey);
 }
-// Создание серверного клиента с поддержкой авторизации и cookies
+// Create server client with authentication and cookies support
 export function createAuthServerClient(cookieStore) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -61,7 +61,7 @@ export function createAuthServerClient(cookieStore) {
         },
     });
 }
-// Глобальный клиент для сервера (инициализируется один раз)
+// Global server client (initialized once)
 let serverClient = null;
 export function getSupabaseServerClient() {
     if (!serverClient) {
@@ -74,7 +74,7 @@ export function getSupabaseServerClient() {
     }
     return serverClient;
 }
-// Утилита для проверки подключения
+// Utility for connection testing
 export async function testConnection(client) {
     try {
         const { error } = await client.from("projects").select("id").limit(1);

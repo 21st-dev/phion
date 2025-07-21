@@ -4,7 +4,6 @@ export class ProjectQueries {
     this.client = client;
   }
   /**
-   * Получить все проекты (только для admin/service role)
    */
   async getAllProjects() {
     const { data, error } = await this.client
@@ -17,18 +16,17 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Получить проекты пользователя (работает с RLS)
    */
   async getUserProjects(userId) {
     let query = this.client
       .from("projects")
       .select("*")
       .order("created_at", { ascending: false });
-    // Если передан userId (для service role), фильтруем по нему
+    // If userId is provided (for service role), filter by it
     if (userId) {
       query = query.eq("user_id", userId);
     }
-    // Иначе RLS автоматически отфильтрует по текущему пользователю
+    // Otherwise RLS will automatically filter by current user
     const { data, error } = await query;
     if (error) {
       throw new Error(`Failed to fetch user projects: ${error.message}`);
@@ -36,7 +34,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Получить проект по ID
    */
   async getProjectById(projectId) {
     const { data, error } = await this.client
@@ -46,21 +43,20 @@ export class ProjectQueries {
       .single();
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Проект не найден
+        return null; // Project not found
       }
       throw new Error(`Failed to fetch project: ${error.message}`);
     }
     return data;
   }
   /**
-   * Создать новый проект
    */
   async createProject(projectData) {
     const insertData = {
       name: projectData.name || `Project ${Date.now()}`,
       template_type: projectData.template_type || "vite-react",
       deploy_status: "pending",
-      user_id: projectData.user_id, // Добавляем user_id
+      user_id: projectData.user_id, // Add user_id
     };
     const { data, error } = await this.client
       .from("projects")
@@ -73,7 +69,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Обновить проект
    */
   async updateProject(projectId, updateData) {
     const { data, error } = await this.client
@@ -88,7 +83,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Удалить проект
    */
   async deleteProject(projectId) {
     const { error } = await this.client
@@ -100,7 +94,6 @@ export class ProjectQueries {
     }
   }
   /**
-   * Обновить статус деплоя
    */
   async updateDeployStatus(projectId, status, netlifyUrl, netlifyId) {
     const updateData = {
@@ -124,7 +117,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Получить проекты с определенным статусом деплоя
    */
   async getProjectsByDeployStatus(status) {
     const { data, error } = await this.client
@@ -140,7 +132,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Поиск проектов по имени
    */
   async searchProjects(searchTerm) {
     const { data, error } = await this.client
@@ -154,7 +145,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Поиск проектов пользователя по имени
    */
   async searchUserProjects(searchTerm, userId) {
     let query = this.client
@@ -162,11 +152,11 @@ export class ProjectQueries {
       .select("*")
       .ilike("name", `%${searchTerm}%`)
       .order("created_at", { ascending: false });
-    // Если передан userId (для service role), фильтруем по нему
+    // If userId is provided (for service role), filter by it
     if (userId) {
       query = query.eq("user_id", userId);
     }
-    // Иначе RLS автоматически отфильтрует по текущему пользователю
+    // Otherwise RLS will automatically filter by current user
     const { data, error } = await query;
     if (error) {
       throw new Error(`Failed to search user projects: ${error.message}`);
@@ -174,7 +164,6 @@ export class ProjectQueries {
     return data || [];
   }
   /**
-   * Обновить GitHub информацию проекта
    */
   async updateGitHubInfo(projectId, githubInfo) {
     const updateData = {
@@ -183,7 +172,7 @@ export class ProjectQueries {
       github_owner: githubInfo.github_owner || "phion-dev",
     };
 
-    // Сначала проверяем, сколько записей с таким ID существует
+    // First check how many records with this ID exist
     const { data: existingProjects, error: checkError } = await this.client
       .from("projects")
       .select("id")
@@ -205,7 +194,7 @@ export class ProjectQueries {
         existingProjects.length
       );
 
-      // Если есть дубликаты, обновляем все записи, но возвращаем первую
+      // If there are duplicates, update all records but return the first one
       const { data, error } = await this.client
         .from("projects")
         .update(updateData)
@@ -227,7 +216,7 @@ export class ProjectQueries {
       return data[0];
     }
 
-    // Стандартный случай - одна запись
+    // Standard case - one record
     const { data, error } = await this.client
       .from("projects")
       .update(updateData)
@@ -240,7 +229,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Получить проекты по GitHub репозиторию
    */
   async getProjectByGitHubRepo(repoName, owner = "phion-dev") {
     const { data, error } = await this.client
@@ -251,7 +239,7 @@ export class ProjectQueries {
       .single();
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Проект не найден
+        return null; // Project not found
       }
       throw new Error(
         `Failed to fetch project by GitHub repo: ${error.message}`
@@ -260,7 +248,6 @@ export class ProjectQueries {
     return data;
   }
   /**
-   * Получить все проекты с настроенным GitHub репозиторием
    */
   async getProjectsWithGitHub() {
     const { data, error } = await this.client

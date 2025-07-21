@@ -4,7 +4,6 @@ export class CommitHistoryQueries {
         this.client = client;
     }
     /**
-     * Получить историю коммитов проекта
      */
     async getProjectCommitHistory(projectId, limit = 50, offset = 0) {
         const { data, error } = await this.client
@@ -19,7 +18,6 @@ export class CommitHistoryQueries {
         return data || [];
     }
     /**
-     * Создать запись о коммите
      */
     async createCommitHistory(commitData) {
         const insertData = {
@@ -41,7 +39,6 @@ export class CommitHistoryQueries {
         return data;
     }
     /**
-     * Получить коммит по SHA
      */
     async getCommitBySha(projectId, githubCommitSha) {
         const { data, error } = await this.client
@@ -52,14 +49,13 @@ export class CommitHistoryQueries {
             .single();
         if (error) {
             if (error.code === "PGRST116") {
-                return null; // Коммит не найден
+                return null; // Commit not found
             }
             throw new Error(`Failed to fetch commit by SHA: ${error.message}`);
         }
         return data;
     }
     /**
-     * Получить последний коммит проекта
      */
     async getLatestCommit(projectId) {
         const { data, error } = await this.client
@@ -71,14 +67,13 @@ export class CommitHistoryQueries {
             .single();
         if (error) {
             if (error.code === "PGRST116") {
-                return null; // Коммитов еще нет
+                return null; // No commits yet
             }
             throw new Error(`Failed to fetch latest commit: ${error.message}`);
         }
         return data;
     }
     /**
-     * Получить статистику коммитов проекта
      */
     async getCommitStats(projectId) {
         const { data, error } = await this.client
@@ -102,7 +97,6 @@ export class CommitHistoryQueries {
         };
     }
     /**
-     * Удалить коммит по ID
      */
     async deleteCommit(commitId) {
         const { error } = await this.client
@@ -114,7 +108,6 @@ export class CommitHistoryQueries {
         }
     }
     /**
-     * Получить коммиты в диапазоне дат
      */
     async getCommitsByDateRange(projectId, fromDate, toDate) {
         const { data, error } = await this.client

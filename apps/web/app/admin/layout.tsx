@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       try {
         cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
       } catch {
-        // Игнорируем ошибки установки cookies
+        // Ignore cookie setting errors
       }
     },
   })
@@ -41,12 +41,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Проверяем, авторизован ли пользователь
+  // Check if user is authenticated
   if (!user) {
     redirect("/login")
   }
 
-  // Проверяем, является ли пользователь админом
+  // Check if user is admin
   const { data: userData, error: userError } = await supabase
     .from("users")
     .select("is_admin")

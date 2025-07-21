@@ -58,7 +58,6 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
       setOpen(false)
       setProjectName("")
 
-      // ✅ Быстрый redirect - пользователь увидит страницу с прогрессом
       router.push(`/project/${data.project.id}/onboarding`)
     } catch (error) {
       console.error("Error creating project:", error)

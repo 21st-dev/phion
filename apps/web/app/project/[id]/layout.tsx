@@ -20,7 +20,7 @@ interface ProjectLayoutProps {
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { id } = await params
 
-  // Получаем пользователя для Header
+  // Get user for Header
   const cookieStore = await cookies()
   const supabase = createAuthServerClient({
     getAll() {
@@ -30,7 +30,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       try {
         cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
       } catch {
-        // Игнорируем ошибки установки cookies в Server Components
+        // Ignore errors setting cookies in Server Components
       }
     },
   })
@@ -39,12 +39,12 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Если пользователь не авторизован, перенаправляем на главную страницу
+  // If user is not authenticated, redirect to main page
   if (!user) {
     redirect("/")
   }
 
-  // Получаем историю коммитов (как в API роуте)
+  // Get commit history ( API )
   const supabaseServer = getSupabaseServerClient()
   const commitHistoryQueries = new CommitHistoryQueries(supabaseServer)
 
@@ -54,7 +54,6 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     getPendingChanges(id),
   ])
 
-  // Преобразуем коммиты в формат для UI (как в API роуте)
   const history = commits.map((commit) => ({
     commit_id: commit.github_commit_sha,
     commit_message: commit.commit_message,
@@ -63,7 +62,6 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     files_count: commit.files_count || 0,
   }))
 
-  // Логируем что получили из database queries
   console.log("🎯 [ProjectLayout] Server-side data loaded:", {
     projectId: id,
     projectExists: !!project,
@@ -87,7 +85,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       <div className="min-h-screen bg-background-100">
         {/* Fixed Header and Navigation */}
         <div className="fixed top-0 left-0 right-0 z-50">
-          {/* Используем единый Header как на главной */}
+          {/*  Header  */}
           <Header user={user} project={project} />
 
           {/* Navigation Tabs */}

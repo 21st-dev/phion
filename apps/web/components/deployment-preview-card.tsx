@@ -17,12 +17,11 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
   const [iframeKey, setIframeKey] = useState(0)
   const prevStatusRef = useRef(project.deploy_status)
 
-  // Отслеживание изменения статуса для перезагрузки iframe
   useEffect(() => {
     const prevStatus = prevStatusRef.current
     const currentStatus = project.deploy_status
 
-    // Если статус изменился на "ready", обновляем ключ iframe для перезагрузки
+    // If status changed to "ready", update iframe key for reload
     if (prevStatus !== currentStatus && currentStatus === "ready") {
       console.log("🔄 [DeploymentPreviewCard] Status changed to ready, reloading iframe")
       setIframeKey((prev) => prev + 1)
@@ -31,7 +30,6 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
     prevStatusRef.current = currentStatus
   }, [project.deploy_status])
 
-  // Отладочная информация для проверки обновлений
   useEffect(() => {
     console.log("🔄 [DeploymentPreviewCard] Project status updated:", {
       deployStatus: project.deploy_status,
@@ -47,7 +45,7 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
   return (
     <Card className={className} style={{ backgroundColor: "transparent", boxShadow: "none" }}>
       <CardContent className="p-0 bg-transparent">
-        {/* Preview iframe or placeholder - более компактный */}
+        {/* Preview iframe or placeholder - more compact */}
         <div className="relative aspect-[16/10] rounded-t-lg overflow-hidden p-1">
           {hasDeployUrl && !isBuilding ? (
             <div className="w-full h-full relative aspect-[16/10] rounded-md overflow-hidden border-border border bg-background">
@@ -83,7 +81,7 @@ export function DeploymentPreviewCard({ className }: DeploymentPreviewCardProps)
           )}
         </div>
 
-        {/* Footer with status and actions - более компактный */}
+        {/* Footer with status and actions - more compact */}
         <div className="p-3 bg-card">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1">

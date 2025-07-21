@@ -1,79 +1,79 @@
-# 🚀 Ngrok Setup для Development
+# 🚀 Ngrok Setup for Development
 
-## Зачем нужен ngrok?
+## Why do we need ngrok?
 
-Netlify отправляет webhooks на наш сервер при деплое проекта. В production это работает автоматически, но в development localhost:8080 недоступен для Netlify.
+Netlify sends webhooks to our server when deploying a project. In production this works automatically, but in development localhost:8080 is not accessible to Netlify.
 
-**Ngrok создает публичный туннель к локальному серверу**, позволяя Netlify отправлять webhooks в development.
+**Ngrok creates a public tunnel to your local server**, allowing Netlify to send webhooks in development.
 
-## 🔧 Настройка
+## 🔧 Setup
 
-### 1. Получи ngrok authtoken
+### 1. Get ngrok authtoken
 
-1. Зайди на [ngrok.com](https://ngrok.com/) и зарегистрируйся
-2. Скопируй authtoken из [dashboard](https://dashboard.ngrok.com/get-started/your-authtoken)
-3. Добавь в `.env.local`:
+1. Go to [ngrok.com](https://ngrok.com/) and sign up
+2. Copy authtoken from [dashboard](https://dashboard.ngrok.com/get-started/your-authtoken)
+3. Add to `.env.local`:
 
 ```bash
 NGROK_AUTHTOKEN=your_ngrok_authtoken_here
 ```
 
-### 2. Запуск с ngrok
+### 2. Run with ngrok
 
-Вместо обычного `pnpm dev` используй:
+Instead of regular `pnpm dev` use:
 
 ```bash
 pnpm dev:ngrok
 ```
 
-Этот скрипт:
+This script:
 
-- ✅ Автоматически запускает ngrok туннель на порт 8080
-- ✅ Получает публичный URL (например `https://abcd-1234.ngrok.io`)
-- ✅ Устанавливает `WEBSOCKET_SERVER_URL` для webhooks
-- ✅ Запускает Next.js dev сервер
-- ✅ Все webhooks от Netlify работают корректно!
+- ✅ Automatically starts ngrok tunnel on port 8080
+- ✅ Gets public URL (e.g. `https://abcd-1234.ngrok.io`)
+- ✅ Sets `WEBSOCKET_SERVER_URL` for webhooks
+- ✅ Starts Next.js dev server
+- ✅ All webhooks from Netlify work correctly!
 
-## 📋 Что происходит автоматически?
+## 📋 What happens automatically?
 
-1. **Ngrok запускается** и создает туннель `localhost:8080` → `https://xxx.ngrok.io`
-2. **Netlify webhooks** автоматически настраиваются на ngrok URL
-3. **Уведомления о деплое** приходят в реальном времени
-4. **Graceful shutdown** - ngrok корректно останавливается при Ctrl+C
+1. **Ngrok starts** and creates tunnel `localhost:8080` → `https://xxx.ngrok.io`
+2. **Netlify webhooks** automatically configured to ngrok URL
+3. **Deploy notifications** arrive in real-time
+4. **Graceful shutdown** - ngrok stops correctly on Ctrl+C
 
 ## 🐛 Troubleshooting
 
-### Ошибка "Failed to start ngrok"
+### Error "Failed to start ngrok"
 
-- Проверь что `NGROK_AUTHTOKEN` правильно установлен в `.env.local`
-- Убедись что порт 8080 свободен
-- Система fallback к localhost:8080 если ngrok не работает
+- Check that `NGROK_AUTHTOKEN` is correctly set in `.env.local`
+- Make sure port 8080 is free
+- System falls back to localhost:8080 if ngrok doesn't work
 
-### Webhooks не приходят
+### Webhooks not arriving
 
-- Проверь в логах ngrok URL: `✅ Ngrok tunnel ready: https://xxx.ngrok.io`
-- Netlify должен отправлять webhooks на `{ngrok_url}/webhooks/netlify`
-- Проверь что WebSocket сервер запущен на порту 8080
+- Check ngrok URL in logs: `✅ Ngrok tunnel ready: https://xxx.ngrok.io`
+- Netlify should send webhooks to `{ngrok_url}/webhooks/netlify`
+- Check that WebSocket server is running on port 8080
 
 ## 🚀 Production
 
-В production ngrok НЕ используется. Система автоматически определяет:
+In production ngrok is NOT used. System automatically determines:
 
-- Development: запускает ngrok
-- Production: использует `WEBSOCKET_SERVER_URL` напрямую
+- Development: starts ngrok
+- Production: uses `WEBSOCKET_SERVER_URL` directly
 
-## ⚡ Быстрый старт
+## ⚡ Quick Start
 
 ```bash
-# 1. Получи ngrok authtoken и добавь в .env.local
+# 1. Get ngrok authtoken and add to .env.local
 echo "NGROK_AUTHTOKEN=your_token" >> .env.local
 
-# 2. Запусти с ngrok
+# 2. Run with ngrok
 pnpm dev:ngrok
 
-# 3. Создай проект в браузере - webhooks работают!
+# 3. Create project in browser - webhooks work!
 ```
 
 ---
 
-**💡 Tip:** Можешь продолжать использовать обычный `pnpm dev` если тебе не нужны webhooks от Netlify в development.
+**💡 Tip:** You can continue using regular `pnpm dev` if you don't need webhooks from Netlify in development.

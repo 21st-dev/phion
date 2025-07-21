@@ -19,7 +19,6 @@ export class CommitHistoryQueries {
   constructor(private client: SupabaseClient<Database>) {}
 
   /**
-   * Получить историю коммитов проекта
    */
   async getProjectCommitHistory(
     projectId: string,
@@ -41,7 +40,6 @@ export class CommitHistoryQueries {
   }
 
   /**
-   * Создать запись о коммите
    */
   async createCommitHistory(
     commitData: CreateCommitHistory
@@ -69,7 +67,6 @@ export class CommitHistoryQueries {
   }
 
   /**
-   * Получить коммит по SHA
    */
   async getCommitBySha(
     projectId: string,
@@ -84,7 +81,7 @@ export class CommitHistoryQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Коммит не найден
+        return null; // Commit not found
       }
       throw new Error(`Failed to fetch commit by SHA: ${error.message}`);
     }
@@ -93,7 +90,6 @@ export class CommitHistoryQueries {
   }
 
   /**
-   * Получить последний коммит проекта
    */
   async getLatestCommit(projectId: string): Promise<CommitHistoryRow | null> {
     const { data, error } = await this.client
@@ -106,7 +102,7 @@ export class CommitHistoryQueries {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return null; // Коммитов еще нет
+        return null; // No commits yet
       }
       throw new Error(`Failed to fetch latest commit: ${error.message}`);
     }
@@ -115,7 +111,6 @@ export class CommitHistoryQueries {
   }
 
   /**
-   * Получить статистику коммитов проекта
    */
   async getCommitStats(projectId: string): Promise<{
     total_commits: number;
@@ -156,7 +151,6 @@ export class CommitHistoryQueries {
   }
 
   /**
-   * Удалить коммит по ID
    */
   async deleteCommit(commitId: string): Promise<void> {
     const { error } = await this.client
@@ -170,7 +164,6 @@ export class CommitHistoryQueries {
   }
 
   /**
-   * Получить коммиты в диапазоне дат
    */
   async getCommitsByDateRange(
     projectId: string,

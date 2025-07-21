@@ -130,7 +130,7 @@ export function useWebSocket({
 
       console.log(`🚀 [WebSocket] Creating socket connection (ID: ${connectionId.current})`)
 
-      // Создаем новое подключение
+      // Create new connection
       const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080", {
         transports: ["websocket", "polling"], // Support both transports for reliability
         autoConnect: true,
@@ -160,7 +160,7 @@ export function useWebSocket({
         reconnectAttempts.current = 0
         isConnecting.current = false
 
-        // Аутентификация при подключении
+        // Authentication on connection
         console.log("🔐 [WebSocket] Authenticating for project:", projectId)
         newSocket.emit("authenticate", {
           projectId,
@@ -217,13 +217,13 @@ export function useWebSocket({
         isConnecting.current = false
       })
 
-      // Обработчики событий файлов
+      // File event handlers
       newSocket.on("file_tracked", (data) => {
         console.log("📝 [WebSocket] File tracked:", data)
         stableCallbacks.current.onFileTracked?.(data)
       })
 
-      // Новое событие для staged изменений
+      // New event for staged changes
       newSocket.on("file_change_staged", (data) => {
         console.log("📝 [WebSocket] File change staged received:", {
           projectId: data.projectId,
@@ -240,10 +240,10 @@ export function useWebSocket({
         stableCallbacks.current.onSaveSuccess?.(data)
       })
 
-      // Обработчик для discard_success (очистка pending changes при откате)
+      // Handler for discard_success (clear pending changes on rollback)
       newSocket.on("discard_success", (data) => {
         console.log("🔄 [WebSocket] Discard success:", data)
-        stableCallbacks.current.onSaveSuccess?.(data) // Используем тот же callback для очистки pending changes
+        stableCallbacks.current.onSaveSuccess?.(data) // Use same callback to clear pending changes
       })
 
       newSocket.on("agent_connected", (data) => {
@@ -273,12 +273,12 @@ export function useWebSocket({
 
       newSocket.on("file_updated", (data) => {
         console.log("📄 [WebSocket] File updated:", data)
-        // Файл обновлен другим пользователем
+        // File updated by another user
       })
 
       newSocket.on("files_saved", (data) => {
         console.log("💾 [WebSocket] Files saved:", data)
-        // Файлы сохранены другим пользователем
+        // Files saved by another user
       })
 
       newSocket.on("error", (error) => {
@@ -289,7 +289,7 @@ export function useWebSocket({
       setSocket(newSocket)
     }, 100) // 100ms debounce delay
 
-    // Cleanup при размонтировании
+    // Cleanup on unmount
     return () => {
       console.log("🛑 [WebSocket] Disconnecting...")
       isConnecting.current = false
@@ -304,9 +304,9 @@ export function useWebSocket({
         setIsConnected(false)
       }
     }
-  }, [projectId]) // Только projectId в зависимостях
+  }, [projectId]) // Only projectId in dependencies
 
-  // Методы для отправки событий
+  // Methods for sending events
   const saveAllChanges = useCallback(
     (commitMessage?: string) => {
       if (socket && isConnected) {

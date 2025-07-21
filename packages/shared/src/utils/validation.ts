@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 /**
- * Безопасная валидация данных с возвращением результата
  */
 export function safeValidate<T>(
   schema: z.ZodSchema<T>,
@@ -29,7 +28,6 @@ export function safeValidate<T>(
 }
 
 /**
- * Валидация с выбросом ошибки
  */
 export function validateOrThrow<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = safeValidate(schema, data);
@@ -40,7 +38,6 @@ export function validateOrThrow<T>(schema: z.ZodSchema<T>, data: unknown): T {
 }
 
 /**
- * Проверка является ли строка валидным UUID
  */
 export function isValidUUID(str: string): boolean {
   const uuidRegex =
@@ -49,7 +46,6 @@ export function isValidUUID(str: string): boolean {
 }
 
 /**
- * Проверка является ли строка валидным URL
  */
 export function isValidURL(str: string): boolean {
   try {
@@ -61,7 +57,6 @@ export function isValidURL(str: string): boolean {
 }
 
 /**
- * Санитизация имени файла
  */
 export function sanitizeFileName(fileName: string): string {
   return fileName
@@ -71,7 +66,6 @@ export function sanitizeFileName(fileName: string): string {
 }
 
 /**
- * Проверка расширения файла
  */
 export function isAllowedFileExtension(
   fileName: string,

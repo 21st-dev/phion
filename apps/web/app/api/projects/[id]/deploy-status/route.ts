@@ -5,7 +5,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   try {
     const supabase = getSupabaseServerClient()
 
-    // Проверяем аутентификацию
+    // Check 
     const {
       data: { user },
       error: authError,
@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { id: projectId } = await params
     const deployStatusQueries = new DeployStatusQueries(supabase)
 
-    // Получаем статусы деплоев для проекта
+    // Get  project
     const deployStatuses = await deployStatusQueries.getProjectDeployStatuses(projectId, 20)
 
     return NextResponse.json({ deployStatuses })

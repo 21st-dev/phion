@@ -1,5 +1,5 @@
 /**
- * Безопасная валидация данных с возвращением результата
+ * Safe data validation with result return
  */
 export function safeValidate(schema, data) {
     try {
@@ -24,7 +24,7 @@ export function safeValidate(schema, data) {
     }
 }
 /**
- * Валидация с выбросом ошибки
+ * Validation with error throwing
  */
 export function validateOrThrow(schema, data) {
     const result = safeValidate(schema, data);
@@ -34,14 +34,14 @@ export function validateOrThrow(schema, data) {
     return result.data;
 }
 /**
- * Проверка является ли строка валидным UUID
+ * Check if string is a valid UUID
  */
 export function isValidUUID(str) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
 }
 /**
- * Проверка является ли строка валидным URL
+ * Check if string is a valid URL
  */
 export function isValidURL(str) {
     try {
@@ -53,7 +53,7 @@ export function isValidURL(str) {
     }
 }
 /**
- * Санитизация имени файла
+ * Filename sanitization
  */
 export function sanitizeFileName(fileName) {
     return fileName
@@ -62,7 +62,7 @@ export function sanitizeFileName(fileName) {
         .replace(/^_+|_+$/g, "");
 }
 /**
- * Проверка расширения файла
+ * File extension validation
  */
 export function isAllowedFileExtension(fileName, allowedExtensions) {
     const extension = fileName.split(".").pop()?.toLowerCase();

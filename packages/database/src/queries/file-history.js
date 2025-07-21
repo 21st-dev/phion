@@ -4,7 +4,6 @@ export class FileHistoryQueries {
         this.client = client;
     }
     /**
-     * Получить историю файлов проекта
      */
     async getProjectFileHistory(projectId, limit = 100, offset = 0) {
         const { data, error } = await this.client
@@ -19,7 +18,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить историю конкретного файла
      */
     async getFileHistory(projectId, filePath, limit = 50) {
         const { data, error } = await this.client
@@ -35,7 +33,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить последнюю версию файла
      */
     async getLatestFileVersion(projectId, filePath) {
         const { data, error } = await this.client
@@ -48,14 +45,13 @@ export class FileHistoryQueries {
             .single();
         if (error) {
             if (error.code === "PGRST116") {
-                return null; // Файл не найден
+                return null; // File not found
             }
             throw new Error(`Failed to fetch latest file version: ${error.message}`);
         }
         return data;
     }
     /**
-     * Создать запись истории файла
      */
     async createFileHistory(historyData) {
         const insertData = {
@@ -79,7 +75,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Получить запись по ID
      */
     async getFileHistoryById(id) {
         const { data, error } = await this.client
@@ -96,7 +91,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Найти файлы по хешу содержимого (дедупликация)
      */
     async findFilesByContentHash(contentHash) {
         const { data, error } = await this.client
@@ -110,7 +104,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить изменения между двумя версиями
      */
     async getChangesBetweenVersions(projectId, fromDate, toDate) {
         const { data, error } = await this.client
@@ -126,10 +119,9 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить статистику по файлам проекта (упрощенная версия)
      */
     async getProjectFileStats(projectId) {
-        // Получаем все записи истории для проекта
+        // Get all history records for project
         const { data, error } = await this.client
             .from("file_history")
             .select("file_path, file_size, created_at");
@@ -137,7 +129,7 @@ export class FileHistoryQueries {
             throw new Error(`Failed to fetch project file stats: ${error.message}`);
         }
         const files = data;
-        // Подсчитываем статистику
+        // Calculate statistics
         const uniqueFiles = new Set(files.map((f) => f.file_path));
         const totalSize = files.reduce((sum, f) => sum + f.file_size, 0);
         const lastUpdated = files.length > 0
@@ -152,7 +144,6 @@ export class FileHistoryQueries {
         };
     }
     /**
-     * Получить последние версии всех файлов проекта
      */
     async getLatestFileVersions(projectId) {
         const { data, error } = await this.client
@@ -163,7 +154,7 @@ export class FileHistoryQueries {
         if (error) {
             throw new Error(`Failed to fetch latest file versions: ${error.message}`);
         }
-        // Группируем по file_path и берем последнюю версию каждого файла
+        // Group by file_path and take latest version of each file
         const latestVersionsMap = new Map();
         for (const file of data || []) {
             const existing = latestVersionsMap.get(file.file_path);
@@ -176,7 +167,6 @@ export class FileHistoryQueries {
         return Array.from(latestVersionsMap.values());
     }
     /**
-     * Создать запись истории файла с GitHub информацией
      */
     async createFileHistoryWithGitHub(historyData) {
         const insertData = {
@@ -202,7 +192,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Обновить GitHub информацию для записи истории файла
      */
     async updateGitHubInfo(fileHistoryId, githubInfo) {
         const updateData = {
@@ -221,7 +210,6 @@ export class FileHistoryQueries {
         return data;
     }
     /**
-     * Получить файлы по GitHub commit SHA
      */
     async getFilesByGitHubCommit(projectId, githubCommitSha) {
         const { data, error } = await this.client
@@ -236,7 +224,6 @@ export class FileHistoryQueries {
         return data || [];
     }
     /**
-     * Получить записи без GitHub информации (для миграции)
      */
     async getFilesWithoutGitHubInfo(projectId, limit = 100) {
         let query = this.client

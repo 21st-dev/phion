@@ -1,113 +1,113 @@
 # 🚀 Phion.dev
 
-Платформа для редактирования фронтенд-кода с автоматической синхронизацией и деплоем.
+Platform for frontend code editing with automatic synchronization and deployment.
 
-## 🛠️ Локальная разработка
+## 🛠️ Local Development
 
-### Настройка окружения
+### Environment Setup
 
-1. Скопируйте `env.example` в `.env.local`:
+1. Copy `env.example` to `.env.local`:
 
 ```bash
 cp env.example .env.local
 ```
 
-2. Убедитесь, что в `.env.local` установлено:
+2. Make sure `.env.local` contains:
 
 ```bash
 NODE_ENV=development
 ```
 
-3. Запустите платформу:
+3. Start the platform:
 
 ```bash
 pnpm run dev:all
 ```
 
-### Тестирование с проектами
+### Testing with Projects
 
-Теперь когда вы создадите проект через веб-интерфейс:
+When you create a project through the web interface:
 
-- **Локальная разработка**: `phion.config.json` будет содержать `ws://localhost:8080`
-- **Продакшн**: `phion.config.json` будет содержать `wss://api.phion.com`
+- **Local development**: `phion.config.json` will contain `ws://localhost:8080`
+- **Production**: `phion.config.json` will contain `wss://api.phion.com`
 
-URL автоматически определяется на основе `NODE_ENV`.
+URL is automatically determined based on `NODE_ENV`.
 
-### Структура проекта
+### Project Structure
 
 ```
-shipvibes/
+phion/
 ├── apps/
-│   ├── web/                 # Next.js веб-приложение (порт 3004)
-│   └── websocket-server/    # WebSocket сервер (порт 8080)
+│   ├── web/                 # Next.js web application (port 3004)
+│   └── websocket-server/    # WebSocket server (port 8080)
 ├── packages/
-│   ├── database/           # Supabase интеграция
-│   ├── dev-agent/          # npm пакет phion для синхронизации
-│   ├── shared/             # Общие типы и утилиты
-│   └── storage/            # Cloudflare R2 (устаревшее)
+│   ├── database/           # Supabase integration
+│   ├── dev-agent/          # phion npm package for synchronization
+│   ├── shared/             # Shared types and utilities
+│   └── storage/            # Cloudflare R2 (deprecated)
 └── templates/
-    └── vite-react/         # Шаблон проекта для пользователей
+    └── vite-react/         # Project template for users
 ```
 
-## 🔧 Технологии
+## 🔧 Technologies
 
 - **Frontend**: Next.js 15, React 18, Tailwind CSS, shadcn/ui
 - **Backend**: Node.js, Express, Socket.IO
 - **Database**: Supabase (PostgreSQL)
-- **File Storage**: GitHub (через GitHub App)
+- **File Storage**: GitHub (via GitHub App)
 - **Deploy**: Netlify
 - **Sync**: WebSocket + File Watcher (chokidar)
 
 ## 📋 Workflow
 
-1. **Создание проекта**: Пользователь создает проект в веб-интерфейсе
-2. **Скачивание**: Получает ZIP с настроенным шаблоном
-3. **Локальная разработка**: Запускает `pnpm start` (dev server + sync agent)
-4. **Синхронизация**: Изменения автоматически отправляются в облако
-5. **Деплой**: Автоматический деплой на Netlify
+1. **Project Creation**: User creates project in web interface
+2. **Download**: Gets ZIP with configured template
+3. **Local Development**: Runs `pnpm start` (dev server + sync agent)
+4. **Synchronization**: Changes automatically sent to cloud
+5. **Deploy**: Automatic deployment to Netlify
 
-## 🚀 Запуск
+## 🚀 Getting Started
 
 ```bash
-# Установка зависимостей
+# Install dependencies
 pnpm install
 
-# Копирование конфигурации
+# Copy configuration
 cp env.example .env.local
 
-# Запуск всех сервисов
+# Start all services
 pnpm run dev:all
 ```
 
-После запуска:
+After startup:
 
-- Веб-интерфейс: http://localhost:3004
-- WebSocket сервер: ws://localhost:8080
+- Web interface: http://localhost:3004
+- WebSocket server: ws://localhost:8080
 
-## 📦 Пакеты
+## 📦 Packages
 
 ### `phion` (dev-agent)
 
-npm пакет для синхронизации файлов между локальным проектом и облаком.
+npm package for file synchronization between local project and cloud.
 
-**Установка:**
+**Installation:**
 
 ```bash
 pnpm add phion
 ```
 
-**Использование:**
+**Usage:**
 
 ```bash
-phion  # читает phion.config.json
+phion  # reads phion.config.json
 ```
 
-**Конфигурация `phion.config.json`:**
+**Configuration `phion.config.json`:**
 
 ```json
 {
-  "projectId": "uuid-проекта",
-  "wsUrl": "ws://localhost:8080", // локально
+  "projectId": "project-uuid",
+  "wsUrl": "ws://localhost:8080", // local
   "debug": false
 }
 ```

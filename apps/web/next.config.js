@@ -3,13 +3,11 @@ require("dotenv").config({ path: "../../.env.local" })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Включаем поддержку Turborepo (transpilePackages вынесен из experimental в Next.js 14)
   transpilePackages: ["@shipvibes/shared", "@shipvibes/database"],
 
-  // Webpack конфигурация для исключения ngrok бинарников
+  // Webpack configuration to exclude ngrok binaries
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Исключаем ngrok бинарники из обработки webpack
       config.externals = config.externals || []
       config.externals.push({
         "@ngrok/ngrok": "commonjs @ngrok/ngrok",
@@ -17,7 +15,6 @@ const nextConfig = {
     }
     return config
   },
-  // Настройки для работы с WebSocket
   async rewrites() {
     return [
       {

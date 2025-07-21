@@ -59,14 +59,14 @@ export function Header({ user, project }: HeaderProps) {
     <header className="bg-background-100">
       <div className="px-4 ">
         <div className="flex py-2 items-center justify-between">
-          {/* Logo и навигация */}
+          {/* Logo and navigation */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <Logo width={22} height={22} />
               <span className="text-gray-1000 font-semibold text-sm">Phion</span>
             </Link>
 
-            {/* Показываем название проекта через слеш если проект передан */}
+            {/* Show project name with slash if project provided */}
             {project && (
               <div className="flex items-center gap-1 ml-1">
                 <SlashIcon />

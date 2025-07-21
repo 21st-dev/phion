@@ -9,7 +9,6 @@ export default function ProjectOnboardingPage() {
   const { project, agentConnected } = useProject()
   const router = useRouter()
 
-  // Редиректим только если у проекта уже есть netlify_site_id (онбординг уже пройден)
   useEffect(() => {
     if (project.netlify_site_id) {
       console.log("🔄 [Onboarding] Project already has netlify_site_id, redirecting to overview...")
