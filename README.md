@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo**: Create a project, edit code locally, and watch changes deploy to Netlify automatically via WebSocket sync.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
