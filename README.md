@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow Demo**: This repository is used as a live demo of the Phion AI workflow — edits are proposed, reviewed, and merged automatically via the agent pipeline.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
