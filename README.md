@@ -1,5 +1,7 @@
 # 🚀 Phion.dev
 
+<!-- workflow-miro OpenSandbox validation smoke 1744675200 -->
+
 Platform for frontend code editing with automatic synchronization and deployment.
 
 ## 🛠️ Local Development
