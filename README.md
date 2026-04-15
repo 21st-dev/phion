@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo:** Edit code in the browser, see changes live-synced and deployed in seconds.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
