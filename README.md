@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo**: Edit code locally, and Phion automatically syncs, deploys, and previews your changes in the cloud — no manual steps required.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
