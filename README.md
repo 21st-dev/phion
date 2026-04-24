@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow Demo**: Create a project, edit code locally, and watch it deploy automatically — all in under 60 seconds.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
