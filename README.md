@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow Demo:** AI agents can autonomously open PRs, edit files, and trigger deployments — all from a single chat message.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
