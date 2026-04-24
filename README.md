@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo**: This project supports automated AI-driven workflows for code editing and deployment.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
