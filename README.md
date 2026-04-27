@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo**: edit code locally, run `pnpm start`, and watch your changes sync and deploy to Netlify automatically.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
