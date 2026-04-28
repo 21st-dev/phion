@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo**: Edit code locally, watch changes sync to the cloud in real time, and get a live Netlify URL — all in one `pnpm start`.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
