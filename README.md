@@ -2,6 +2,8 @@
 
 Platform for frontend code editing with automatic synchronization and deployment.
 
+> **Workflow demo**: Create a project, download the template, run `pnpm start`, and watch your local changes sync and deploy automatically in real time.
+
 ## 🛠️ Local Development
 
 ### Environment Setup
