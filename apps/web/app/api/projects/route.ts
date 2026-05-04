@@ -1,4 +1,5 @@
 import { FREE_TIER_LIMIT, PRO_TIER_LIMIT } from "@/lib/constants"
+import { ensureMetronomeCustomer, ingestUsageEvent } from "@/lib/metronome"
 import {
   createAuthServerClient,
   createProject,
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User email not found" }, { status: 400 })
     }
 
+    // Ensure a Metronome customer record exists for this user (fire-and-forget)
+    ensureMetronomeCustomer(user.id, email).catch(() => {})
+
     // Check  project
     const { data: existingProjects, error: countError } = await supabase
       .from("projects")
@@ -156,6 +160,12 @@ export async function POST(request: NextRequest) {
     })
 
     console.log(`🎉 Project created: ${project.id} by user ${user.id}`)
+
+    // Ingest usage event into Metronome (fire-and-forget)
+    ingestUsageEvent(user.id, "project_created", {
+      project_id: project.id,
+      template_type,
+    }).catch(() => {})
 
     const response = NextResponse.json({
       projectId: project.id, // Add projectId for frontend compatibility
