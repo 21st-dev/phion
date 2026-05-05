@@ -419,29 +419,54 @@ async function saveFullProjectSnapshot(projectId: string, commitMessage?: string
       commitMessage || `Save project changes (${pendingChanges.length} files)`
     console.log(`📄 Creating GitHub commit: ${finalCommitMessage}`)
 
-    const commits: string[] = []
-    for (const change of pendingChanges) {
+    // Get the latest commit to use as the parent for the new commit
+    const parentCommit = await githubAppService.getLatestCommit(project.github_repo_name)
+    if (!parentCommit) {
+      throw new Error(`No parent commit found for repository ${project.github_repo_name}`)
+    }
+
+    // Create blobs for all non-deleted files in parallel chunks
+    const filesToCommit = pendingChanges.filter((change) => change.action !== "deleted")
+    const deletedFiles = pendingChanges.filter((change) => change.action === "deleted")
+
+    if (deletedFiles.length > 0) {
+      console.log(
+        `⚠️ ${deletedFiles.length} file deletion(s) will be skipped (not yet implemented): ${deletedFiles.map((f) => f.file_path).join(", ")}`,
+      )
+    }
+
+    const blobs: { path: string; sha: string }[] = []
+    for (const change of filesToCommit) {
       try {
-        if (change.action === "deleted") {
-          // TODO: Implement file deletion in GitHub
-          console.log(`⚠️ File deletion not yet implemented: ${change.file_path}`)
-          continue
-        }
-
-        const result = await githubAppService.createOrUpdateFile(
-          project.github_repo_name!,
-          change.file_path,
-          change.content,
-          `Update ${change.file_path}`,
-        )
-
-        commits.push(result.commit.sha)
-        console.log(`✅ Updated file in GitHub: ${change.file_path} (${result.commit.sha})`)
+        const blob = await githubAppService.createBlob(project.github_repo_name!, change.content)
+        blobs.push({ path: change.file_path, sha: blob.sha })
+        console.log(`✅ Created blob for: ${change.file_path} (${blob.sha})`)
       } catch (error) {
-        console.error(`❌ Failed to update file ${change.file_path} in GitHub:`, error)
+        console.error(`❌ Failed to create blob for ${change.file_path}:`, error)
         throw error
       }
     }
+
+    // Create a single tree combining all file changes with the existing tree
+    const tree = await githubAppService.createTree(
+      project.github_repo_name!,
+      blobs,
+      parentCommit.sha,
+    )
+
+    // Create one atomic commit for all pending changes
+    const commit = await githubAppService.createCommit(
+      project.github_repo_name!,
+      finalCommitMessage,
+      tree.sha,
+      [parentCommit.sha],
+    )
+
+    // Advance the main branch to the new commit
+    await githubAppService.updateRef(project.github_repo_name!, "heads/main", commit.sha)
+
+    const mainCommitSha = commit.sha
+    console.log(`✅ GitHub commit created: ${mainCommitSha} with ${filesToCommit.length} files`)
 
     await commitHistoryQueries.createCommitHistory({
       project_id: projectId,
@@ -1751,6 +1776,8 @@ app.post("/webhooks/netlify", async (req, res) => {
     let newStatus: "pending" | "building" | "ready" | "failed" | "cancelled"
 
     switch (state) {
+      case "ready": // deploy_ready event
+      case "published": // alternate ready state
         newStatus = "ready"
         break
       case "failed": // deploy_failed event
